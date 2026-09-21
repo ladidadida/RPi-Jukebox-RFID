@@ -3,24 +3,9 @@
 # Sole (!) exception is in playermpd.mpd_conf
 system:
   box_name: Jukebox
-modules:
-  named:
-    # Do not change the order!
-    publishing: publishing
-    volume: volume
-    jingle: jingle
-    jingle.alsawave: jingle.alsawave
-    jingle.jinglemp3: jingle.jinglemp3
-    player: player.plugin
-    cards: rfid.cards
-    rfid: rfid.reader
-    timers: timers
-    host: hostif.linux
-    bluetooth_audio_buttons: controls.bluetooth_audio_buttons
-    gpio: gpio.gpioz.plugin
-    sync_rfidcards: synchronisation.rfidcards
-  others:
-  - misc
+# The `modules` config-driven plugin loader was removed along with the old plugin system (see
+# documentation/developers/roadmap-core-architecture.md). jukebox.daemon now wires the surviving
+# components (publishing, misc, player, rfid) directly instead of reading a list from here.
 pulse:
   # Reset system volume to this level after start. (Comment out disables and volume is not changed)
   startup_volume: 40

@@ -15,9 +15,9 @@ import misc.inputminus as pyil
 from misc.inputminus import msg_highlight
 from misc.simplecolors import Colors
 import jukebox.cfghandler
-import jukebox.plugs
 
-jukebox.plugs.ALLOW_DIRECT_IMPORTS = True
+# TODO: components.hostif was removed along with the old plugin system (see
+# documentation/developers/roadmap-core-architecture.md) and hasn't been reintroduced yet.
 import components.hostif.linux as host  # noqa: E402
 
 

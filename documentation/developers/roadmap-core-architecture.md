@@ -87,6 +87,27 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
 7. **Measure before/after.** "High performance" needs a number, not a vibe — concurrent library scans,
    cover-art fetches, and RPC calls during active playback are the realistic stress cases.
 
+## Old plugin system removed
+
+The old dynamic, config-driven plugin system (`jukebox.plugs`, `@plugs.register` /
+`@plugs.initialize` / `@plugs.finalize` / `@plugs.atexit` decorators, one lock serializing every
+call) has been removed entirely, not just deprioritized. Replaced by `jukebox.registry`: a minimal
+explicit call registry with the same `(package, plugin, method)` addressing (so the webapp's RPC
+call shape didn't need to change) but no dynamic loading, no decorator magic, and no shared global
+lock -- `jukebox.daemon.run()` now wires up each component directly (`register()` / `start()`
+calls), and each component is responsible for its own thread-safety.
+
+Everything not immediately essential was stripped along with it: `gpio`, `mqtt`, `volume`,
+`timers`, `battery_monitor`, `controls`, `jingle`, `hostif`, `synchronisation` are gone from
+`src/jukebox/components`, deleted rather than archived (recoverable from git history if needed).
+Only `player` (MPD) and `rfid` (reader + card database) survived, rewired onto `jukebox.registry`.
+`publishing` and `misc` also survived (framework-adjacent, not really "plugins"). This was a
+deliberate "draft without plugins/components" cut, not an oversight -- the removed pieces come
+back later as newly designed components, not restored as-is.
+
+This directly supersedes the "merge `future3/draft-entrypoint-plugins` later" framing further up
+in this doc: there is no old plugin system left to extend at this point.
+
 ## Relationship to the other fork tracks
 
 - **Plugin system**: deliberately *not* pulling in upstream's `future3/draft-entrypoint-plugins` draft

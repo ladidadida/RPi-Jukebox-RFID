@@ -5,10 +5,10 @@ import importlib
 from typing import Callable
 from enum import Enum
 
-import jukebox.plugs as plugs
 import jukebox.cfghandler
 import jukebox.utils as utils
 import jukebox.publishing as publishing
+import jukebox.registry as registry
 from components.rfid.cardutils import (decode_card_command)
 
 from jukebox.callingback import CallbackHandler
@@ -127,7 +127,7 @@ class ReaderRunner(threading.Thread):
             self._timer_thread.name = f"{reader_cfg_key}CRemover"
             self._timer_thread.start()
         self.publisher = None
-        self.topic = f"{plugs.loaded_as(__name__)}.card_id"
+        self.topic = "rfid.card_id"
         # Ready to go
         self._cancel = threading.Event()
 
@@ -216,8 +216,9 @@ class ReaderRunner(threading.Thread):
                                 # TODO: This call happens from the reader thread, which is not necessarily what we want ...
                                 # TODO: Change to RPC call to transfer execution into main thread
                                 rfid_card_detect_callbacks.run_callbacks(card_id, RfidCardDetectState.isRegistered)
-                                plugs.call_ignore_errors(card_action['package'], card_action['plugin'], card_action['method'],
-                                                         args=card_action['args'], kwargs=card_action['kwargs'])
+                                registry.call_ignore_errors(card_action['package'], card_action['plugin'],
+                                                            card_action['method'], args=card_action['args'],
+                                                            kwargs=card_action['kwargs'])
 
                         else:
                             rfid_card_detect_callbacks.run_callbacks(card_id, RfidCardDetectState.isUnkown)
@@ -237,8 +238,12 @@ class ReaderRunner(threading.Thread):
         self._logger.debug("Stop listening!")
 
 
-@plugs.finalize
-def finalize():
+def start_readers():
+    """Load the reader config/database and start a ReaderRunner thread per configured reader.
+
+    Called explicitly by jukebox.daemon at start-up (no plugin system, see
+    documentation/developers/roadmap-core-architecture.md).
+    """
     try:
         reader_config_file = cfg_main.getn('rfid', 'reader_config')
         jukebox.cfghandler.load_yaml(cfg_rfid, reader_config_file)
@@ -257,8 +262,7 @@ def finalize():
             _READERS[reader_cfg_key].start()
 
 
-@plugs.atexit
-def atexit(**ignored_kwargs):
+def stop_readers(**ignored_kwargs):
     # For all parallel readers, call the stop function
     for reader in _READERS.values():
         reader.stop()

@@ -16,8 +16,9 @@ import argparse
 
 import misc.inputminus as pyil
 import components.rfid.configure as rfid_configure
-import jukebox.plugs
-jukebox.plugs.ALLOW_DIRECT_IMPORTS = True
+
+# TODO: components.hostif was removed along with the old plugin system (see
+# documentation/developers/roadmap-core-architecture.md) and hasn't been reintroduced yet.
 import components.hostif.linux as host  # noqa: E402
 
 # Create logger

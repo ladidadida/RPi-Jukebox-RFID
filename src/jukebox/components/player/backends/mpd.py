@@ -91,7 +91,7 @@ from pathlib import Path
 import components.player
 import jukebox.cfghandler
 import jukebox.utils as utils
-import jukebox.plugs as plugs
+import jukebox.registry as plugs
 import jukebox.multitimer as multitimer
 import jukebox.publishing as publishing
 import jukebox.playlistgenerator as playlistgenerator

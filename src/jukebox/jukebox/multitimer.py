@@ -5,7 +5,7 @@ import threading
 from time import monotonic
 from typing import Any, Callable, Dict, Optional
 
-import jukebox.plugs as plugin
+import jukebox.registry as plugin
 import jukebox.publishing as publishing
 
 

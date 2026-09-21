@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Mapping
 
-import jukebox.plugs as plugs
+import jukebox.registry as registry
 
 logger = logging.getLogger('jb.rpc.processor')
 
@@ -47,7 +47,7 @@ def _execute(request):
         return None, "Missing mandatory parameter 'plugin'."
 
     try:
-        result = plugs.call(
+        result = registry.call(
             package,
             plugin,
             request.get('method'),

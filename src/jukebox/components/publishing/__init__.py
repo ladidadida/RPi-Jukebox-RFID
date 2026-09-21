@@ -1,16 +1,13 @@
 """
-Plugin interface for Jukebox Publisher
+Publisher start-up/shutdown and RPC calls, called explicitly by jukebox.daemon (no plugin system).
 
-Thin wrapper around jukebox.publishing to benefit from the plugin loading / exit handling / function handling
-
-This is the first package to be loaded and the last to be closed: put Hello and Goodbye publish messages here.
-
+This is the first component started and the last stopped: Hello/Goodbye publish messages live here.
 """
 
 import logging
 import jukebox
 import jukebox.cfghandler
-import jukebox.plugs as plugin
+import jukebox.registry as registry
 import jukebox.publishing as pub
 
 logger = logging.getLogger('jb.pub')
@@ -20,7 +17,6 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 _PUBLISH_SERVER_THREAD: pub.server.PublishServer
 
 
-@plugin.register
 def republish(topic=None):
     """Re-publish the topic tree 'topic' to all subscribers
 
@@ -28,8 +24,11 @@ def republish(topic=None):
     pub.get_publisher().resend(topic)
 
 
-@plugin.initialize
-def initialize():
+def register():
+    registry.register(republish, name='republish', package='publishing')
+
+
+def start():
     global _PUBLISH_SERVER_THREAD
     tcp_port = cfg.setndefault('publishing', 'tcp_port', value=5558)
     _PUBLISH_SERVER_THREAD = pub.server.PublishServer(tcp_port=tcp_port)
@@ -38,8 +37,7 @@ def initialize():
     pub.get_publisher().send('core.version', jukebox.version())
 
 
-@plugin.atexit
-def closing(**ignored_kwargs):
+def stop(**ignored_kwargs):
     global _PUBLISH_SERVER_THREAD
     logger.debug("Closing publish server connection")
     pub.get_publisher().send('core.welcome', 'Goodbye. Hear you later!')

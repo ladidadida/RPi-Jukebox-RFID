@@ -14,9 +14,13 @@ apply.
 
 ```
 src/jukebox/       Python core application ("Jukebox Core") — the daemon that runs on the Pi
-  jukebox/         Core framework: plugin loader, RPC server, publishing/pubsub, config handling
-  components/      Plugins loaded dynamically: player (MPD), rfid, gpio, mqtt, volume, timers,
-                   battery_monitor, controls, jingle, hostif, synchronisation, publishing
+  jukebox/         Core framework: explicit component registry, RPC server, FastAPI/Tornado API
+                   bridges, publishing/pubsub, config handling
+  components/      Explicitly wired by jukebox.daemon at start-up (no plugin/config-driven
+                   loading — see documentation/developers/roadmap-core-architecture.md): player
+                   (MPD), rfid, publishing, misc. Other former components (gpio, mqtt, volume,
+                   timers, battery_monitor, controls, jingle, hostif, synchronisation) were
+                   removed and will come back as new, not-yet-designed components.
   misc/            Shared utility code
   run_*.py         Entry points (jukebox core, RPC tool, RFID registration, audio config, sniffer)
 src/webapp/        React front-end (the touch/web UI), talks to the core via RPC/ZeroMQ over WebSocket
@@ -33,10 +37,12 @@ ci/                CI helper scripts (e.g. installation testing)
 
 ## Architecture essentials
 
-- **Plugin interface**: the core app dynamically loads packages from `src/jukebox/components`
-  based on config. Each plugin registers functions callable via RPC. A failing plugin is skipped
-  at startup (check logs), not fatal.
-- **RPC server**: the Web App, RFID card swipes, GPIO button presses, and the `run_rpc_tool.py`
+- **Component registry**: `jukebox.registry` (replacing the old `jukebox.plugs` dynamic plugin
+  system) is a minimal explicit call registry. `jukebox.daemon.run()` wires up each component
+  (currently: publishing, misc, player, rfid) directly by calling its `register()`/`start()`
+  functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
+  `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
+- **RPC server**: the Web App, RFID card swipes, and the `run_rpc_tool.py`
   CLI all trigger core functionality through the *same* RPC protocol — read
   `documentation/builders/rpc-commands.md` before adding a new user-triggerable action.
   Transport is ZeroMQ (`pyzmq` / `jszmq` on the webapp side).

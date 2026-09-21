@@ -2,7 +2,7 @@ import logging
 
 import components.player
 import jukebox.cfghandler
-import jukebox.plugs as plugs
+import jukebox.registry as registry
 import misc
 
 from .backends.mpd import PlayerMPD
@@ -13,15 +13,11 @@ logger = logging.getLogger('jb.player')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
 
-def initialize_mpd_player(plugin_module_name: str) -> PlayerCoordinator:
-    """Create the coordinator with MPD as its sole backend and register it."""
+def initialize_mpd_player() -> PlayerCoordinator:
+    """Create the coordinator with MPD as its sole backend and register it as 'player.ctrl'."""
     player_ctrl = PlayerCoordinator(components.player.play_card_callbacks)
     player_ctrl.register_backend('mpd', PlayerMPD())
-    plugs.register(
-        player_ctrl,
-        name='ctrl',
-        package=plugs.loaded_as(plugin_module_name),
-    )
+    registry.register(player_ctrl, name='ctrl', package='player')
 
     if cfg.setndefault('playermpd', 'library', 'update_on_startup', value=True):
         player_ctrl.update()

@@ -21,7 +21,7 @@ def test_tcp_rpc_wire_format_and_malformed_json_recovery(monkeypatch):
         lambda *keys, default=None: port if keys == ('rpc', 'tcp_port') else default,
     )
     monkeypatch.setattr(
-        processor.plugs,
+        processor.registry,
         'call',
         lambda package, plugin, method, **kwargs: {
             'package': package,

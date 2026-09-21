@@ -9,7 +9,7 @@ import atexit
 from typing import (Optional)
 
 from misc import flatten
-import jukebox.plugs as plugin
+import jukebox.registry as registry
 import jukebox.utils
 import jukebox.publishing as publishing
 from jukebox.api import ApiServer
@@ -28,7 +28,7 @@ def log_active_threads():
     """This functions is registered with atexit very early, meaning it will be run very late. It is the best guess to
     evaluate which Threads are still running (and probably shouldn't be)
 
-    This function is registered before all the plugins and their dependencies are loaded"""
+    This function is registered before all the components and their dependencies are loaded"""
     logger.debug(f"Active Threads = {threading.enumerate()}")
 
 
@@ -99,6 +99,13 @@ class JukeBox:
             sys.exit(1)
 
     def exit_gracefully(self, esignal, timeout):
+        # Imported lazily: these components import jukebox.daemon.get_jukebox_daemon at module level,
+        # so importing them at daemon.py module scope would be circular.
+        import components.publishing
+        import components.player.plugin
+        import components.rfid.cards
+        import components.rfid.reader
+
         msg = f"Closing down JukeBox {cfg.getn('system', 'box_name', default='Unnamed')}"
         print(msg)
         logger.info(msg)
@@ -108,24 +115,28 @@ class JukeBox:
         if self.api_server is not None:
             self.api_server.terminate()
         # (2) Stop the music
-        plugin.call_ignore_errors('player', 'ctrl', 'stop')
-        # (3) Call exit functions of all plugins -> return list of threads we should to wait for before shutting down
-        # Note about the data format:
-        # Potentially nested list since each function may return a list of threads -> flatten
-        # Some functions may return None: filter those
-        # thread_list = [t for t in flatten(plugin.close_down(signal_id=esignal)) if t is not None]
-        thread_list = list(filter(lambda x: x is not None, flatten(plugin.close_down(signal_id=esignal))))
+        registry.call_ignore_errors('player', 'ctrl', 'stop')
+        # (3) Shut down the explicitly wired components (see run()) in reverse start-up order,
+        # collecting whatever threads they return so we can wait for them below.
+        # Some functions may return None or nested lists: flatten and filter those.
+        shutdown_results = [
+            components.rfid.reader.stop_readers(signal_id=esignal),
+            components.rfid.cards.stop(signal_id=esignal),
+            components.player.plugin.stop(),
+            components.publishing.stop(signal_id=esignal),
+        ]
+        thread_list = list(filter(lambda x: x is not None, flatten(shutdown_results)))
         # (4) Save all nonvolatile data
         self.nvm.save_all()
         cfg.save(only_if_changed=True)
         # (5) Wait for open threads to close
-        # Note: Not waiting for ALL open threads, but only for those threads that are returned by the
-        # @plugin.atexit-registered functions of the plugin modules
-        logger.debug(f"Waiting {timeout}s for @plugin.atexit-threads to complete: {thread_list}")
+        # Note: Not waiting for ALL open threads, only for those threads returned by the shutdown
+        # calls in (3) above.
+        logger.debug(f"Waiting {timeout}s for component shutdown threads to complete: {thread_list}")
         for t in thread_list:
             t.join()
 
-        logger.debug("All @plugin.atexit threads closed")
+        logger.debug("All component shutdown threads closed")
         # (6) Say goodbye
         msg = "All done. Hear you soon!"
         print(msg)
@@ -134,99 +145,28 @@ class JukeBox:
     def run(self):
         time_start = time.time_ns()
 
-        # Load the plugins
-        # Ignore all errors during plugin loading to provide functionality
-        # even if a plugin throws errors or has bad error handling
-        plugins_named = cfg.getn('modules', 'named', default={})
-        plugins_other = cfg.getn('modules', 'others', default=[])
-        plugin.load_all_named(plugins_named, prefix='components', ignore_errors=True)
-        plugin.load_all_unnamed(plugins_other, prefix='components', ignore_errors=True)
-        plugin.load_all_finalize(ignore_errors=True)
+        # Imported lazily: components.misc imports jukebox.daemon.get_jukebox_daemon at module level,
+        # so importing them at daemon.py module scope would be circular.
+        import components.misc
+        import components.publishing
+        import components.player.plugin
+        import components.rfid.cards
+        import components.rfid.reader
 
-        pack_ok = plugin.call_ignore_errors('misc', 'get_all_loaded_packages')
-        pack_error = plugin.call_ignore_errors('misc', 'get_all_failed_packages')
-        logger.info(f"Loaded plugins: {', '.join(pack_ok)}")
-        if len(pack_error) > 0:
-            logger.error(f"Plugins with errors during load: {', '.join(pack_error)}")
-        publishing.get_publisher().send('core.plugins.loaded', pack_ok)
-        publishing.get_publisher().send('core.plugins.error', pack_error)
+        # Explicitly wire up the components we need (no plugin system, see
+        # documentation/developers/roadmap-core-architecture.md). Order matters: publishing must be
+        # running before anything else sends messages; the card database must be loaded before the
+        # RFID reader starts scanning.
+        components.publishing.register()
+        components.publishing.start()
+        components.misc.register()
+        components.player.plugin.start()
+        components.rfid.cards.register()
+        components.rfid.cards.start()
+        components.rfid.reader.start_readers()
+
         publishing.get_publisher().send('core.started_at', time.ctime(self._start_time))
         publishing.get_publisher().send('core.git_state', self._git_state)
-
-        # ps = plugin.summarize()
-        # for k, v in ps.items():
-        #     print(f"{k}: {v}")
-
-        # Initial testing code:
-        # print(f"Callables = {plugin._PLUGINS}")
-        # print(f"{plugin.modules['volume'].factory.list()}")
-        # print(f"Volume factory = {plugin.get('volume', 'factory').list()}")
-
-        # Testcode for switching to another volume control service ...
-        # plugin.modules['volume'].factory.set_active("alsa2")
-        # print(f"Callables = {plugin.callables}")
-
-        # cfg_cards = jukebox.cfghandler.get_handler('cards')
-        #
-        # from components.rfid.cardutils import (card_to_str)
-        # logger.debug(f"Selected card command: {' / '.join(card_to_str('V', long=True))}")
-        # logger.debug(f"Selected card command: {' / '.join(card_to_str('new', long=True))}")
-        #
-        # print(f"\n\n{cfg_cards._data}")
-        # cl = plugin.call_ignore_errors('cards', 'list_cards')
-        # print(f"\n\n{cfg_cards._data}")
-        #
-        # logger.debug(f"Selected card command: {' / '.join(card_to_str('V', long=True))}")
-        # logger.debug(f"Selected card command: {' / '.join(card_to_str('new', long=True))}")
-
-        # for k, v in cl.items():
-        #     print(f"{k}: {v}")
-        # time.sleep(1)
-        # plugin.call_ignore_errors('cards', 'register_card', args=['new', 'inc_volume'], kwargs={'args': [15],
-        #                                                                                         'ignore_same_id_delay': True,
-        #                                                                                         'overwrite': True})
-        #
-        # time.sleep(1)
-        # plugin.call_ignore_errors('cards', 'delete_card', args=['1', False])
-        # cl = plugin.call_ignore_errors('cards', 'list_cards', )
-        # for k, v in cl.items():
-        #     print(f"{k}: {v}")
-
-        # Testcode for timers
-        # plugin.call_ignore_errors('timers', 'timer_shutdown', 'start', args=[10])
-        # time.sleep(2)
-        # plugin.call_ignore_errors('timers', 'timer_shutdown', 'trigger')
-        # plugin.call_ignore_errors('timers', 'timer_shutdown', 'cancel')
-        # plugin.call_ignore_errors('timers', 'timer_fade_volume', 'start', args=[4, 2])
-
-        # plugin.call_ignore_errors('host', 'timer_temperature', 'trigger')
-        # time.sleep(1)
-        # plugin.call_ignore_errors('host', 'timer_temperature', 'trigger')
-        # time.sleep(1)
-        # plugin.call_ignore_errors('host', 'timer_temperature', 'trigger')
-        # time.sleep(1)
-        # plugin.call_ignore_errors('host', 'timer_temperature', 'cancel')
-
-        # plugin.call_ignore_errors('publishing', 'republish')
-
-        # plugin.call_ignore_errors('host', 'reboot')
-
-        # # initialize gpio
-        # # TODO: GPIO not yet integrated
-        # gpio_config = None
-        # if gpio_config is not None:
-        #     pass
-        #     # gpio_config = configparser.ConfigParser(inline_comment_prefixes=";")
-        #     # gpio_config.read(self.config.get('GPIO', 'GPIO_CONFIG'))
-        #
-        #     # phoniebox_function_calls = function_calls.phoniebox_function_calls()
-        #     # gpio_controler = gpio_control(phoniebox_function_calls)
-        #
-        #     # devices = gpio_controler.get_all_devices(config)
-        #     # gpio_controler.print_all_devices()
-        #     # gpio_thread = threading.Thread(target=gpio_controler.gpio_loop)
-        # else:
-        #     gpio_thread = None
 
         self.rpc_server = RpcServer()
         self.api_server = ApiServer()
@@ -247,7 +187,7 @@ class JukeBox:
                 pass
 
             with open(os.path.join(artifacts_dir, 'rpc_command_reference.txt'), 'w') as stream:
-                plugin.dump_plugins(stream)
+                registry.dump_registry(stream)
 
             # Write reference of command shortcuts
             with open(os.path.join(artifacts_dir, 'rpc_command_alias_reference.txt'), 'w') as stream:

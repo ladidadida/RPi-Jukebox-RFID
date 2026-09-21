@@ -1,8 +1,5 @@
 import copy
 import logging
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock
 
 import pytest
@@ -12,7 +9,7 @@ from jukebox.rpc import processor
 
 def test_successful_request_passes_all_call_parameters(monkeypatch):
     call = Mock(return_value='done')
-    monkeypatch.setattr(processor.plugs, 'call', call)
+    monkeypatch.setattr(processor.registry, 'call', call)
     request = {
         'package': 'player',
         'plugin': 'ctrl',
@@ -38,7 +35,7 @@ def test_successful_request_passes_all_call_parameters(monkeypatch):
 
 
 def test_request_without_id_discards_result(monkeypatch):
-    monkeypatch.setattr(processor.plugs, 'call', lambda *args, **kwargs: 'done')
+    monkeypatch.setattr(processor.registry, 'call', lambda *args, **kwargs: 'done')
 
     response = processor.process_request({'package': 'player', 'plugin': 'ctrl'})
 
@@ -54,7 +51,7 @@ def test_request_without_id_discards_result(monkeypatch):
 )
 def test_missing_mandatory_fields(monkeypatch, rpc_request, message):
     call = Mock()
-    monkeypatch.setattr(processor.plugs, 'call', call)
+    monkeypatch.setattr(processor.registry, 'call', call)
 
     response = processor.process_request(rpc_request)
 
@@ -66,7 +63,7 @@ def test_plugin_error_retains_request_id(monkeypatch):
     def fail(*args, **kwargs):
         raise ValueError('bad call')
 
-    monkeypatch.setattr(processor.plugs, 'call', fail)
+    monkeypatch.setattr(processor.registry, 'call', fail)
 
     response = processor.process_request({
         'package': 'player',
@@ -81,7 +78,7 @@ def test_plugin_error_retains_request_id(monkeypatch):
 
 
 def test_unknown_keys_are_ignored(monkeypatch, caplog):
-    monkeypatch.setattr(processor.plugs, 'call', lambda *args, **kwargs: 'done')
+    monkeypatch.setattr(processor.registry, 'call', lambda *args, **kwargs: 'done')
 
     with caplog.at_level(logging.WARNING, logger='jb.rpc.processor'):
         response = processor.process_request({
@@ -119,14 +116,14 @@ def test_processing_does_not_mutate_input(monkeypatch):
         kwargs['kwargs']['settings']['volume'] = 99
         return 'done'
 
-    monkeypatch.setattr(processor.plugs, 'call', mutate_plugin_inputs)
+    monkeypatch.setattr(processor.registry, 'call', mutate_plugin_inputs)
 
     assert processor.process_request(request)['result'] == 'done'
     assert request == original
 
 
 def test_timestamp_is_reported_without_mutating_request(monkeypatch):
-    monkeypatch.setattr(processor.plugs, 'call', lambda *args, **kwargs: None)
+    monkeypatch.setattr(processor.registry, 'call', lambda *args, **kwargs: None)
     request = {
         'package': 'player',
         'plugin': 'ctrl',
@@ -138,31 +135,3 @@ def test_timestamp_is_reported_without_mutating_request(monkeypatch):
 
     assert response['total_processing_time'] == 1.5
     assert request['tsp'] == 1_000_000
-
-
-def test_plugin_execution_remains_serialized_across_transports(monkeypatch):
-    active_calls = 0
-    max_active_calls = 0
-    activity_lock = threading.Lock()
-
-    def slow_call(*args, **kwargs):
-        nonlocal active_calls, max_active_calls
-        with activity_lock:
-            active_calls += 1
-            max_active_calls = max(max_active_calls, active_calls)
-        time.sleep(0.02)
-        with activity_lock:
-            active_calls -= 1
-        return 'done'
-
-    monkeypatch.setattr(processor.plugs, '_call', slow_call)
-    requests = [
-        {'package': 'player', 'plugin': 'ctrl', 'id': transport}
-        for transport in ('http', 'zmq')
-    ]
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        responses = list(executor.map(processor.process_request, requests))
-
-    assert [response['result'] for response in responses] == ['done', 'done']
-    assert max_active_calls == 1

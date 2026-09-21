@@ -2,7 +2,7 @@ import logging
 import threading
 from typing import Any, Dict, Optional
 
-import jukebox.plugs as plugs
+import jukebox.registry as plugs
 
 from .playcontentcallback import PlayCardState, PlayContentCallbacks
 

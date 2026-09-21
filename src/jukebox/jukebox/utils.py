@@ -8,7 +8,7 @@ import subprocess
 from typing import (Dict, Optional)
 from components.rpc_command_alias import cmd_alias_definitions
 import inspect
-import jukebox.plugs as plugs
+import jukebox.registry as plugs
 
 
 log = logging.getLogger('jb.utils')

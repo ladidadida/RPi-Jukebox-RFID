@@ -385,11 +385,11 @@ class MusicLibrary:
 
 
 def create_music_library():
-    """Create the production library service after player plugins are loaded."""
+    """Create the production library service after the player component is started."""
     import components.player
-    import jukebox.plugs
+    import jukebox.registry
 
     return MusicLibrary(
         components.player.get_music_library_path,
-        lambda: jukebox.plugs.call('player', 'ctrl', 'update'),
+        lambda: jukebox.registry.call('player', 'ctrl', 'update'),
     )

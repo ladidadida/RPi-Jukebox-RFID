@@ -20,7 +20,7 @@ import time
 from typing import (List, Dict, Optional)
 import jukebox.utils as utils
 import jukebox.cfghandler
-import jukebox.plugs as plugs
+import jukebox.registry as registry
 import jukebox.publishing as publishing
 from components.rfid.cardutils import decode_card_command
 from components.rpc_command_alias import cmd_alias_definitions
@@ -31,7 +31,6 @@ cfg_cards = jukebox.cfghandler.get_handler('cards')
 cfg_main = jukebox.cfghandler.get_handler('jukebox')
 
 
-@plugs.register
 def list_cards():
     """Provide a summarized, decoded list of all card actions
 
@@ -44,7 +43,7 @@ def list_cards():
             action = decode_card_command(card_action)
 
             try:
-                func = plugs.get(action['package'], action['plugin'], action.get('method', None))
+                func = registry.get(action['package'], action['plugin'], action.get('method', None))
             except Exception as e:
                 description = f"ERROR: {e.__class__.__name__}: {e}"
             else:
@@ -67,7 +66,6 @@ def list_cards():
     return card_list
 
 
-@plugs.register
 def delete_card(card_id: str, auto_save: bool = True):
     """
 
@@ -84,10 +82,9 @@ def delete_card(card_id: str, auto_save: bool = True):
             msg = f"Attempt to delete non-existing key: {card_id}"
             log.error(msg)
             raise KeyError(msg)
-    publishing.get_publisher().send(f'{plugs.loaded_as(__name__)}.database.has_changed', time.ctime())
+    publishing.get_publisher().send('cards.database.has_changed', time.ctime())
 
 
-@plugs.register
 def register_card(card_id: str, cmd_alias: str,
                   args: Optional[List] = None, kwargs: Optional[Dict] = None,
                   ignore_card_removal_action: Optional[bool] = None, ignore_same_id_delay: Optional[bool] = None,
@@ -125,10 +122,9 @@ def register_card(card_id: str, cmd_alias: str,
             cfg_cards[card_id]['ignore_card_removal_action'] = ignore_card_removal_action
         if auto_save:
             cfg_cards.save()
-    publishing.get_publisher().send(f'{plugs.loaded_as(__name__)}.database.has_changed', time.ctime())
+    publishing.get_publisher().send('cards.database.has_changed', time.ctime())
 
 
-@plugs.register
 def register_card_custom():
     """Register a new card with full RPC call specification (Not implemented yet)"""
     raise NotImplementedError
@@ -143,7 +139,6 @@ def check_card_database():
             # TODO: Further checks for illegal entries?
 
 
-@plugs.register
 def load_card_database(filename):
     try:
         cfg_cards.load(filename)
@@ -153,10 +148,9 @@ def load_card_database(filename):
         # Save the empty card database, to make sure we can create the file and have access to it
         cfg_cards.save(only_if_changed=False)
     check_card_database()
-    publishing.get_publisher().send(f'{plugs.loaded_as(__name__)}.database.has_changed', time.ctime())
+    publishing.get_publisher().send('cards.database.has_changed', time.ctime())
 
 
-@plugs.register
 def save_card_database(filename=None, *, only_if_changed=True):
     """Store the current card database. If filename is None, it is saved back to the file it was loaded from"""
     if filename is None:
@@ -165,11 +159,20 @@ def save_card_database(filename=None, *, only_if_changed=True):
         jukebox.cfghandler.write_yaml(cfg_cards, filename, only_if_changed=only_if_changed)
 
 
-@plugs.finalize
-def finalize():
+def register():
+    """Register the card-database RPC calls as 'cards.<name>'.
+
+    Called explicitly by jukebox.daemon at start-up (no plugin system, see
+    documentation/developers/roadmap-core-architecture.md).
+    """
+    for func in (list_cards, delete_card, register_card, register_card_custom,
+                 load_card_database, save_card_database):
+        registry.register(func, name=func.__name__, package='cards')
+
+
+def start():
     load_card_database(cfg_main.getn('rfid', 'card_database'))
 
 
-@plugs.atexit
-def atexit(**ignored_kwargs):
+def stop(**ignored_kwargs):
     save_card_database(only_if_changed=True)

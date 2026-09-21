@@ -109,6 +109,29 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
 7. **Measure before/after.** "High performance" needs a number, not a vibe — concurrent library scans,
    cover-art fetches, and RPC calls during active playback are the realistic stress cases.
 
+## Dev tooling migrated to uv + bam
+
+Orthogonal to the architecture work above, but done alongside it: Python dev tooling moved from
+`pip` + `requirements-dev.txt` + `flake8` + hand-rolled `run_*.sh` wrapper scripts to
+[uv](https://docs.astral.sh/uv/) (package manager, `pyproject.toml`) +
+[bam](https://gitlab.com/cascascade/bam) (content-hash-cached task runner, `bam.yaml`) + ruff +
+pyright, following the conventions of `/home/stefan/Projekte/dev/python-uv-workspace-template`
+(a Copier template for fresh CLI projects -- not run directly here since this is an existing
+multi-language monorepo, not a fresh scaffold, but its tool choices and `pyproject.toml`/`bam.yaml`
+shape were adopted as-is).
+
+`run_pytest.sh` / `run_flake8.sh` / `run_docgeneration.sh` / `run_markdownlint.sh` / `run_jukebox.sh`
+are gone, replaced by `bam lint` / `bam test` / `bam docs` / `bam markdownlint` / `uv run python
+src/jukebox/run_jukebox.py`. `ruff format` (~70 files would change) and `pyright` (178 pre-existing
+errors in basic mode) are wired up as bam tasks but deliberately non-blocking (`|| true`) since the
+codebase has never been run through either -- same "no formatting baseline commit yet" situation
+upstream already flagged in `roadmap-plugins-and-packaging.md` for their own (not-merged-here) work.
+
+`requirements.txt` still exists, trimmed but otherwise unconverted: the real Pi installer
+(`installation/routines/setup_jukebox_core.sh`) and both Dockerfiles are still pip-based and parse
+it directly. Migrating them to `uv` is packaging/install territory (Track B, item 3 in the fork-goals
+list above), not done as part of this tooling pass -- kept in sync by hand for now.
+
 ## Old plugin system removed
 
 The old dynamic, config-driven plugin system (`jukebox.plugs`, `@plugs.register` /

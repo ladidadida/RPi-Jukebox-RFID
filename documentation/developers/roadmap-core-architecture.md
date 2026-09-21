@@ -101,12 +101,16 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
 4. **Port the WebSocket event broker** to FastAPI's WebSocket support; decide fate of the ZMQ pub/sub hop
    underneath (keep it, or replace with in-process asyncio queues now that everything's one process).
 
-   **Status: done.** Was already implemented as part of step 2 (`_handle_events_websocket` in
-   `fastapi_server.py`); what was left was the decision and one real gap, both closed now:
-   - **ZMQ pub/sub stays.** `jukebox.publishing` is a system-wide message bus (components,
-     `run_publicity_sniffer.py`, etc. all use it), not something Tornado-specific -- nothing to
-     replace it with in-process queues for. `FastApiServer` bridges it via `zmq.asyncio`, same as
-     before.
+   **Status: done**, but see the reversed decision below. Was already implemented as part of
+   step 2 (`_handle_events_websocket` in `fastapi_server.py`); what was left was the decision and
+   one real gap, both closed now:
+   - ~~**ZMQ pub/sub stays.**~~ **Reversed, see "Simplify away ZMQ and nginx" below.** Original
+     reasoning was that `jukebox.publishing` is a system-wide bus, not Tornado-specific, so nothing
+     to replace. Still true, but doesn't mean it needs ZMQ specifically -- for a single-process,
+     single-Pi app with a handful of local browser clients, ZMQ solves a distributed-systems
+     problem (many independent processes, high throughput) that doesn't exist here anymore now
+     that dispatch is in-process. `FastApiServer` bridges it via `zmq.asyncio` today; slated to
+     become a plain `asyncio.Queue` broadcast instead.
    - **Gap found and fixed: cross-origin WebSocket rejection.** Tornado's `WebSocketHandler`
      rejects cross-origin handshakes by default; Starlette/FastAPI don't do this at all. Without a
      fix, any page in a victim's browser could open a WebSocket to this API and read every
@@ -147,6 +151,41 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    here, tracked as the next concrete step.
 7. **Measure before/after.** "High performance" needs a number, not a vibe — concurrent library scans,
    cover-art fetches, and RPC calls during active playback are the realistic stress cases.
+
+## Simplify away ZMQ and nginx
+
+**Decision (discussed, not yet implemented):** both are inherited complexity from the upstream
+project's original design, not something this fork chose, and neither pulls its weight for a
+single-process app on a single Pi serving a handful of local browser clients over a home LAN:
+
+- **ZMQ** (`pyzmq`) solves distributed-systems problems -- many independent processes, potentially
+  high throughput -- that no longer exist here. Plugin dispatch is already in-process (see "Old
+  plugin system removed" below), the FastAPI RPC handler already calls `process_request` directly
+  rather than through ZMQ REP, and the pub/sub side (status updates, a handful of events per
+  second even with several browser tabs open) is comfortably within what a plain `asyncio.Queue`
+  broadcast handles. Keeping ZMQ only makes sense if this needs to become a genuinely distributed
+  system later (components running as separate processes/containers, possibly relevant if the
+  later plugin-system redesign goes that direction) -- not a given, not worth carrying the
+  complexity for speculatively.
+- **nginx** exists to reverse-proxy `/api/` to the (loopback-bound) FastAPI process and serve the
+  built webapp's static files. FastAPI/uvicorn can serve static files directly (`StaticFiles`) and
+  bind wherever needed -- nginx's real strengths (TLS termination, high-concurrency static serving,
+  buffering under load) aren't relevant at Pi-jukebox scale.
+
+Concrete follow-up steps once picked up:
+
+- Rewrite `jukebox.publishing.server.PublishServer` onto in-process `asyncio.Queue` broadcast
+  (subscribers register a queue, `publish()` puts onto each matching one) instead of ZMQ PUB/XPUB
+  -- this is also what finally drops the `tornado` dependency (see step 6 above).
+- Move `run_rpc_tool.py` (the only remaining ZMQ REP/REQ consumer, see step 5 above) onto the
+  FastAPI `/api/v1/rpc` HTTP endpoint, then retire `jukebox.rpc.server.RpcServer` and the ZMQ REP
+  socket entirely.
+- Have FastAPI serve the webapp's static build directly; update
+  `installation/routines/setup_jukebox_webapp.sh` and `resources/default-settings/nginx.default`
+  accordingly (or drop nginx from the install routine and default services entirely).
+- `run_publicity_sniffer.py` and any other external-process consumers of the pub/sub bus need a
+  replacement once ZMQ pub/sub is gone -- check what actually still uses it externally before
+  assuming in-process-only is enough.
 
 ## Dev tooling migrated to uv + bam
 

@@ -3,10 +3,9 @@
 
 The sole browser-facing HTTP/WebSocket bridge -- replaced the Tornado-based `jukebox.api.server`
 (see documentation/developers/roadmap-core-architecture.md, steps 2-6). Serves health, RPC
-passthrough, events-over-websocket, and the library upload/folder/entries/refresh endpoints.
-
-Uses the same `api.bind_address` / `api.port` config keys (default port 5556) the Tornado bridge
-used, so nginx/webapp/docker-compose config didn't need to change for the cutover.
+passthrough, events-over-websocket, the library upload/folder/entries/refresh endpoints, and (see
+jukebox.api.webapp_static) the webapp's static build + /logs -- nginx is gone, this is now the one
+thing reachable from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
 
 The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
 version was: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no
@@ -19,6 +18,7 @@ import json
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -29,6 +29,7 @@ from starlette.requests import Request
 import jukebox.cfghandler
 import jukebox.publishing
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
+from jukebox.api.webapp_static import register_webapp_routes
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
 from jukebox.rpc.processor import process_request
 
@@ -37,6 +38,18 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 
 RPC_EXECUTOR_WORKERS = 4
 LIBRARY_EXECUTOR_WORKERS = 1
+
+# src/jukebox/jukebox/api/fastapi_server.py -> repo root is 4 levels up (matches the
+# ../../shared/... convention src/jukebox/run_jukebox.py already uses for config paths).
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+def default_webapp_build_dir() -> Path:
+    return _REPO_ROOT / 'src' / 'webapp' / 'build'
+
+
+def default_logs_dir() -> Path:
+    return _REPO_ROOT / 'shared' / 'logs'
 
 
 class _WebSocketClient:
@@ -267,7 +280,8 @@ async def _handle_library_refresh(library, executor):
     return {'update_id': update_id}
 
 
-def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None):
+def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None,
+                webapp_build_dir=None, logs_dir=None):
     if library is None:
         library = create_music_library()
     if library_executor is None:
@@ -307,6 +321,14 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
     async def library_refresh():
         return await _handle_library_refresh(library, library_executor)
 
+    # Registered last so it never shadows the /api/v1/* routes above: FastAPI/Starlette tries
+    # routes in registration order, and this includes a catch-all.
+    register_webapp_routes(
+        app,
+        build_dir=webapp_build_dir or default_webapp_build_dir(),
+        logs_dir=logs_dir or default_logs_dir(),
+    )
+
     return app
 
 
@@ -315,7 +337,7 @@ class FastApiServer(threading.Thread):
 
     def __init__(self, bind_address=None, port=None, bus=None):
         super().__init__(name='FastApiServer', daemon=True)
-        self.bind_address = bind_address or cfg.getn('api', 'bind_address', default='127.0.0.1')
+        self.bind_address = bind_address or cfg.getn('api', 'bind_address', default='0.0.0.0')
         self.port = port if port is not None else cfg.getn('api', 'port', default=5556)
         self.bus = bus or jukebox.publishing.get_bus()
         self.broker = EventBroker(bus=self.bus)

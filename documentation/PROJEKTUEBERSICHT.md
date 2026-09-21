@@ -16,13 +16,17 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 .
 ├── src/
 │   ├── jukebox/            Python-Kernanwendung ("Jukebox Core"), läuft als Daemon auf dem Pi
-│   │   ├── jukebox/        Framework: Plugin-Loader, RPC-Server, Publish/Subscribe, Config-Handling
-│   │   ├── components/     Plugins (dynamisch geladen): player, playermpd, rfid, gpio, mqtt,
-│   │   │                   volume, timers, battery_monitor, controls, jingle, hostif,
-│   │   │                   synchronisation, publishing
+│   │   ├── jukebox/        Framework: Component-Registry, RPC-Server (ZeroMQ, nur noch für
+│   │   │                   run_rpc_tool.py), FastAPI-API-Bridge (HTTP + WebSocket + Webapp-
+│   │   │                   Static-Files + /logs), In-Process-Pub/Sub-Bus, Config-Handling
+│   │   ├── components/     Explizit von jukebox.daemon verdrahtet (kein Plugin-System mehr):
+│   │   │                   player, rfid, publishing, misc. Andere frühere Komponenten (gpio,
+│   │   │                   mqtt, volume, timers, battery_monitor, controls, jingle, hostif,
+│   │   │                   synchronisation) wurden entfernt, kommen später neu gestaltet zurück.
 │   │   ├── misc/           Utility-Code
 │   │   └── run_*.py        Einstiegspunkte (Core, RPC-Tool, RFID-Registrierung, Audio-Config, Sniffer)
-│   ├── webapp/              React-Frontend (Touch-/Web-UI), kommuniziert per RPC/ZeroMQ (WebSocket)
+│   ├── webapp/              React-Frontend (Touch-/Web-UI), kommuniziert per HTTP/WebSocket
+│   │   │                    mit der FastAPI-Bridge (`/api/v1/*`)
 │   │   ├── src/             Components, Contexts, Sockets, Commands
 │   │   └── public/          Statische Assets, i18n-Übersetzungen (de/en)
 │   └── cli_client/           Kommandozeilen-Client
@@ -44,21 +48,25 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 ├── ci/                           CI-Hilfsskripte (u. a. Installationstests)
 ├── AGENTS.md / CLAUDE.md          Anleitung für KI-Coding-Agenten
 ├── CONTRIBUTING.md                Contributor-Richtlinien (Namenskonventionen, PR-Prozess)
-└── run_*.sh                       Wrapper-Skripte (Jukebox starten, Tests, Linting, Doku-Generierung)
+├── pyproject.toml / bam.yaml      Python-Tooling (uv, ruff, pyright, pytest) + Task-Runner
+└── uv.lock                        Gepinnte Dependency-Versionen (uv)
 ```
 
 ## Architektur in Kürze
 
-Die Core-App basiert auf drei Konzepten (siehe `documentation/builders/concepts.md`):
+Siehe `documentation/developers/roadmap-core-architecture.md` für den aktuellen Stand und offene
+Punkte. Kurzfassung:
 
-1. **Plugin-Interface** — Pakete unter `src/jukebox/components` werden zur Laufzeit anhand der
-   Konfiguration geladen, initialisiert und beendet. Fehlschlagende Plugins werden übersprungen,
-   nicht fatal (Logs prüfen!).
-2. **RPC-Server (Remote Procedure Call)** — Web-App, RFID-Kartenerkennung, GPIO-Tasten und das
-   CLI-Tool `run_rpc_tool.py` lösen Aktionen alle über denselben RPC-Mechanismus aus. Transport
-   erfolgt über **ZeroMQ** (`pyzmq` im Core, `jszmq` im Webapp).
-3. **Publishing Message Queue** — Gegenstück zum RPC: Der Core publiziert Status/Events, die
-   Webapp und der `run_publicity_sniffer.py` abonnieren diese.
+1. **Component-Registry** (`jukebox.registry`) — ersetzt das alte, config-getriebene
+   Plugin-System. `jukebox.daemon.run()` verdrahtet jede Komponente explizit
+   (`register()`/`start()`), nichts wird mehr dynamisch aus der Config geladen.
+2. **FastAPI als Browser-Bridge** — HTTP (`/api/v1/rpc`, Library-Endpoints), WebSocket
+   (`/api/v1/events`), und seit Kurzem auch das Webapp-Static-Build + `/logs` direkt (kein nginx
+   mehr davor). RFID-Kartenaktionen laufen direkt in-process über die Registry; nur noch das
+   CLI-Tool `run_rpc_tool.py` spricht ZeroMQ REQ/REP mit dem Core.
+3. **In-Process Pub/Sub-Bus** (`jukebox.publishing`, `EventBus`) — Status/Events, thread-sicher,
+   kein ZeroMQ mehr. Die Webapp und `run_publicity_sniffer.py` abonnieren über die
+   FastAPI-WebSocket-Bridge.
 
 Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per `python-mpd2`.
 
@@ -92,7 +100,7 @@ Minimale Python-Version: **3.9**.
 | UI-Komponenten | MUI v5 (`@mui/material`, `@mui/icons-material`), Emotion |
 | Routing | `react-router-dom` |
 | Internationalisierung | `i18next`, `react-i18next`, `i18next-browser-languagedetector`, `i18next-http-backend` |
-| RPC/ZeroMQ im Browser | `jszmq` |
+| RPC/Events im Browser | native `fetch`/`WebSocket` gegen die FastAPI-Bridge (`/api/v1/*`), kein ZeroMQ mehr |
 | Funktionale Utilities | `ramda` |
 | Tests | `@testing-library/react`, `@testing-library/jest-dom` |
 | Markdown-Linting | `markdownlint-cli2` |

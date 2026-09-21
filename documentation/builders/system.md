@@ -108,14 +108,9 @@ Starting and stopping the service can be useful for debugging or configuration c
 
 ## Web App (UI)
 
-The [Web App](../developers/webapp.md) is served using nginx. Nginx runs as a system service. The home directory is located at
+The [Web App](../developers/webapp.md) is served directly by the Jukebox Core (no separate nginx
+process): `jukebox-daemon` serves the static build alongside `/api/*`. The build is located at
 
 ```text
 ./src/webapp/build
-```
-
-The Nginx configuration is located at
-
-```text
-/etc/nginx/sites-available/default
 ```

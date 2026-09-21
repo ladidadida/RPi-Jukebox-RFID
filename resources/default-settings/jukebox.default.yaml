@@ -81,7 +81,10 @@ playermpd:
 rpc:
   tcp_port: 5555
 api:
-  bind_address: 127.0.0.1
+  # 0.0.0.0 (all interfaces): nginx used to be the only thing reachable from the LAN, reverse
+  # proxying to a loopback-only API server. There is no separate reverse proxy anymore -- this
+  # server (webapp static files + /api/*) needs to be reachable directly.
+  bind_address: 0.0.0.0
   port: 5556
 rfid:
   reader_config: ../../shared/settings/rfid.yaml

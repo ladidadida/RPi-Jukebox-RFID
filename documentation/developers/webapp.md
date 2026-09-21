@@ -69,19 +69,21 @@ server.
 ## Backend API
 
 The Web App uses `POST /api/v1/rpc` for commands and `WS /api/v1/events` for
-state updates. Both are served on the configured API port, `5556` by default,
-and nginx exposes them under the same origin as the Web App.
+state updates. Both are served by FastAPI on the configured API port, `5556`
+by default -- the same server also serves the Web App's static build and
+`/logs`, so everything is on one origin without a separate reverse proxy.
 `GET /api/v1/health` reports API availability.
 
 Library file management uses dedicated HTTP endpoints under
 `/api/v1/library/`. Uploads send one raw file per
-`PUT /api/v1/library/files` request so Tornado can stream it to storage without
-buffering the complete file in memory. Browser folder selections retain their
-relative paths; the Web App creates the selected folder trees through the
-`folders` endpoint before uploading their files sequentially. Raw directory
-listing, batch deletion, and MPD refresh use the corresponding `entries` and
-`refresh` endpoints. nginx disables request buffering only for the upload
-endpoint; RPC and other JSON requests retain their 1 MiB limit.
+`PUT /api/v1/library/files` request, streamed directly to storage (via
+Starlette's `request.stream()`) without buffering the complete file in
+memory. Browser folder selections retain their relative paths; the Web App
+creates the selected folder trees through the `folders` endpoint before
+uploading their files sequentially. Raw directory listing, batch deletion,
+and MPD refresh use the corresponding `entries` and `refresh` endpoints.
+Uploads are exempt from the 1 MiB body-size cap that applies to RPC and other
+JSON requests.
 
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
 intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC

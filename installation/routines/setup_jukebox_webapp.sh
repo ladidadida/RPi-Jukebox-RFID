@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Constants
-WEBAPP_NGINX_SITE_DEFAULT_CONF="/etc/nginx/sites-available/default"
 WEBAPP_DEVELOPMENT_RELEASE_TAG="webapp-development"
 
 _jukebox_webapp_try_download() {
@@ -71,38 +70,10 @@ _jukebox_webapp_download() {
   cd "${INSTALLATION_PATH}" || exit_on_error
 }
 
-_jukebox_webapp_register_as_system_service_with_nginx() {
-  print_lc "  Configure nginx"
-
-  sudo mv -f "${WEBAPP_NGINX_SITE_DEFAULT_CONF}" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}.orig"
-  sudo cp -f "${INSTALLATION_PATH}/resources/default-settings/nginx.default" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-  sudo sed -i "s|%%INSTALLATION_PATH%%|${INSTALLATION_PATH}|g" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-
-  if [ "$DISABLE_IPv6" = true ] ; then
-    sudo sed -i '/listen \[::\]:80/d' "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-  fi
-
-  # make sure nginx can access the home directory of the user
-  sudo chmod o+x "${HOME_PATH}"
-
-  sudo systemctl restart nginx.service
-}
-
 _jukebox_webapp_check() {
     print_verify_installation
 
     verify_dirs_exists "${INSTALLATION_PATH}/src/webapp/build"
-    verify_apt_packages nginx
-    verify_files_exists "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-    verify_file_contains_string "location = /api/v1/library/files" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-    verify_file_contains_string "client_max_body_size 1g" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-    verify_file_contains_string "proxy_request_buffering off" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-
-    if [ "$DISABLE_IPv6" = true ] ; then
-      verify_file_does_not_contain_string "listen [::]:80" "${WEBAPP_NGINX_SITE_DEFAULT_CONF}"
-    fi
-
-    verify_service_enablement nginx.service enabled
 }
 
 _run_setup_jukebox_webapp() {
@@ -122,7 +93,9 @@ Publish an exact-commit Web App bundle and use ENABLE_WEBAPP_PROD_DOWNLOAD=true.
     else
         exit_on_error "Invalid ENABLE_WEBAPP_PROD_DOWNLOAD value: ${ENABLE_WEBAPP_PROD_DOWNLOAD}"
     fi
-    _jukebox_webapp_register_as_system_service_with_nginx
+    # No separate web server to configure: the Jukebox Core (jukebox-daemon.service, set up by
+    # setup_jukebox_core.sh) serves the Web App build and /api/* directly via FastAPI. See
+    # documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx".
     _jukebox_webapp_check
 }
 

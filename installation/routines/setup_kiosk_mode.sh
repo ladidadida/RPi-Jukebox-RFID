@@ -38,7 +38,7 @@ xset -dpms
 # Start Chromium in kiosk mode
 sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' ~/.config/chromium/'Local State'
 sed -i 's/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]\+"/"exit_type":"Normal"/' ~/.config/chromium/Default/Preferences
-${KIOSK_MODE_CHROMIUM_COMMAND} http://localhost \
+${KIOSK_MODE_CHROMIUM_COMMAND} http://localhost:5556 \
   --disable-infobars \
   --disable-pinch \
   --disable-translate \

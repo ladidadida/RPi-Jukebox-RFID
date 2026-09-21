@@ -36,11 +36,6 @@ _collect_apt_packages() {
         _add_apt_packages samba samba-common-bin
     fi
 
-    if [[ "$ENABLE_WEBAPP" == true ]]; then
-        # A trailing '-' asks APT to remove Apache in the same transaction.
-        _add_apt_packages nginx apache2-
-    fi
-
     if [[ "$ENABLE_KIOSK_MODE" == true ]]; then
         _add_apt_packages xserver-xorg x11-xserver-utils xinit openbox \
             "${KIOSK_MODE_CHROMIUM_PACKAGE}"

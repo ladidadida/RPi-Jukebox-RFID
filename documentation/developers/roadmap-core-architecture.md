@@ -205,12 +205,49 @@ instead of the old code's thread-identity/recursion-counter check.
 Also removed the now-meaningless `publishing.tcp_port` config key and the `5558` port references
 that went with it (`jukebox.default.yaml`, `docker-compose.yml`, both Dockerfiles' `EXPOSE`).
 
+### nginx: done
+
+FastAPI now serves the webapp's static build, `/logs`, and a couple of fallback pages directly
+(`jukebox.api.webapp_static.register_webapp_routes`, mounted last in `create_app()` so it never
+shadows `/api/v1/*`). Deliberately ported nginx's *actual* behavior rather than inventing new
+behavior -- e.g. still no SPA deep-link fallback to `index.html` for unknown paths, since
+`nginx.default`'s `try_files $uri $uri/ =404` didn't do that either.
+
+- `index.html` (`/` and `/index.html`) served with `Cache-Control: no-store`; falls back to a
+  "bundle is missing" page if the build hasn't been installed, matching the old `@buildwebui`
+  error page.
+- `build/static/*` mounted via Starlette's `StaticFiles`; any other root-level build file (favicon,
+  manifest, locales/*, ...) served through a catch-all with directory-traversal protection
+  (resolves the candidate path and checks it's still inside `build_dir` -- tested explicitly, see
+  `test_catch_all_rejects_path_traversal_outside_build_dir`).
+- `/logs` and `/logs/<file>`: a small directory listing + flat file server over `shared/logs`
+  (nginx's `autoindex on`), filename-only path validation (no traversal via `/logs/../secret`).
+- Unknown paths get a generic 404 page (nginx's `error_page 404 = /404.html`).
+
+**Bind address changed from `127.0.0.1` to `0.0.0.0`** (`api.bind_address` in
+`jukebox.default.yaml`): nginx used to be the only thing reachable from the LAN, reverse-proxying
+to a loopback-only browser bridge. There's no separate reverse proxy anymore, so the FastAPI server
+itself needs to be reachable directly -- this is the one meaningful behavior change from the
+nginx-based setup, not just a refactor, so it's called out explicitly here rather than buried in a
+commit message.
+
+Installer changes: `installation/routines/setup_jukebox_webapp.sh` no longer installs/configures
+nginx, just downloads the webapp bundle and verifies the build directory exists.
+`prepare_dependencies.sh` no longer adds `nginx`/removes `apache2`.
+`installation/routines/setup_kiosk_mode.sh`'s Chromium kiosk URL changed from `http://localhost`
+(port 80, nginx) to `http://localhost:5556` (FastAPI). Deleted
+`resources/default-settings/nginx.default`, `resources/html/404.html`,
+`resources/html/runbuildui.html` (content now inlined in `webapp_static.py`; nothing else
+referenced them). Verified end-to-end: started a real `FastApiServer` against this repo's actual
+`src/webapp/build` and `shared/logs`, hit `/`, `/favicon.ico`, `/logs`, an unknown path (404), and
+`/api/v1/health` over real HTTP.
+
+Not verified here (no real Pi/systemd/apt environment available): the installer script changes
+themselves. Same caveat as the earlier `uv` installer migration -- worth a smoke test before
+relying on them.
+
 ### Still open
 
-- **nginx**: still reverse-proxies `/api/` and serves the webapp's static build. Have FastAPI
-  serve the static build directly instead; update `installation/routines/setup_jukebox_webapp.sh`
-  and `resources/default-settings/nginx.default` accordingly (or drop nginx from the install
-  routine and default services entirely).
 - **ZMQ REP/REQ**: `run_rpc_tool.py` is now the *only* remaining ZMQ consumer in the whole
   codebase (confirmed while doing the pub/sub migration above). Move it onto the FastAPI
   `/api/v1/rpc` HTTP endpoint, then retire `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client`,

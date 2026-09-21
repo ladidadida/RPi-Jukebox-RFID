@@ -85,6 +85,19 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    behind a slow plugin call. Tests: `test/api/test_fastapi_server.py`.
 3. **Port the library endpoints** (upload, folders, entries, refresh — the streaming/multipart-heavy
    ones) to FastAPI.
+
+   **Status: done.** `create_app()` in `fastapi_server.py` now also serves
+   `PUT /api/v1/library/files`, `POST /api/v1/library/folders`, `GET`/`DELETE
+   /api/v1/library/entries`, and `POST /api/v1/library/refresh`, backed by the same
+   transport-neutral `jukebox.library.MusicLibrary`/`LibraryError` the Tornado bridge uses, so
+   behavior (status codes, error `code`/`message` shape, path/type validation) matches exactly.
+   Uploads stream via Starlette's `request.stream()` straight into `UploadSession.write()`
+   (no full-body buffering, same as the Tornado version), executed through a dedicated
+   single-worker library `ThreadPoolExecutor` kept separate from the RPC executor. Added a
+   `_read_limited_body()` helper so the RPC and library-JSON endpoints enforce the same 1 MiB
+   streaming body cap (`MAX_MESSAGE_SIZE`) Tornado's `stream_request_body` handlers had -- easy to
+   miss on FastAPI since `await request.body()` alone doesn't cap size. Tests ported 1:1 from
+   `test/api/test_server.py`'s library test class into `test/api/test_fastapi_server.py`.
 4. **Port the WebSocket event broker** to FastAPI's WebSocket support; decide fate of the ZMQ pub/sub hop
    underneath (keep it, or replace with in-process asyncio queues now that everything's one process).
 5. **Reassess the ZMQ REP/REQ layer** once FastAPI fully replaces Tornado — does it still earn its keep,

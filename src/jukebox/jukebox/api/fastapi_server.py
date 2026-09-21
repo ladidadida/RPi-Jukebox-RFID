@@ -5,15 +5,13 @@ Reimplements the Tornado-based bridge (`jukebox.api.server`) endpoint-by-endpoin
 per documentation/developers/roadmap-core-architecture.md step 2. Runs side by side with the Tornado
 server for now: nothing outside this module references it yet, and it is not wired into the daemon.
 
-Covers the same first slice as the Tornado bridge did before its library endpoints were added:
-health, RPC passthrough, and events-over-websocket. Library endpoints are step 3 of the roadmap.
+Covers health, RPC passthrough, events-over-websocket, and (per roadmap step 3) the library
+upload/folder/entries/refresh endpoints.
 
 The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
-version: `jukebox.plugs.call()` already serializes every dispatched call behind its own module-level
-lock (see `_lock_module` in `jukebox/plugs.py`), so multiple executor workers only let independent
-requests (e.g. concurrent health checks, or RPC calls queued behind a slow hardware call) be picked up
-without blocking each other at the HTTP layer -- they still serialize at the plugin-dispatch layer,
-same as before.
+version: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no shared
+global lock, so multiple executor workers actually buy real concurrency now -- each component is
+responsible for its own thread-safety (see documentation/developers/roadmap-core-architecture.md).
 """
 
 import asyncio
@@ -30,13 +28,15 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 import jukebox.cfghandler
-from jukebox.api.server import EventBroker, PUBLISH_ENDPOINT, parse_subscription_command
+from jukebox.api.server import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT, parse_subscription_command
+from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
 from jukebox.rpc.processor import process_request
 
 logger = logging.getLogger('jb.api.fastapi_server')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
 RPC_EXECUTOR_WORKERS = 4
+LIBRARY_EXECUTOR_WORKERS = 1
 
 
 class _WebSocketClient:
@@ -51,13 +51,34 @@ class _WebSocketClient:
         return asyncio.run_coroutine_threadsafe(self._websocket.send_json(message), self._loop)
 
 
+class _BodyTooLarge(Exception):
+    """Raised by :func:`_read_limited_body` when the request body exceeds its size limit."""
+
+
+async def _read_limited_body(request: Request, limit: int) -> bytes:
+    """Read the request body, aborting as soon as it exceeds `limit` bytes.
+
+    Mirrors the Tornado bridge's streaming size guard (`MAX_MESSAGE_SIZE`) instead of buffering an
+    arbitrarily large body before checking its size.
+    """
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > limit:
+            raise _BodyTooLarge()
+    return bytes(body)
+
+
 async def _handle_rpc_request(request: Request, executor, rpc_processor):
     content_type = request.headers.get('content-type', '')
     media_type = content_type.split(';', 1)[0].strip().lower()
     if media_type != 'application/json':
         return JSONResponse(status_code=400, content={'error': 'Content-Type must be application/json.'})
 
-    body = await request.body()
+    try:
+        body = await _read_limited_body(request, MAX_MESSAGE_SIZE)
+    except _BodyTooLarge:
+        return JSONResponse(status_code=413, content={'error': 'Request body exceeds 1 MiB.'})
     try:
         client_request = json.loads(body)
     except (ValueError, UnicodeDecodeError) as error:
@@ -93,7 +114,146 @@ async def _handle_events_websocket(websocket: WebSocket, broker):
         broker.unregister(client)
 
 
-def create_app(broker, executor, rpc_processor=process_request):
+def _library_error_response(error: LibraryError) -> JSONResponse:
+    return JSONResponse(
+        status_code=error.status,
+        content={'error': {'code': error.code, 'message': error.message}},
+    )
+
+
+async def _library_json_body(request: Request) -> dict:
+    content_type = request.headers.get('content-type', '')
+    media_type = content_type.split(';', 1)[0].strip().lower()
+    if media_type != 'application/json':
+        raise LibraryError(400, 'invalid_content_type', 'Content-Type must be application/json.')
+    try:
+        body = await _read_limited_body(request, MAX_MESSAGE_SIZE)
+    except _BodyTooLarge:
+        raise LibraryError(413, 'request_too_large', 'Request body exceeds 1 MiB.')
+    try:
+        parsed = json.loads(body)
+    except (ValueError, UnicodeDecodeError) as error:
+        raise LibraryError(400, 'invalid_json', f'Malformed JSON: {error}') from error
+    if not isinstance(parsed, dict):
+        raise LibraryError(400, 'invalid_request', 'The request body must be an object.')
+    return parsed
+
+
+def _reject_oversized_upload(request: Request):
+    content_length = request.headers.get('content-length')
+    if content_length is None:
+        return None
+    try:
+        too_large = int(content_length) > MAX_UPLOAD_SIZE
+    except ValueError:
+        return None
+    if not too_large:
+        return None
+    return JSONResponse(status_code=413, content={'error': {
+        'code': 'file_too_large', 'message': 'Files are limited to 1 GiB.',
+    }})
+
+
+def _require_upload_query_params(request: Request):
+    folder = request.query_params.get('folder')
+    file_name = request.query_params.get('name')
+    if folder is not None and file_name is not None:
+        return folder, file_name, None
+    missing = 'folder' if folder is None else 'name'
+    error_response = JSONResponse(status_code=400, content={'error': {
+        'code': 'invalid_request', 'message': f"Missing query parameter '{missing}'.",
+    }})
+    return None, None, error_response
+
+
+async def _handle_library_upload(request: Request, library, executor):
+    oversized_response = _reject_oversized_upload(request)
+    if oversized_response is not None:
+        return oversized_response
+
+    folder, file_name, error_response = _require_upload_query_params(request)
+    if error_response is not None:
+        return error_response
+
+    loop = asyncio.get_running_loop()
+    try:
+        upload = await loop.run_in_executor(executor, library.start_upload, folder, file_name)
+    except LibraryError as error:
+        return _library_error_response(error)
+
+    try:
+        async for chunk in request.stream():
+            if chunk:
+                await loop.run_in_executor(executor, upload.write, chunk)
+        await loop.run_in_executor(executor, upload.finish)
+    except LibraryError as error:
+        await loop.run_in_executor(executor, upload.abort)
+        return _library_error_response(error)
+    except Exception:
+        await loop.run_in_executor(executor, upload.abort)
+        raise
+
+    return JSONResponse(status_code=201, content={'path': upload.relative_path, 'size': upload.size})
+
+
+async def _handle_library_folder_create(request: Request, library, executor):
+    try:
+        body = await _library_json_body(request)
+    except LibraryError as error:
+        return _library_error_response(error)
+
+    loop = asyncio.get_running_loop()
+    try:
+        path = await loop.run_in_executor(executor, library.create_folder, body.get('parent'), body.get('name'))
+    except LibraryError as error:
+        return _library_error_response(error)
+    return JSONResponse(status_code=201, content={'path': path})
+
+
+async def _handle_library_entries_get(request: Request, library, executor):
+    folder = request.query_params.get('folder')
+    if folder is None:
+        return JSONResponse(status_code=400, content={'error': {
+            'code': 'invalid_request', 'message': "Missing query parameter 'folder'.",
+        }})
+
+    loop = asyncio.get_running_loop()
+    try:
+        entries = await loop.run_in_executor(executor, library.list_entries, folder)
+    except LibraryError as error:
+        return _library_error_response(error)
+    return {'entries': entries}
+
+
+async def _handle_library_entries_delete(request: Request, library, executor):
+    try:
+        body = await _library_json_body(request)
+    except LibraryError as error:
+        return _library_error_response(error)
+
+    loop = asyncio.get_running_loop()
+    try:
+        deleted = await loop.run_in_executor(executor, library.delete_entries, body.get('paths'))
+    except LibraryError as error:
+        return _library_error_response(error)
+    return {'deleted': deleted}
+
+
+async def _handle_library_refresh(library, executor):
+    loop = asyncio.get_running_loop()
+    try:
+        update_id = await loop.run_in_executor(executor, library.update)
+    except LibraryError as error:
+        return _library_error_response(error)
+    return {'update_id': update_id}
+
+
+def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None):
+    if library is None:
+        library = create_music_library()
+    if library_executor is None:
+        library_executor = executor
+
     app = FastAPI()
 
     @app.get('/api/v1/health')
@@ -107,6 +267,26 @@ def create_app(broker, executor, rpc_processor=process_request):
     @app.websocket('/api/v1/events')
     async def events(websocket: WebSocket):
         await _handle_events_websocket(websocket, broker)
+
+    @app.put('/api/v1/library/files')
+    async def library_upload(request: Request):
+        return await _handle_library_upload(request, library, library_executor)
+
+    @app.post('/api/v1/library/folders')
+    async def library_folder_create(request: Request):
+        return await _handle_library_folder_create(request, library, library_executor)
+
+    @app.get('/api/v1/library/entries')
+    async def library_entries_get(request: Request):
+        return await _handle_library_entries_get(request, library, library_executor)
+
+    @app.delete('/api/v1/library/entries')
+    async def library_entries_delete(request: Request):
+        return await _handle_library_entries_delete(request, library, library_executor)
+
+    @app.post('/api/v1/library/refresh')
+    async def library_refresh():
+        return await _handle_library_refresh(library, library_executor)
 
     return app
 
@@ -125,6 +305,7 @@ class FastApiServer(threading.Thread):
         self._loop = None
         self._server = None
         self._executor = None
+        self._library_executor = None
         self._subscriber = None
         self._subscriber_task = None
 
@@ -149,7 +330,9 @@ class FastApiServer(threading.Thread):
 
     async def _run_async(self):
         self._executor = ThreadPoolExecutor(max_workers=RPC_EXECUTOR_WORKERS, thread_name_prefix='FastApiRpc')
-        app = create_app(self.broker, self._executor)
+        self._library_executor = ThreadPoolExecutor(
+            max_workers=LIBRARY_EXECUTOR_WORKERS, thread_name_prefix='FastApiLibrary')
+        app = create_app(self.broker, self._executor, library_executor=self._library_executor)
 
         config = uvicorn.Config(app, host=self.bind_address, port=self.port, loop='none', log_config=None)
         self._server = uvicorn.Server(config)
@@ -174,6 +357,7 @@ class FastApiServer(threading.Thread):
             self._subscriber_task.cancel()
             self._subscriber.close(linger=0)
             self._executor.shutdown(wait=False, cancel_futures=True)
+            self._library_executor.shutdown(wait=False, cancel_futures=True)
 
     async def _subscriber_loop(self):
         try:

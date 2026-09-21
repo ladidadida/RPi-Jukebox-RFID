@@ -93,7 +93,9 @@ class EventBroker:
     def _send(self, client, message):
         try:
             future = client.write_message(message)
-        except tornado.websocket.WebSocketClosedError:
+        except Exception:
+            # Transport-neutral: covers tornado.websocket.WebSocketClosedError as well as
+            # any other transport's synchronous "client is gone" signal.
             self.unregister(client)
             return
 
@@ -381,6 +383,29 @@ class LibraryRefreshHandler(JsonErrorHandler):
         self.write({'update_id': update_id})
 
 
+def parse_subscription_command(command):
+    """Validate a decoded events-websocket command.
+
+    Transport-neutral so both the Tornado and FastAPI websocket handlers can share it.
+
+    :return: ``(command_type, topics)``
+    :raises ValueError: if the command is not a well-formed subscribe/unsubscribe request
+    """
+    if not isinstance(command, dict):
+        raise ValueError('Commands must be objects.')
+
+    command_type = command.get('type')
+    topics = command.get('topics')
+    if (
+        command_type not in ('subscribe', 'unsubscribe')
+        or not isinstance(topics, list)
+        or any(not isinstance(topic, str) for topic in topics)
+    ):
+        raise ValueError('Invalid subscription command.')
+
+    return command_type, topics
+
+
 class EventsHandler(tornado.websocket.WebSocketHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -396,18 +421,10 @@ class EventsHandler(tornado.websocket.WebSocketHandler):
             self.close(code=1003, reason='Messages must contain JSON.')
             return
 
-        if not isinstance(command, dict):
-            self.close(code=1008, reason='Commands must be objects.')
-            return
-
-        command_type = command.get('type')
-        topics = command.get('topics')
-        if (
-            command_type not in ('subscribe', 'unsubscribe')
-            or not isinstance(topics, list)
-            or any(not isinstance(topic, str) for topic in topics)
-        ):
-            self.close(code=1008, reason='Invalid subscription command.')
+        try:
+            command_type, topics = parse_subscription_command(command)
+        except ValueError as error:
+            self.close(code=1008, reason=str(error))
             return
 
         if command_type == 'subscribe':

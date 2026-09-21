@@ -11,6 +11,8 @@ pytest
 coverage
 pytest-cov
 mock
+# For starlette.testclient (FastAPI API server tests)
+httpx
 
 # API docs generation
 pydoc-markdown

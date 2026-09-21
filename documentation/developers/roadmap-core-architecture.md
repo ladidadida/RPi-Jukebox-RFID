@@ -54,8 +54,26 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    serialized against shared hardware state (audio playback, GPIO, MPD)? This decides whether "high
    performance" comes from more executor workers, from making `plugs.call` async-aware, or both — the
    real design question here, not just a mechanical framework swap.
+
+   **Finding:** `jukebox.plugs.call()` already serializes *every* dispatched call behind one
+   module-level `threading.RLock` (`_lock_module` in `src/jukebox/jukebox/plugs.py`), independent of
+   which plugin/component is being called. So the `ThreadPoolExecutor(max_workers=1)` sizing in the
+   Tornado bridge isn't the only serialization point — even with more HTTP-layer concurrency, all
+   plugin calls still queue up behind this single lock today. Real parallelism (e.g. a library scan
+   running while playback controls stay responsive) requires replacing this one-lock-for-everything
+   model with something per-component/per-resource — not yet designed, tracked as an open decision
+   below.
 2. **Stand up FastAPI alongside Tornado**, reimplementing health/RPC/events first, still backed by the
    existing ZMQ REP client. Proves the swap without touching core dispatch.
+
+   **Status: done.** `src/jukebox/jukebox/api/fastapi_server.py` (`FastApiServer`, `create_app`)
+   reimplements health/RPC/events on FastAPI + uvicorn, running independently of and side by side with
+   `jukebox.api.server.ApiServer` — nothing wires it into the daemon yet. `EventBroker` and the events
+   subscription-command parsing (`parse_subscription_command`) were generalized out of their
+   Tornado-specific bits so both bridges share the same code. The RPC executor here uses 4 workers
+   instead of Tornado's 1, since `plugs.call()`'s own lock (see finding above) already provides the
+   real serialization — more HTTP-layer workers just avoid queuing unrelated requests (e.g. `/health`)
+   behind a slow plugin call. Tests: `test/api/test_fastapi_server.py`.
 3. **Port the library endpoints** (upload, folders, entries, refresh — the streaming/multipart-heavy
    ones) to FastAPI.
 4. **Port the WebSocket event broker** to FastAPI's WebSocket support; decide fate of the ZMQ pub/sub hop
@@ -85,8 +103,11 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
 ## Open decisions
 
 - Does ZMQ pub/sub for events survive, or get replaced by in-process asyncio primitives once nothing
-  needs the `ZMQStream` bridge?
+  needs the `ZMQStream` bridge? (`FastApiServer` still uses ZMQ SUB via `zmq.asyncio`, unchanged for now.)
 - Does the CLI keep speaking ZMQ REP, or move to the FastAPI HTTP API / plugin dispatch directly?
-- Concurrency model for `plugs.call()`: thread pool sizing vs. async plugin methods vs. explicit
-  per-plugin locking for hardware-touching calls.
-- Does `/api/v1` get replaced in place, or versioned to `/api/v2` during the transition?
+- Concurrency model for `plugs.call()`: replace the single global `_lock_module` with per-component
+  locking (or async-aware dispatch) so unrelated plugin calls (e.g. library scan vs. playback control)
+  don't serialize against each other. This is the actual "high performance" work — the FastAPI swap
+  alone doesn't achieve it.
+- Does `/api/v1` get replaced in place, or versioned to `/api/v2` during the transition? (Currently:
+  reused as-is by both bridges, since only one runs against real traffic at a time.)

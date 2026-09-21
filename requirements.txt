@@ -16,6 +16,10 @@ ruamel.yaml
 requests
 # For the publisher event reactor loop:
 tornado
+# FastAPI/uvicorn API server (replacing the Tornado bridge, see
+# documentation/developers/roadmap-core-architecture.md)
+fastapi
+uvicorn
 
 # RPi's GPIO packages:
 # Shim that preserves the RPi.GPIO API on kernels >= 6.6 (Trixie),

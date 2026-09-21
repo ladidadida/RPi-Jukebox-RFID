@@ -12,6 +12,15 @@ Fork goals, roughly in the order we're tackling them:
    deeper into the architecture than a config-toggled entry-point list — worth deciding once the core
    architecture (this doc) has taken shape, since what a plugin can hook into depends on what the
    core looks like. See "Relationship to the other tracks" below.
+
+   **Guiding principle (agreed, not yet implemented):** FastAPI becomes the *one* contract for
+   everything, including plugins (backend and frontend) -- not just the browser-facing bridge. A
+   plugin registers a FastAPI router; that's the uniform way anything (webapp, CLI, another plugin)
+   calls into it, replacing today's `(package, plugin, method)` string addressing with a typed,
+   documented (OpenAPI) surface. Compromise to keep this compatible with the "high performance" goal:
+   in-process calls (e.g. an RFID card action reaching the player) invoke the router's handler
+   function directly, skipping HTTP/ASGI serialization -- only genuinely external or out-of-process
+   callers (browser, external/out-of-process plugins) pay for the full HTTP round trip.
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
    drives system setup instead of ~20 bash scripts. Upstream already scoped this in
    `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not

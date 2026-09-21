@@ -38,7 +38,6 @@ RUN apt-get update && apt-get install -qq -y \
     build-essential at wget \
     espeak mpc mpg123 git ffmpeg spi-tools netcat-openbsd \
     python3 python3-venv python3-dev python3-setuptools python3-mutagen \
-    python3-zmq libzmq5 \
     swig unzip
 
 # Generic Debian does not configure Raspberry Pi's repository, so build the lg
@@ -73,7 +72,7 @@ RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install runtime Python dependencies via uv (see pyproject.toml)
-RUN cd ${INSTALLATION_PATH} && uv sync --no-dev --no-install-package pyzmq  # python3-zmq apt package instead, uses system libzmq
+RUN cd ${INSTALLATION_PATH} && uv sync --no-dev
 
-EXPOSE 5555 5556
+EXPOSE 5556
 WORKDIR ${INSTALLATION_PATH}/src/jukebox

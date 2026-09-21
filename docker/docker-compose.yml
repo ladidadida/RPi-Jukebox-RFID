@@ -32,7 +32,6 @@ services:
     environment:
       - PULSE_SERVER=tcp:host.docker.internal:4713
     ports:
-      - 5555:5555
       - 5556:5556
     restart: unless-stopped
     tty: true

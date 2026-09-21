@@ -22,17 +22,16 @@ src/jukebox/       Python core application ("Jukebox Core") — the daemon that 
                    timers, battery_monitor, controls, jingle, hostif, synchronisation) were
                    removed and will come back as new, not-yet-designed components.
   misc/            Shared utility code
-  run_*.py         Entry points (jukebox core, RPC tool, RFID registration, audio config, sniffer)
+  run_*.py         Entry points (jukebox core, RFID registration, audio config, publicity sniffer)
 src/webapp/        React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
                    (FastAPI, `/api/v1/*`)
-src/cli_client/    Command-line client
 installation/      Bash install routines run on a real Raspberry Pi (install-jukebox.sh + routines/)
 docker/            Dockerfiles + compose files for a non-Pi development environment
 resources/         Default settings, systemd services, sample audio, autohotspot configs
 shared/            Runtime data: audiofolders, playlists, settings, logs (mounted/shared at runtime)
 documentation/     Project docs: builders/ (end users/installers) and developers/ (contributors)
 test/              Python unit tests (pytest)
-tools/             Dev/debug CLI tools (RPC tool, publicity sniffer)
+tools/             Dev/debug CLI tools (publicity sniffer)
 ci/                CI helper scripts (e.g. installation testing)
 ```
 
@@ -43,12 +42,13 @@ ci/                CI helper scripts (e.g. installation testing)
   (currently: publishing, misc, player, rfid) directly by calling its `register()`/`start()`
   functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
   `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
-- **RPC server**: the Web App (via `POST /api/v1/rpc`), RFID card swipes (direct in-process calls),
-  and the C CLI client (`src/cli_client/pbc.c`, still ZeroMQ REQ/REP against
-  `jukebox.rpc.server.RpcServer`) all ultimately dispatch through the *same*
-  `(package, plugin, method)` call shape — read `documentation/builders/rpc-commands.md` before
-  adding a new user-triggerable action. The interactive Python RPC CLI (`run_rpc_tool.py`) was
-  removed; a replacement isn't designed yet (see roadmap).
+- **RPC**: the Web App (via `POST /api/v1/rpc`) and RFID card swipes (direct in-process calls)
+  both dispatch through the *same* `(package, plugin, method)` call shape — read
+  `documentation/builders/rpc-commands.md` before adding a new user-triggerable action. ZeroMQ is
+  gone entirely now: the old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI
+  (`run_rpc_tool.py`), and the C CLI client (`src/cli_client/pbc.c`) were all removed. No CLI tool
+  currently exists; a replacement built on the FastAPI endpoint is planned but not designed yet
+  (see roadmap).
 - **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
   the status/event channel components publish to (`publishing.get_publisher().send(topic,
   payload)`) — thread-safe, in-process, no ZMQ involved anymore (see

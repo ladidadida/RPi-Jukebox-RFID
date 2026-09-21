@@ -1,21 +1,20 @@
 # Known Issues
 
-## Legacy custom libzmq installation
+## Legacy ZeroMQ leftovers
 
-Current releases use the Raspberry Pi OS or Debian `libzmq5` and
-`python3-zmq` packages. The installer deliberately does not delete files
-under `/usr/local`.
-
-An installation upgraded from an older release may still have the project's
-custom libzmq archive under `/usr/local`. First check which library is loaded:
+This fork removed ZeroMQ entirely (RPC, pub/sub, and the C CLI client all moved to FastAPI/HTTP --
+see `documentation/developers/roadmap-core-architecture.md`). An installation upgraded from before
+that change may still have `libzmq5`/`python3-zmq` (apt) installed, or -- from even older releases
+-- the project's custom libzmq archive under `/usr/local`. None of it is needed by the Jukebox
+anymore. First check what's actually installed:
 
 ```bash
 ldconfig -p | grep libzmq
-python3 -c 'import zmq; print(zmq.__file__, zmq.zmq_version())'
+dpkg -l libzmq5 python3-zmq 2>/dev/null
 ```
 
-Only if the old archive is known to have been installed by Phoniebox, its
-libzmq-specific files can be removed before refreshing the linker cache:
+If a custom `/usr/local` archive is present (only if it's known to have been installed by
+Phoniebox -- do not remove unrelated files from `/usr/local`):
 
 ```bash
 sudo rm -f /usr/local/lib/libzmq.so*
@@ -25,7 +24,8 @@ sudo rm -rf /usr/local/lib/cmake/ZeroMQ
 sudo ldconfig
 ```
 
-Do not remove unrelated files from `/usr/local`.
+The apt packages can be removed the normal way (`sudo apt-get remove libzmq5 python3-zmq`) once
+nothing else on the system needs them.
 
 ## Configuration
 

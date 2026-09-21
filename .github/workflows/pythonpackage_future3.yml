@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libasound2-dev libczmq-dev pulseaudio
+        sudo apt-get install -y libasound2-dev pulseaudio
 
         uv sync --group dev
         # Also install all optional rfid-hardware dependencies (not part of the base project,

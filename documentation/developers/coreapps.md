@@ -47,11 +47,14 @@ Run this once to register and configure the RFID readers with Jukebox. It can be
 
 ### RPC
 
-The interactive Python RPC CLI (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) was removed -- a
-replacement is planned but not designed yet (see
-`documentation/developers/roadmap-core-architecture.md`). The C client (`src/cli_client/pbc.c`)
-and the ZMQ REP server (`jukebox.rpc.server.RpcServer`, TCP port `5555` by default) it talks to
-are unaffected by this and still work.
+There is no dedicated RPC CLI tool right now. Both previous ones were removed -- the interactive
+Python tool (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) and the C client
+(`src/cli_client/pbc.c`), along with the ZeroMQ REP server they talked to
+(`jukebox.rpc.server.RpcServer`). A replacement, built against the FastAPI `/api/v1/rpc` HTTP
+endpoint, is planned but not designed yet -- see
+`documentation/developers/roadmap-core-architecture.md`. In the meantime, `curl` or any HTTP
+client can call `POST /api/v1/rpc` directly with a `{"package": ..., "plugin": ..., "method": ...}`
+JSON body.
 
 ### Publicity Sniffer
 

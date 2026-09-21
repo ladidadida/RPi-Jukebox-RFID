@@ -32,34 +32,16 @@ _jukebox_core_install_python_requirements() {
   fi
   source "$VIRTUAL_ENV/bin/activate"
 
-  # Older installations put a draft-enabled PyZMQ inside the venv. Inspect
-  # package metadata instead of importing zmq so a broken native extension can
-  # still be removed and Debian's python3-zmq package takes precedence.
-  local pyzmq_path
-  pyzmq_path=$(python -c \
-    'from importlib.metadata import distribution; print(distribution("pyzmq").locate_file(""))' \
-    2>/dev/null || true)
-  if [[ "${pyzmq_path}" == "${VIRTUAL_ENV}/"* ]]; then
-    uv pip uninstall pyzmq
-  fi
-
   # Remove excluded libs, if installed (see JUKEBOX_CORE_EXCLUDED_PIP_MODULE above).
   # A no-op (exit 0, just a warning) if it wasn't installed.
   uv pip uninstall "${JUKEBOX_CORE_EXCLUDED_PIP_MODULE}"
 
-  # PyZMQ comes from the python3-zmq apt package (visible via --system-site-packages, uses the
-  # system libzmq) rather than a PyPI wheel here -- that's the whole point of the pyzmq_path check
-  # above. Excluding it from `uv sync` keeps that true on every install, not just for the one-time
-  # cleanup of older, draft-enabled PyZMQ installs.
-  uv sync --no-dev --no-install-package pyzmq
-}
+  # Older installations may still have a leftover PyZMQ in the venv from when the Jukebox used
+  # ZeroMQ (removed, see documentation/developers/roadmap-core-architecture.md). Harmless to
+  # leave, but nothing installs or needs it anymore, so clean it up if present.
+  uv pip uninstall pyzmq
 
-_jukebox_core_check_zmq() {
-    log "  Verify standard ZMQ TCP and inproc transports"
-    if ! python "${INSTALLATION_PATH}/ci/installation/zmq_smoke.py"; then
-        exit_on_error "ERROR: Standard ZMQ transport smoke test failed!"
-    fi
-    log "  CHECK"
+  uv sync --no-dev
 }
 
 _jukebox_core_install_settings() {
@@ -94,11 +76,9 @@ with open('${INSTALLATION_PATH}/pyproject.toml', 'rb') as f:
     deps = tomllib.load(f)['project']['dependencies']
 print(' '.join(re.split(r'[<>=!; ]', dep, 1)[0] for dep in deps))
 ")
-    verify_pip_modules pyzmq $pip_modules
+    verify_pip_modules $pip_modules
 
     verify_pip_modules_not "${JUKEBOX_CORE_EXCLUDED_PIP_MODULE}"
-
-    _jukebox_core_check_zmq
 
     verify_files_chown "${CURRENT_USER}" "${CURRENT_USER_GROUP}" "${SETTINGS_PATH}/jukebox.yaml"
     verify_files_chown "${CURRENT_USER}" "${CURRENT_USER_GROUP}" "${SETTINGS_PATH}/logger.yaml"

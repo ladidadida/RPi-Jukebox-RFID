@@ -36,19 +36,6 @@ metadata and tool config live in `pyproject.toml`):
 uv sync --group dev
 ```
 
-This installs PyZMQ from a binary wheel by default. If a wheel is not
-available for a development system, install its `libzmq3-dev` package and
-build only the Python binding against that system library:
-
-``` bash
-env -u ZMQ_DRAFT_API -u ZMQ_PREFIX \
-  PYZMQ_NO_BUNDLE=ON uv pip install --no-binary-package pyzmq pyzmq
-```
-
-`PYZMQ_NO_BUNDLE=ON` prevents the fallback build from downloading or
-compiling a bundled libzmq. Clearing the legacy variables also keeps draft
-support disabled and lets the build discover the installed system library.
-
 You will have to start Jukebox core application and the WebUI separately. The MPD usually runs as a service.
 
 ### Using WSL

@@ -4,9 +4,6 @@
 
 * [run\_register\_rfid\_reader](#run_register_rfid_reader)
 * [run\_jukebox](#run_jukebox)
-* [run\_rpc\_tool](#run_rpc_tool)
-  * [get\_common\_beginning](#run_rpc_tool.get_common_beginning)
-  * [runcmd](#run_rpc_tool.runcmd)
 * [\_\_init\_\_](#__init__)
 * [run\_configure\_audio](#run_configure_audio)
 * [run\_publicity\_sniffer](#run_publicity_sniffer)
@@ -28,20 +25,19 @@
   * [generate\_cmd\_alias\_reference](#jukebox.utils.generate_cmd_alias_reference)
   * [get\_git\_state](#jukebox.utils.get_git_state)
 * [jukebox.NvManager](#jukebox.NvManager)
-* [jukebox.publishing.subscriber](#jukebox.publishing.subscriber)
+* [jukebox.publishing.bus](#jukebox.publishing.bus)
+  * [EventBus](#jukebox.publishing.bus.EventBus)
+    * [publish](#jukebox.publishing.bus.EventBus.publish)
+    * [resend](#jukebox.publishing.bus.EventBus.resend)
+    * [cache\_snapshot](#jukebox.publishing.bus.EventBus.cache_snapshot)
 * [jukebox.publishing](#jukebox.publishing)
+  * [get\_bus](#jukebox.publishing.get_bus)
+  * [Publisher](#jukebox.publishing.Publisher)
+    * [send](#jukebox.publishing.Publisher.send)
+    * [revoke](#jukebox.publishing.Publisher.revoke)
+    * [resend](#jukebox.publishing.Publisher.resend)
+    * [close\_server](#jukebox.publishing.Publisher.close_server)
   * [get\_publisher](#jukebox.publishing.get_publisher)
-* [jukebox.publishing.server](#jukebox.publishing.server)
-  * [PublishServer](#jukebox.publishing.server.PublishServer)
-    * [run](#jukebox.publishing.server.PublishServer.run)
-    * [handle\_message](#jukebox.publishing.server.PublishServer.handle_message)
-    * [handle\_subscription](#jukebox.publishing.server.PublishServer.handle_subscription)
-  * [Publisher](#jukebox.publishing.server.Publisher)
-    * [\_\_init\_\_](#jukebox.publishing.server.Publisher.__init__)
-    * [send](#jukebox.publishing.server.Publisher.send)
-    * [revoke](#jukebox.publishing.server.Publisher.revoke)
-    * [resend](#jukebox.publishing.server.Publisher.resend)
-    * [close\_server](#jukebox.publishing.server.Publisher.close_server)
 * [jukebox.playlistgenerator](#jukebox.playlistgenerator)
   * [TYPE\_DECODE](#jukebox.playlistgenerator.TYPE_DECODE)
   * [PlaylistCollector](#jukebox.playlistgenerator.PlaylistCollector)
@@ -49,15 +45,15 @@
     * [set\_exclusion\_endings](#jukebox.playlistgenerator.PlaylistCollector.set_exclusion_endings)
     * [get\_directory\_content](#jukebox.playlistgenerator.PlaylistCollector.get_directory_content)
     * [parse](#jukebox.playlistgenerator.PlaylistCollector.parse)
+* [jukebox.api.events](#jukebox.api.events)
+  * [EventBroker](#jukebox.api.events.EventBroker)
+    * [publish](#jukebox.api.events.EventBroker.publish)
+  * [parse\_subscription\_command](#jukebox.api.events.parse_subscription_command)
 * [jukebox.api](#jukebox.api)
 * [jukebox.api.fastapi\_server](#jukebox.api.fastapi_server)
   * [FastApiServer](#jukebox.api.fastapi_server.FastApiServer)
-* [jukebox.api.server](#jukebox.api.server)
-  * [EventBroker](#jukebox.api.server.EventBroker)
-  * [JsonErrorHandler](#jukebox.api.server.JsonErrorHandler)
-  * [StreamingJsonHandler](#jukebox.api.server.StreamingJsonHandler)
-  * [parse\_subscription\_command](#jukebox.api.server.parse_subscription_command)
-  * [ApiServer](#jukebox.api.server.ApiServer)
+* [jukebox.api.webapp\_static](#jukebox.api.webapp_static)
+  * [register\_webapp\_routes](#jukebox.api.webapp_static.register_webapp_routes)
 * [jukebox.version](#jukebox.version)
   * [version](#jukebox.version.version)
   * [version\_info](#jukebox.version.version_info)
@@ -83,13 +79,8 @@
     * [run\_callbacks](#jukebox.callingback.CallbackHandler.run_callbacks)
     * [has\_callbacks](#jukebox.callingback.CallbackHandler.has_callbacks)
 * [jukebox.rpc](#jukebox.rpc)
-* [jukebox.rpc.client](#jukebox.rpc.client)
 * [jukebox.rpc.processor](#jukebox.rpc.processor)
   * [process\_request](#jukebox.rpc.processor.process_request)
-* [jukebox.rpc.server](#jukebox.rpc.server)
-  * [RpcServer](#jukebox.rpc.server.RpcServer)
-    * [\_\_init\_\_](#jukebox.rpc.server.RpcServer.__init__)
-    * [run](#jukebox.rpc.server.RpcServer.run)
 * [jukebox.registry](#jukebox.registry)
   * [register](#jukebox.registry.register)
   * [callable\_method](#jukebox.registry.callable_method)
@@ -276,49 +267,6 @@ as service. This gives direct logging info in the console and allows changing co
 See [Troubleshooting](../../builders/troubleshooting.md).
 
 
-<a id="run_rpc_tool"></a>
-
-# run\_rpc\_tool
-
-Command Line Interface to the Jukebox RPC Server
-
-A command line tool for sending RPC commands to the running jukebox app.
-This uses the same interface as the WebUI. Can be used for additional control
-or for debugging.
-
-The tool features auto-completion and command history.
-
-The list of available commands is fetched from the running Jukebox service.
-
-.. todo:
-   - kwargs support
-
-
-<a id="run_rpc_tool.get_common_beginning"></a>
-
-#### get\_common\_beginning
-
-```python
-def get_common_beginning(strings)
-```
-
-Return the strings that are common to the beginning of each string in the strings list.
-
-
-<a id="run_rpc_tool.runcmd"></a>
-
-#### runcmd
-
-```python
-def runcmd(cmd)
-```
-
-Just run a command.
-
-Right now duplicates more or less main()
-:todo remove duplication of code
-
-
 <a id="__init__"></a>
 
 # \_\_init\_\_
@@ -339,8 +287,12 @@ For more information see [Audio Configuration](../../builders/audio.md#configura
 
 A command line tool that monitors all messages being sent out from the
 
-Jukebox via the publishing interface.  Received messages are printed in the console.
+Jukebox via the publishing interface. Received messages are printed in the console.
 Mainly used for debugging.
+
+Connects to the FastAPI events-over-websocket endpoint (see jukebox.api.fastapi_server) rather
+than ZMQ pub/sub directly -- ZMQ was dropped as an internal transport, see
+documentation/developers/roadmap-core-architecture.md ("Simplify away ZMQ and nginx").
 
 
 <a id="jukebox"></a>
@@ -581,231 +533,80 @@ Return git state information for the current branch
 
 # jukebox.NvManager
 
-<a id="jukebox.publishing.subscriber"></a>
+<a id="jukebox.publishing.bus"></a>
 
-# jukebox.publishing.subscriber
+# jukebox.publishing.bus
+
+Thread-safe in-process pub/sub bus with last-value caching.
+
+Replaces the ZMQ-based Publisher/PublishServer pair (see
+documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx"): this is a
+single-process app, so a plain thread-safe broadcast is enough -- ZMQ solved a distributed-systems
+problem (many independent processes, high throughput) that doesn't apply here.
+
+`publish()` can be called from any thread (components run in RFID reader threads, timer threads,
+etc.); subscriber callbacks are invoked synchronously on the publishing thread, so they must be
+fast and must not block. The FastAPI bridge hands off to its own event loop via
+`asyncio.run_coroutine_threadsafe` rather than doing any real work in the callback itself.
+
+
+<a id="jukebox.publishing.bus.EventBus"></a>
+
+## EventBus Objects
+
+```python
+class EventBus()
+```
+
+<a id="jukebox.publishing.bus.EventBus.publish"></a>
+
+#### publish
+
+```python
+def publish(topic: str, payload: Optional[Any]) -> None
+```
+
+Publish `payload` for `topic`. `payload=None` revokes the topic.
+
+
+<a id="jukebox.publishing.bus.EventBus.resend"></a>
+
+#### resend
+
+```python
+def resend(topic_prefix: str = '') -> None
+```
+
+Re-send all cached topics under `topic_prefix` to every subscriber.
+
+
+<a id="jukebox.publishing.bus.EventBus.cache_snapshot"></a>
+
+#### cache\_snapshot
+
+```python
+def cache_snapshot() -> Dict[str, Any]
+```
+
+A shallow copy of the full last-value cache, for a client that just subscribed.
+
 
 <a id="jukebox.publishing"></a>
 
 # jukebox.publishing
 
-<a id="jukebox.publishing.get_publisher"></a>
+<a id="jukebox.publishing.get_bus"></a>
 
-#### get\_publisher
-
-```python
-def get_publisher()
-```
-
-Return the publisher instance for this thread
-
-Per thread, only one publisher instance is required to connect to the inproc socket.
-A new instance is created if it does not already exist.
-
-If there is a remote-chance that your function publishing something may be called form
-different threads, always make a fresh call to ``get_publisher()`` to get the correct instance for the current thread.
-
-Example::
-
-    import jukebox.publishing as publishing
-
-    class MyClass:
-        def __init__(self):
-            pass
-
-        def say_hello(name):
-            publishing.get_publisher().send('hello', f'Hi {name}, howya?')
-
-To stress what **NOT** to do: don't get a publisher instance in the constructor and save it to ``self._pub``.
-If you do and ``say_hello`` gets called from different threads, the publisher of the thread which instantiated the class
-will be used.
-
-If you need your very own private Publisher Instance, you'll need to instantiate it yourself.
-But: the use cases are very rare for that. I cannot think of one at the moment.
-
-**Remember**: Don’t share ZeroMQ sockets between threads.
-
-
-<a id="jukebox.publishing.server"></a>
-
-# jukebox.publishing.server
-
-## Publishing Server
-
-The common publishing server for the entire Jukebox using ZeroMQ
-
-### Structure
-
-    +-----------------------+
-    |  functional interface |   Publisher
-    |                       |     - functional interface for single Thread
-    |        PUB            |     - sends data to publisher (and thus across threads)
-    +-----------------------+
-              | (1)
-              v
-    +-----------------------+
-    |        SUB (bind)     |   PublishServer
-    |                       |     - Last Value (LV) Cache
-    |        XPUB (bind)    |     - Subscriber notification and LV resend
-    +-----------------------+     - independent thread
-              | (2)
-              v
-
-#### Connection (1): Internal connection
-
-Internal connection only - do not use (no, not even inside this App for you own plugins - always bind to the PublishServer)
-
-    Protocol: Multi-part message
-
-    Part 1: Topic (in topic tree format)
-        E.g. player.status.elapsed
-
-    Part 2: Payload or Message in json serialization
-        If empty (i.e. ``b''``), it means delete the topic sub-tree from cache. And instruct subscribers to do the same
-
-    Part 3: Command
-        Usually empty, i.e. ``b''``. If not empty the message is treated as command for the PublishServer
-        and the message is not forwarded to the outside. This third part of the message is never forwarded
-
-#### Connection (2): External connection
-
-Upon connection of a new subscriber, the entire current state is resend from cache to ALL subscribers!
-Subscribers must subscribe to topics. Topics are treated as topic trees! Subscribing to a root tree will
-also get you all the branch topics. To get everything, subscribe to ``b''``
-
-    Protocol: Multi-part message
-
-    Part 1: Topic (in topic tree format)
-        E.g. player.status.elapsed
-
-    Part 2: Payload or Message in json serialization
-        If empty (i.e. b''), it means the subscriber must delete this key locally (not valid anymore)
-
-### Why? Why?
-
-Check out the [ZeroMQ Documentation](https://zguide.zeromq.org/docs/chapter5)
-for why you need a proxy in a good design.
-
-For use case, we made a few simplifications
-
-### Design Rationales
-
-* "If you need [millions of messages per second](https://zguide.zeromq.org/docs/chapter5/`Pros`-and-Cons-of-Pub-Sub)
-  sent to thousands of points,
-  you'll appreciate pub-sub a lot more than if you need a few messages a second sent to a handful of recipients."
-* "lower-volume network with a few dozen subscribers and a limited number of topics, we can use TCP and then
-  the [XSUB and XPUB](https://zguide.zeromq.org/docs/chapter5/`Last`-Value-Caching)"
-* "Let's imagine [our feed has an average of 100,000 100-byte messages a
-  second](https://zguide.zeromq.org/docs/chapter5/`High`-Speed-Subscribers-Black-Box-Pattern) [...].
-  While 100K messages a second is easy for a ZeroMQ application, ..."
-
-**But we have:**
-
-* few dozen subscribers             --> Check!
-* limited number of topics          --> Check!
-* max ~10 messages per second       --> Check!
-* small common state information    --> Check!
-* only the server updates the state --> Check!
-
-This means, we can use less complex patters than used for these high-speed, high code count, high data rate networks :-)
-
-* XPUB / XSUB to detect new subscriber
-* Cache the entire state in the publisher
-* Re-send the entire state on-demand (and then even to every subscriber)
-* Using the same channel: sends state to every subscriber
-
-**Reliability considerations**
-
-* Late joining client (or drop-off and re-join): get full state update
-* Server crash etc: No special handling necessary, we are simple
-  and don't need recovery in this case. Server will publish initial state
-  after re-start
-* Subscriber too slow: Subscribers problem (TODO: Do we need to do anything about it?)
-
-**Start-up sequence:**
-
-* Publisher plugin is first plugin to be loaded
-* Due to Publisher - PublisherServer structure no further sequencing required
-
-### Plugin interactions and usage
-
-RPC can trigger through function call in components/publishing plugin that
-
-* entire state is re-published  (from the cache)
-* a specific topic tree is re-published (from the cache)
-
-Plugins publishing state information should publish initial state at @plugin.finalize
-
-> [!IMPORTANT]
-> Do not direclty instantiate the Publisher in your plugin module. Only one Publisher is
-> required per thread. But the publisher instance **must** be thread-local!
-> Always go through :func:`publishing.get_publisher()`.
-
-**Sockets**
-
-Two endpoints are opened:
-
-1. TCP (on a configurable port)
-2. Inproc: On ``inproc://PublisherToProxy`` all topics are published app-internally. This can be used for plugin modules
-   that want to know about the current state on event based updates.
-
-**Further ZeroMQ References:**
-
-* [Working with Messages](https://zguide.zeromq.org/docs/chapter2/`Working`-with-Messages)
-* [Multiple Threads](https://zguide.zeromq.org/docs/chapter2/`Multithreading`-with-ZeroMQ)
-
-
-<a id="jukebox.publishing.server.PublishServer"></a>
-
-## PublishServer Objects
+#### get\_bus
 
 ```python
-class PublishServer(threading.Thread)
+def get_bus() -> EventBus
 ```
 
-The publish proxy server that collects and caches messages from all internal publishers and
-
-forwards them to the outside world
-
-Handles new subscriptions by sending out the entire cached state to **all** subscribers
-
-The code is structures using a [Reactor Pattern](https://zguide.zeromq.org/docs/chapter5/`Using`-a-Reactor)
+The shared, thread-safe event bus. Prefer get_publisher() for the send/resend API.
 
 
-<a id="jukebox.publishing.server.PublishServer.run"></a>
-
-#### run
-
-```python
-def run()
-```
-
-Thread's activity
-
-
-<a id="jukebox.publishing.server.PublishServer.handle_message"></a>
-
-#### handle\_message
-
-```python
-def handle_message(msg)
-```
-
-Handle incoming messages
-
-
-<a id="jukebox.publishing.server.PublishServer.handle_subscription"></a>
-
-#### handle\_subscription
-
-```python
-def handle_subscription(msg)
-```
-
-Handle new subscribers
-
-
-<a id="jukebox.publishing.server.Publisher"></a>
+<a id="jukebox.publishing.Publisher"></a>
 
 ## Publisher Objects
 
@@ -813,70 +614,77 @@ Handle new subscribers
 class Publisher()
 ```
 
-The publisher that provides the functional interface to the application
+Thin, source-compatible wrapper around the shared :class:`EventBus`.
 
-> [!NOTE]
-> * An instance must not be shared across threads!
-> * One instance per thread is enough
+Kept as a class only so existing call sites (``publishing.get_publisher().send(...)``) don't
+need to change. Unlike the old ZMQ-backed Publisher, a single shared instance is safe to use
+from any thread -- the "one Publisher per thread" rule from the ZMQ days is gone along with
+ZMQ (see documentation/developers/roadmap-core-architecture.md).
 
 
-<a id="jukebox.publishing.server.Publisher.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(check_thread_owner=True)
-```
-
-**Arguments**:
-
-- `check_thread_owner`: Check if send() is always called from the correct thread. This is debug feature
-and is intended to expose the situation before it leads to real trouble. Leave it on!
-
-<a id="jukebox.publishing.server.Publisher.send"></a>
+<a id="jukebox.publishing.Publisher.send"></a>
 
 #### send
 
 ```python
-def send(topic: str, payload)
+def send(topic: str, payload) -> None
 ```
 
 Send out a message for topic
 
 
-<a id="jukebox.publishing.server.Publisher.revoke"></a>
+<a id="jukebox.publishing.Publisher.revoke"></a>
 
 #### revoke
 
 ```python
-def revoke(topic: str)
+def revoke(topic: str) -> None
 ```
 
 Revoke a single topic element (not a topic tree!)
 
 
-<a id="jukebox.publishing.server.Publisher.resend"></a>
+<a id="jukebox.publishing.Publisher.resend"></a>
 
 #### resend
 
 ```python
-def resend(topic: Optional[str] = None)
+def resend(topic: Optional[str] = None) -> None
 ```
 
-Instructs the PublishServer to resend current status to all subscribers
+Re-send current status of the topic tree `topic` (default: everything) to all subscribers.
 
-Not necessary to call after incremental updates or new subscriptions - that will happen automatically!
+Not necessary to call after incremental updates or new subscriptions -- that happens
+automatically.
 
 
-<a id="jukebox.publishing.server.Publisher.close_server"></a>
+<a id="jukebox.publishing.Publisher.close_server"></a>
 
 #### close\_server
 
 ```python
-def close_server()
+def close_server() -> None
 ```
 
-Instructs the PublishServer to close itself down
+No-op, kept for source compatibility with components/publishing's shutdown call.
+
+There is no separate server thread to close down anymore -- the bus is just an object.
+
+
+<a id="jukebox.publishing.get_publisher"></a>
+
+#### get\_publisher
+
+```python
+def get_publisher() -> Publisher
+```
+
+Return the shared publisher instance.
+
+Example::
+
+    import jukebox.publishing as publishing
+    publishing.get_publisher().send('hello', f'Hi there, howya?')
 
 
 <a id="jukebox.playlistgenerator"></a>
@@ -1012,6 +820,60 @@ Parse the folder ``path`` and create a playlist from its content
 - `path`: Path to folder **relative** to ``music_library_base_path``
 - `recursive`: Parse folder recursivley, or stay in top-level folder
 
+<a id="jukebox.api.events"></a>
+
+# jukebox.api.events
+
+Transport-neutral pieces of the browser events-over-websocket bridge.
+
+Split out of the old Tornado bridge (`jukebox.api.server`, removed once `jukebox.api.fastapi_server`
+became the sole HTTP/WebSocket bridge) so nothing here depends on a specific web framework.
+
+
+<a id="jukebox.api.events.EventBroker"></a>
+
+## EventBroker Objects
+
+```python
+class EventBroker()
+```
+
+Maintain browser subscriptions, backed by the shared :class:`jukebox.publishing.bus.EventBus`.
+
+Register :meth:`publish` as a bus subscriber callback (``bus.register(broker.publish)``); the
+bus already delivers `payload=None` for revocations and calls this from whatever thread
+published, so no separate transport bridging is needed here.
+
+
+<a id="jukebox.api.events.EventBroker.publish"></a>
+
+#### publish
+
+```python
+def publish(topic, payload)
+```
+
+Bus subscriber callback. `payload=None` means the topic was revoked.
+
+
+<a id="jukebox.api.events.parse_subscription_command"></a>
+
+#### parse\_subscription\_command
+
+```python
+def parse_subscription_command(command)
+```
+
+Validate a decoded events-websocket command.
+
+**Raises**:
+
+- `ValueError`: if the command is not a well-formed subscribe/unsubscribe request
+
+**Returns**:
+
+``(command_type, topics)``
+
 <a id="jukebox.api"></a>
 
 # jukebox.api
@@ -1025,17 +887,16 @@ HTTP and WebSocket API for browser clients.
 
 FastAPI + uvicorn HTTP and WebSocket API server.
 
-Reimplements the Tornado-based bridge (`jukebox.api.server`) endpoint-by-endpoint on FastAPI/uvicorn,
-per documentation/developers/roadmap-core-architecture.md step 2. Runs side by side with the Tornado
-server for now: nothing outside this module references it yet, and it is not wired into the daemon.
-
-Covers health, RPC passthrough, events-over-websocket, and (per roadmap step 3) the library
-upload/folder/entries/refresh endpoints.
+The sole browser-facing HTTP/WebSocket bridge -- replaced the Tornado-based `jukebox.api.server`
+(see documentation/developers/roadmap-core-architecture.md, steps 2-6). Serves health, RPC
+passthrough, events-over-websocket, the library upload/folder/entries/refresh endpoints, and (see
+jukebox.api.webapp_static) the webapp's static build + /logs -- nginx is gone, this is now the one
+thing reachable from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
 
 The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
-version: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no shared
-global lock, so multiple executor workers actually buy real concurrency now -- each component is
-responsible for its own thread-safety (see documentation/developers/roadmap-core-architecture.md).
+version was: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no
+shared global lock, so multiple executor workers actually buy real concurrency now -- each component
+is responsible for its own thread-safety.
 
 
 <a id="jukebox.api.fastapi_server.FastApiServer"></a>
@@ -1046,78 +907,35 @@ responsible for its own thread-safety (see documentation/developers/roadmap-core
 class FastApiServer(threading.Thread)
 ```
 
-Run the browser API on an isolated asyncio event loop, mirroring `jukebox.api.server.ApiServer`.
+Run the browser API on an isolated asyncio event loop.
 
 
-<a id="jukebox.api.server"></a>
+<a id="jukebox.api.webapp_static"></a>
 
-# jukebox.api.server
+# jukebox.api.webapp\_static
 
-Tornado HTTP RPC and WebSocket event server.
+Serve the built webapp, its fallback pages, and the /logs directory directly from FastAPI.
 
+Replaces nginx (see documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and
+nginx"): nginx's only jobs here were reverse-proxying /api/ to the browser bridge (now just
+FastAPI itself, nothing to proxy to) and serving the webapp's static build, a "build
+missing"/generic-404 fallback page, and a /logs directory listing. Small enough to do directly.
 
-<a id="jukebox.api.server.EventBroker"></a>
-
-## EventBroker Objects
-
-```python
-class EventBroker()
-```
-
-Maintain browser subscriptions and a private last-value cache.
+Deliberately matches the old `resources/default-settings/nginx.default` behavior rather than
+adding new behavior (e.g. no SPA deep-link fallback to index.html for unknown paths -- nginx's
+`try_files $uri $uri/ =404` didn't do that either, so neither does this).
 
 
-<a id="jukebox.api.server.JsonErrorHandler"></a>
+<a id="jukebox.api.webapp_static.register_webapp_routes"></a>
 
-## JsonErrorHandler Objects
+#### register\_webapp\_routes
 
 ```python
-class JsonErrorHandler(tornado.web.RequestHandler)
+def register_webapp_routes(app: FastAPI, *, build_dir: Path,
+                           logs_dir: Path) -> None
 ```
 
-Return predictable JSON errors for API handlers.
-
-
-<a id="jukebox.api.server.StreamingJsonHandler"></a>
-
-## StreamingJsonHandler Objects
-
-```python
-class StreamingJsonHandler(JsonErrorHandler)
-```
-
-Buffer small JSON mutation requests while the server accepts large uploads.
-
-
-<a id="jukebox.api.server.parse_subscription_command"></a>
-
-#### parse\_subscription\_command
-
-```python
-def parse_subscription_command(command)
-```
-
-Validate a decoded events-websocket command.
-
-Transport-neutral so both the Tornado and FastAPI websocket handlers can share it.
-
-**Raises**:
-
-- `ValueError`: if the command is not a well-formed subscribe/unsubscribe request
-
-**Returns**:
-
-``(command_type, topics)``
-
-<a id="jukebox.api.server.ApiServer"></a>
-
-## ApiServer Objects
-
-```python
-class ApiServer(threading.Thread)
-```
-
-Run the browser API on an isolated Tornado I/O loop.
+Mount the webapp build's static assets, index.html, a generic 404, and /logs. Call once.
 
 
 <a id="jukebox.version"></a>
@@ -1493,10 +1311,6 @@ def has_callbacks()
 
 # jukebox.rpc
 
-<a id="jukebox.rpc.client"></a>
-
-# jukebox.rpc.client
-
 <a id="jukebox.rpc.processor"></a>
 
 # jukebox.rpc.processor
@@ -1516,87 +1330,6 @@ Execute an RPC request and return its response envelope.
 
 The request is copied before any values are passed to plugin code so the
 caller's dictionary, including nested ``args`` and ``kwargs``, is retained.
-
-
-<a id="jukebox.rpc.server"></a>
-
-# jukebox.rpc.server
-
-## ZeroMQ Remote Procedure Call Server (RPC)
-
-Bind to TCP and inproc endpoints and translate incoming requests to procedure calls.
-Avaiable procedures to call are all functions registered with the plugin package.
-
-The protocol is loosely based on [jsonrpc](https://www.jsonrpc.org/specification)
-
-But with different elements directly relating to the plugin concept and Python function argument options
-
-    {
-      'package'  : str  # The plugin package loaded from python module
-      'plugin'   : str  # The plugin object to be accessed from the package
-                        # (i.e. function or class instance)
-      'method'   : str  # (optional) The method of the class instance
-      'args'     : [ ]  # (optional) Positional arguments as list
-      'kwargs'   : { }  # (optional) Keyword arguments as dictionary
-      'as_thread': bool # (optional) start call in separate thread
-      'id'       : Any  # (optional) Round-trip id for response (may not be None)
-      'tsp'      : Any  # (optional) measure and return total processing time for
-                        # the call request (may not be None)
-    }
-
-**Response**
-
-A response will ALWAYS be send, independent of presence of 'id'. This is in difference to the
-jsonrpc specification. But this is a ZeroMQB REQ/REP pattern requirement!
-
-If 'id' is omitted, the response will be 'None'! Unless an error occurred, then the error is returned.
-The absence of 'id' indicates that the requester is not interested in the response.
-If present, 'id' and 'tsp' may not be None. If they are None, there are treated as if non-existing.
-
-**Sockets**
-
-Two endpoints are opened on one REP socket:
-
-1. TCP (on a configurable port)
-2. Inproc: On ``inproc://JukeBoxRpcServer`` connection from the internal app are accepted. This is indented be
-   call arbitrary RPC functions from plugins that provide an interface to the outside world (e.g. GPIO). By also going though
-   the RPC instead of calling function directly we increase thread-safety and provide easy configurability (e.g. which
-   button triggers what action)
-
-
-<a id="jukebox.rpc.server.RpcServer"></a>
-
-## RpcServer Objects
-
-```python
-class RpcServer()
-```
-
-The RPC Server Class
-
-
-<a id="jukebox.rpc.server.RpcServer.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(context=None)
-```
-
-Initialize the connections and bind to the ports
-
-
-<a id="jukebox.rpc.server.RpcServer.run"></a>
-
-#### run
-
-```python
-def run()
-```
-
-The main endless loop waiting for requests and forwarding the
-
-call request to the plugin module
 
 
 <a id="jukebox.registry"></a>
@@ -3487,8 +3220,9 @@ to the Publisher.
 > [!CAUTION]
 > This can lead to recursions!
 > Recursions come up when
-> * Publish.send / PublishServer.send also emits logs, which cause a another send, which emits a log,
-> which causes a send, .....
+> * Publish.send / EventBus.publish also emits logs, which cause a another send, which emits a log,
+> which causes a send, ..... `jukebox.publishing.bus.EventBus` guards against this (caps it at one
+> extra level instead of recursing indefinitely), but still avoid triggering it needlessly.
 > * Publisher initialization emits logs, which need a Publisher instance to send logs
 
 > [!IMPORTANT]

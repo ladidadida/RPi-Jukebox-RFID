@@ -13,7 +13,6 @@ import jukebox.registry as registry
 import jukebox.utils
 import jukebox.publishing as publishing
 from jukebox.api import FastApiServer
-from jukebox.rpc.server import RpcServer
 from jukebox.NvManager import nv_manager
 
 import jukebox
@@ -46,7 +45,6 @@ class JukeBox:
 
         self.nvm = nv_manager()
         self._signal_cnt = 0
-        self.rpc_server = None
         self.api_server = None
         jukebox.cfghandler.load_yaml(cfg, configuration_file)
 
@@ -109,9 +107,7 @@ class JukeBox:
         msg = f"Closing down JukeBox {cfg.getn('system', 'box_name', default='Unnamed')}"
         print(msg)
         logger.info(msg)
-        # (1) Stop taking commands from RPC
-        if self.rpc_server is not None:
-            self.rpc_server.terminate()
+        # (1) Stop taking commands
         if self.api_server is not None:
             self.api_server.terminate()
         # (2) Stop the music
@@ -168,7 +164,6 @@ class JukeBox:
         publishing.get_publisher().send('core.started_at', time.ctime(self._start_time))
         publishing.get_publisher().send('core.git_state', self._git_state)
 
-        self.rpc_server = RpcServer()
         self.api_server = FastApiServer()
         self.api_server.start_and_wait()
 
@@ -193,8 +188,9 @@ class JukeBox:
             with open(os.path.join(artifacts_dir, 'rpc_command_alias_reference.txt'), 'w') as stream:
                 jukebox.utils.generate_cmd_alias_reference(stream)
 
-        # Start the RPC Server
-        self.rpc_server.run()
+        # Block the main thread until shutdown (exit_gracefully() calls api_server.terminate(),
+        # which stops uvicorn and lets this thread finish).
+        self.api_server.join()
 
 
 class JukeBoxBuilder:

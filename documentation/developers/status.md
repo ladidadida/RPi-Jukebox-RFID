@@ -18,7 +18,7 @@ Topics marked _in progress_ are already in the process of implementation by comm
     - [Base](#base)
     - [Via RPC](#via-rpc)
     - [Config handler](#config-handler)
-    - [ZMQ Publisher](#zmq-publisher)
+    - [Publisher](#publisher)
     - [Playback](#playback)
     - [MPD Player](#mpd-player)
     - [RFID](#rfid)
@@ -86,11 +86,12 @@ Topics marked _in progress_ are already in the process of implementation by comm
 - [x] While saving config to disk: local file change detection
 - [x] cfghandler creates setndefault() at an arbitrary depth
 
-### ZMQ Publisher
+### Publisher
 
 - [x] Last Value Cache
 - [x] Subscriber detection and initial status update
-- [x] Port configuration option (WS and/or TCP)
+- [x] In-process, thread-safe `EventBus` (replaced ZeroMQ, see
+      `documentation/developers/roadmap-core-architecture.md`)
 - [ ] Callback registration option for plugin on topic send
   - How to interact with threads?
 

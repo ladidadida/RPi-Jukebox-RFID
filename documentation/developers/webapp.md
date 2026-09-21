@@ -86,8 +86,10 @@ Uploads are exempt from the 1 MiB body-size cap that applies to RPC and other
 JSON requests.
 
 The old ZeroMQ-over-WebSocket endpoints on ports `5556` and `5557` were
-intentionally removed. Native ZeroMQ clients remain wire-compatible on TCP RPC
-port `5555` and publishing port `5558`.
+intentionally removed early on. ZeroMQ itself is gone from the whole project now -- RPC, pub/sub,
+and the C CLI client all moved to FastAPI/HTTP (see
+`documentation/developers/roadmap-core-architecture.md`). There is no ZeroMQ-based client
+compatibility anymore.
 
 ## Checks and production build
 

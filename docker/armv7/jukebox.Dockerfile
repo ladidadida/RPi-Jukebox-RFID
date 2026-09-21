@@ -25,8 +25,7 @@ RUN apt-get update && apt-get install -qq -y \
     --allow-downgrades --allow-remove-essential --allow-change-held-packages \
     at wget gcc \
     mpc mpg123 git ffmpeg spi-tools netcat alsa-tools \
-    python3 python3-venv python3-dev python3-mutagen \
-    python3-zmq libzmq5
+    python3 python3-venv python3-dev python3-mutagen
 #samba samba-common-bin
 #raspberrypi-kernel-headers
 #resolvconf
@@ -44,9 +43,9 @@ WORKDIR ${HOME}
 COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
 
 # Install runtime Python dependencies via uv (see pyproject.toml)
-RUN cd ${INSTALLATION_PATH} && uv sync --no-dev --no-install-package pyzmq  # python3-zmq apt package instead, uses system libzmq
+RUN cd ${INSTALLATION_PATH} && uv sync --no-dev
 
-EXPOSE 5555 5556
+EXPOSE 5556
 
 WORKDIR ${INSTALLATION_PATH}/src/jukebox
 

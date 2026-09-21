@@ -78,8 +78,6 @@ playermpd:
   stopped_prev_action: prev
   # Must be one of: 'none', 'next', 'rewind':
   stopped_next_action: next
-rpc:
-  tcp_port: 5555
 api:
   # 0.0.0.0 (all interfaces): nginx used to be the only thing reachable from the LAN, reverse
   # proxying to a loopback-only API server. There is no separate reverse proxy anymore -- this

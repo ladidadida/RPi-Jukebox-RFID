@@ -124,19 +124,20 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    or can CLI and webapp both call the same in-process FastAPI app / plugin dispatch directly and drop a
    hop?
 
-   **Status: not started**, and the interactive Python RPC CLI (`run_rpc_tool.py`) that was one of
-   the two ZMQ consumers is now gone entirely (removed rather than migrated -- a replacement isn't
-   designed yet). The FastAPI `/api/v1/rpc` handler already calls
-   `jukebox.rpc.processor.process_request` in-process (not through the ZMQ REP server), so the
-   webapp doesn't touch ZMQ REP/REQ at all as of step 6 below.
+   **Status: done.** Both remaining ZMQ consumers are gone: the interactive Python RPC CLI
+   (`run_rpc_tool.py`) and, once it turned out there was a second one, the C CLI client
+   (`src/cli_client/pbc.c`) -- neither was migrated, both were removed outright ("we'll find
+   another solution for that later," not designed yet). With no consumers left,
+   `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client.RpcClient`, and the `pyzmq` dependency were
+   deleted too. `jukebox.rpc.processor.process_request` stays -- it's transport-neutral and is
+   what the FastAPI `/api/v1/rpc` handler calls in-process. There is currently no CLI/RPC tool at
+   all; whatever replaces it will presumably be built against the FastAPI HTTP endpoint from the
+   start, per the "everything through FastAPI" principle (see "Advanced plugin system" above).
 
-   **Correction:** earlier revisions of this doc claimed `run_rpc_tool.py` was the *only*
-   remaining ZMQ consumer -- that was wrong. `src/cli_client/pbc.c`, a separate C CLI client, also
-   talks ZMQ REQ to `RpcServer` and is untouched by this removal. `jukebox.rpc.server.RpcServer`
-   (and `pyzmq` as a dependency) therefore still has a real, working consumer and was deliberately
-   *not* removed. `jukebox.rpc.client.RpcClient` (the Python REQ client `run_rpc_tool.py` used) is
-   also still there, now with no non-test consumer -- kept for now since a future CLI replacement
-   might still want it, not deleted speculatively.
+   `jukebox.daemon`'s main thread now blocks on `self.api_server.join()` instead of
+   `self.rpc_server.run()` -- `FastApiServer` (a `threading.Thread`) is the only long-running
+   server left, so joining it is what keeps the process alive until `exit_gracefully()` terminates
+   it.
 6. **Remove the Tornado dependency**, and check what else assumed it: webapp nginx config
    (`resources/default-settings/nginx.default`), `installation/routines/setup_jukebox_webapp.sh`, ports
    referenced in config defaults.
@@ -253,15 +254,28 @@ Not verified here (no real Pi/systemd/apt environment available): the installer 
 themselves. Same caveat as the earlier `uv` installer migration -- worth a smoke test before
 relying on them.
 
-### Still open
+### ZMQ REP/REQ, run_rpc_tool.py, and the C CLI client: done (removed, not migrated)
 
-- **ZMQ REP/REQ**: `run_rpc_tool.py` (the interactive Python CLI) was removed outright rather than
-  migrated -- "we'll find another solution for that later," not designed yet. `src/cli_client/
-  pbc.c` (a separate C CLI client) is the one remaining real ZMQ consumer, so
-  `jukebox.rpc.server.RpcServer` and the `pyzmq` dependency stay for now. Whatever the eventual CLI
-  replacement is, it's a chance to decide `pbc.c`'s fate too (keep it ZMQ-based, or move it onto
-  the FastAPI `/api/v1/rpc` HTTP endpoint like everything else and retire ZMQ RPC entirely -- see
-  step 5 further up).
+ZeroMQ is gone from the entire project now -- the last two consumers were removed outright rather
+than migrated onto FastAPI, since neither is needed *right now* and "we'll find another solution
+for that later":
+
+- `run_rpc_tool.py` (interactive Python RPC CLI) and its wrapper `tools/run_rpc_tool.sh`.
+- `src/cli_client/pbc.c` (a separate C CLI client) -- found *while* removing `run_rpc_tool.py`:
+  earlier notes here claimed the Python CLI was the *only* remaining ZMQ consumer; that was wrong,
+  this C client was a second one, missed on the first pass.
+
+With both gone, `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client.RpcClient`, `ci/installation/
+zmq_smoke.py`, and the `pyzmq` dependency were deleted too (verified nothing else imports `zmq`
+anywhere in `src/` or `test/`). Also cleaned up what existed only to support ZMQ: the
+`libzmq5`/`python3-zmq` apt packages (`packages-core.txt`, both Dockerfiles), the dedicated
+`run_raspbian_armv6_zmq` CI job that smoke-tested ZMQ on armv6, `libczmq-dev` from the main CI
+workflow's apt install, and the `rpc.tcp_port` config key. `jukebox.rpc.processor.process_request`
+stays -- transport-neutral, it's what the FastAPI `/api/v1/rpc` handler calls in-process.
+
+There is currently **no RPC/CLI tool of any kind**. Whatever replaces it should be built against
+the FastAPI HTTP endpoint from the start, consistent with the "everything through FastAPI"
+principle (see "Advanced plugin system" above) -- not scoped or designed yet.
 
 ## Dev tooling migrated to uv + bam
 
@@ -332,12 +346,17 @@ in this doc: there is no old plugin system left to extend at this point.
 
 ## Open decisions
 
-- Does ZMQ pub/sub for events survive, or get replaced by in-process asyncio primitives once nothing
-  needs the `ZMQStream` bridge? (`FastApiServer` still uses ZMQ SUB via `zmq.asyncio`, unchanged for now.)
-- Does the CLI keep speaking ZMQ REP, or move to the FastAPI HTTP API / plugin dispatch directly?
-- Concurrency model for `plugs.call()`: replace the single global `_lock_module` with per-component
-  locking (or async-aware dispatch) so unrelated plugin calls (e.g. library scan vs. playback control)
-  don't serialize against each other. This is the actual "high performance" work — the FastAPI swap
-  alone doesn't achieve it.
-- Does `/api/v1` get replaced in place, or versioned to `/api/v2` during the transition? (Currently:
-  reused as-is by both bridges, since only one runs against real traffic at a time.)
+Resolved: ZMQ pub/sub for events (replaced by in-process `EventBus`, see "Simplify away ZMQ and
+nginx"), CLI/ZMQ REP (removed entirely, no replacement designed yet, see "ZMQ REP/REQ..." above),
+and `jukebox.plugs`'s single global lock (replaced by `jukebox.registry`, which has no lock at
+all -- each component is responsible for its own thread-safety, see "Old plugin system removed").
+
+Still open:
+
+- Real per-component/per-resource concurrency (e.g. a library scan not blocking playback controls)
+  isn't designed -- `jukebox.registry.call()` has no shared lock anymore, but nothing *adds*
+  deliberate concurrency control either; components are just trusted to be thread-safe on their
+  own terms today. This is the actual "high performance" work -- the FastAPI swap alone didn't
+  achieve it (see step 1 and step 7 further up).
+- Does `/api/v1` get replaced in place, or versioned to `/api/v2` at some point? (Currently: no
+  need has come up.)

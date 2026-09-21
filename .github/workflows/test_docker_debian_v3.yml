@@ -46,20 +46,6 @@ jobs:
       - name: Test library upload proxy and Samba defaults
         run: bash ./ci/installation/test_library_file_management_config.sh
 
-  run_raspbian_armv6_zmq:
-    name: 'Raspberry Pi Debian bookworm armv6 ZMQ packages'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.0.0
-      - name: Install distro packages and run transport smoke tests
-        run: |
-          docker run --rm --platform linux/arm/v6 \
-            -v "$PWD/ci/installation/zmq_smoke.py:/tmp/zmq_smoke.py:ro" \
-            balenalib/raspberry-pi-debian:bookworm-run@sha256:1d0a42e74be2761724ae8cb1aadb4a0684d2573e692750ea20cbb84072d66543 \
-            bash -c 'apt-get update && apt-get install -y --no-install-recommends libzmq5 python3 python3-zmq && python3 /tmp/zmq_smoke.py'
-
   run_trixie_amd64:
     name: 'trixie amd64'
     uses: ./.github/workflows/test_docker_debian_codename_sub_v3.yml

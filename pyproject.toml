@@ -14,6 +14,10 @@ dependencies = [
   "python-mpd2",
   "ruamel.yaml",
   "requests",
+  # Not the HTTP bridge anymore (that's FastAPI/uvicorn below) -- jukebox.publishing.server's
+  # PublishServer still uses zmq.eventloop.ioloop.IOLoop, which unconditionally imports
+  # tornado.ioloop under the hood. Dropping this dependency needs PublishServer rewritten onto
+  # zmq.asyncio first (see documentation/developers/roadmap-core-architecture.md).
   "tornado",
   "fastapi",
   "uvicorn",

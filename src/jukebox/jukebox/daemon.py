@@ -12,7 +12,7 @@ from misc import flatten
 import jukebox.registry as registry
 import jukebox.utils
 import jukebox.publishing as publishing
-from jukebox.api import ApiServer
+from jukebox.api import FastApiServer
 from jukebox.rpc.server import RpcServer
 from jukebox.NvManager import nv_manager
 
@@ -169,7 +169,7 @@ class JukeBox:
         publishing.get_publisher().send('core.git_state', self._git_state)
 
         self.rpc_server = RpcServer()
-        self.api_server = ApiServer()
+        self.api_server = FastApiServer()
         self.api_server.start_and_wait()
 
         logger.info(f"Start-up time: {((time.time_ns() - time_start) / 1000000.0):.3f} ms")

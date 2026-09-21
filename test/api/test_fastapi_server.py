@@ -10,9 +10,19 @@ import pytest
 import zmq
 from starlette.testclient import TestClient
 
+from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT
 from jukebox.api.fastapi_server import FastApiServer, create_app
-from jukebox.api.server import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT
 from jukebox.library import MusicLibrary
+
+
+class FakeClient:
+    def __init__(self):
+        self.subscriptions = set()
+        self.messages = []
+
+    def write_message(self, message):
+        self.messages.append(message)
+        return None
 
 
 def _make_client(rpc_processor):
@@ -20,6 +30,48 @@ def _make_client(rpc_processor):
     app = create_app(EventBroker(), executor, rpc_processor)
     client = TestClient(app)
     return client, executor
+
+
+def test_broker_uses_prefix_matching_and_per_client_snapshots():
+    broker = EventBroker()
+    player = FakeClient()
+    core = FakeClient()
+    broker.publish([b'player.status', b'{"playing": true}'])
+    broker.publish([b'core.version', b'"3.0"'])
+
+    broker.register(player)
+    broker.register(core)
+    broker.subscribe(player, ['player'])
+    broker.subscribe(core, ['core.version'])
+
+    assert player.messages == [{
+        'type': 'event',
+        'topic': 'player.status',
+        'data': {'playing': True},
+    }]
+    assert core.messages == [{
+        'type': 'event',
+        'topic': 'core.version',
+        'data': '3.0',
+    }]
+
+
+def test_broker_subscribe_all_unsubscribe_and_revoke():
+    broker = EventBroker()
+    client = FakeClient()
+    broker.register(client)
+    broker.subscribe(client, [''])
+
+    broker.publish([b'volume.level', b'12'])
+    broker.publish([b'volume.level', b''])
+    broker.unsubscribe(client, [''])
+    broker.publish([b'volume.level', b'13'])
+
+    assert client.messages == [
+        {'type': 'event', 'topic': 'volume.level', 'data': 12},
+        {'type': 'revoke', 'topic': 'volume.level'},
+    ]
+    assert broker.cache['volume.level'] == 13
 
 
 @pytest.fixture
@@ -114,6 +166,34 @@ def test_events_subscribe_receives_snapshot_and_rejects_bad_command():
                 'topic': 'core.version',
                 'data': 'test-version',
             }
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
+def test_events_websocket_rejects_cross_origin_handshake():
+    executor = ThreadPoolExecutor(max_workers=1)
+    app = create_app(EventBroker(), executor, lambda request: {'result': None})
+    client = TestClient(app)
+    try:
+        with pytest.raises(Exception):  # noqa: B017 -- starlette.testclient raises WebSocketDisconnect
+            with client.websocket_connect(
+                '/api/v1/events',
+                headers={'Origin': 'http://not-the-jukebox.invalid'},
+            ):
+                pass
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
+def test_events_websocket_allows_same_origin_and_no_origin_header():
+    executor = ThreadPoolExecutor(max_workers=1)
+    app = create_app(EventBroker(), executor, lambda request: {'result': None})
+    client = TestClient(app)
+    try:
+        with client.websocket_connect('/api/v1/events', headers={'Origin': 'http://testserver'}):
+            pass
+        with client.websocket_connect('/api/v1/events'):
+            pass
     finally:
         executor.shutdown(wait=True, cancel_futures=True)
 

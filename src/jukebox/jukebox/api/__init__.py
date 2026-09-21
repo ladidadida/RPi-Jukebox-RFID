@@ -1,5 +1,5 @@
 """HTTP and WebSocket API for browser clients."""
 
-from jukebox.api.server import ApiServer
+from jukebox.api.fastapi_server import FastApiServer
 
-__all__ = ['ApiServer']
+__all__ = ['FastApiServer']

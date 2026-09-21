@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """FastAPI + uvicorn HTTP and WebSocket API server.
 
-Reimplements the Tornado-based bridge (`jukebox.api.server`) endpoint-by-endpoint on FastAPI/uvicorn,
-per documentation/developers/roadmap-core-architecture.md step 2. Runs side by side with the Tornado
-server for now: nothing outside this module references it yet, and it is not wired into the daemon.
+The sole browser-facing HTTP/WebSocket bridge -- replaced the Tornado-based `jukebox.api.server`
+(see documentation/developers/roadmap-core-architecture.md, steps 2-6). Serves health, RPC
+passthrough, events-over-websocket, and the library upload/folder/entries/refresh endpoints.
 
-Covers health, RPC passthrough, events-over-websocket, and (per roadmap step 3) the library
-upload/folder/entries/refresh endpoints.
+Uses the same `api.bind_address` / `api.port` config keys (default port 5556) the Tornado bridge
+used, so nginx/webapp/docker-compose config didn't need to change for the cutover.
 
 The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
-version: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no shared
-global lock, so multiple executor workers actually buy real concurrency now -- each component is
-responsible for its own thread-safety (see documentation/developers/roadmap-core-architecture.md).
+version was: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no
+shared global lock, so multiple executor workers actually buy real concurrency now -- each component
+is responsible for its own thread-safety.
 """
 
 import asyncio
@@ -19,6 +19,7 @@ import json
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlsplit
 
 import uvicorn
 import zmq
@@ -28,7 +29,7 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 import jukebox.cfghandler
-from jukebox.api.server import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT, parse_subscription_command
+from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT, parse_subscription_command
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
 from jukebox.rpc.processor import process_request
 
@@ -91,7 +92,26 @@ async def _handle_rpc_request(request: Request, executor, rpc_processor):
     return await loop.run_in_executor(executor, rpc_processor, client_request)
 
 
+def _is_same_origin(websocket: WebSocket) -> bool:
+    """Reject cross-origin WebSocket handshakes, matching Tornado's default `check_origin`.
+
+    Without this, any page in the browser could open a WebSocket to this API and read (or, via
+    future write-capable topics, trigger) whatever it exposes -- classic cross-site WebSocket
+    hijacking. Starlette/FastAPI don't check this by default, unlike Tornado's WebSocketHandler.
+    """
+    origin = websocket.headers.get('origin')
+    if origin is None:
+        # Non-browser clients (e.g. the RPC CLI talking WS directly) don't send Origin at all.
+        return True
+    origin_host = urlsplit(origin).netloc.lower()
+    request_host = (websocket.headers.get('host') or '').lower()
+    return origin_host == request_host
+
+
 async def _handle_events_websocket(websocket: WebSocket, broker):
+    if not _is_same_origin(websocket):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     loop = asyncio.get_running_loop()
     client = _WebSocketClient(websocket, loop)
@@ -292,12 +312,12 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
 
 
 class FastApiServer(threading.Thread):
-    """Run the browser API on an isolated asyncio event loop, mirroring `jukebox.api.server.ApiServer`."""
+    """Run the browser API on an isolated asyncio event loop."""
 
     def __init__(self, bind_address=None, port=None, context=None):
         super().__init__(name='FastApiServer', daemon=True)
         self.bind_address = bind_address or cfg.getn('api', 'bind_address', default='127.0.0.1')
-        self.port = port if port is not None else cfg.getn('api', 'fastapi_port', default=5557)
+        self.port = port if port is not None else cfg.getn('api', 'port', default=5556)
         self.context = context or zmq.asyncio.Context.instance()
         self.broker = EventBroker()
         self._ready = threading.Event()

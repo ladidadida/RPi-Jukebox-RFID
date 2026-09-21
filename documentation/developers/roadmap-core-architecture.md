@@ -100,12 +100,51 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    `test/api/test_server.py`'s library test class into `test/api/test_fastapi_server.py`.
 4. **Port the WebSocket event broker** to FastAPI's WebSocket support; decide fate of the ZMQ pub/sub hop
    underneath (keep it, or replace with in-process asyncio queues now that everything's one process).
+
+   **Status: done.** Was already implemented as part of step 2 (`_handle_events_websocket` in
+   `fastapi_server.py`); what was left was the decision and one real gap, both closed now:
+   - **ZMQ pub/sub stays.** `jukebox.publishing` is a system-wide message bus (components,
+     `run_publicity_sniffer.py`, etc. all use it), not something Tornado-specific -- nothing to
+     replace it with in-process queues for. `FastApiServer` bridges it via `zmq.asyncio`, same as
+     before.
+   - **Gap found and fixed: cross-origin WebSocket rejection.** Tornado's `WebSocketHandler`
+     rejects cross-origin handshakes by default; Starlette/FastAPI don't do this at all. Without a
+     fix, any page in a victim's browser could open a WebSocket to this API and read every
+     published topic (classic cross-site WebSocket hijacking) -- worse than a theoretical gap,
+     since `api.bind_address` defaults to loopback but nginx proxies it out to the LAN regardless.
+     Added `_is_same_origin()` (same-origin check against the `Host` header, mirroring Tornado's
+     default `check_origin`) to `fastapi_server.py`. Tests:
+     `test_events_websocket_rejects_cross_origin_handshake` /
+     `..._allows_same_origin_and_no_origin_header`.
 5. **Reassess the ZMQ REP/REQ layer** once FastAPI fully replaces Tornado — does it still earn its keep,
    or can CLI and webapp both call the same in-process FastAPI app / plugin dispatch directly and drop a
    hop?
+
+   **Status: not started.** Worth noting the FastAPI `/api/v1/rpc` handler already calls
+   `jukebox.rpc.processor.process_request` in-process (not through the ZMQ REP server) -- so the
+   webapp no longer touches ZMQ REP/REQ at all as of step 6 below. The only remaining consumer is
+   `run_rpc_tool.py` (external TCP client). Open question: move it to the FastAPI HTTP endpoint too
+   and retire `jukebox.rpc.server.RpcServer` + the inproc REP endpoint entirely, or leave it as a
+   deliberate separate transport for CLI use.
 6. **Remove the Tornado dependency**, and check what else assumed it: webapp nginx config
    (`resources/default-settings/nginx.default`), `installation/routines/setup_jukebox_webapp.sh`, ports
    referenced in config defaults.
+
+   **Status: partially done.** The Tornado *HTTP bridge* is gone: `jukebox.api.server` deleted,
+   `jukebox.daemon` now starts `FastApiServer` instead of `ApiServer`, on the exact same
+   `api.bind_address`/`api.port` config keys and default port (5556) -- so nginx, the webapp's Vite
+   dev proxy, and `docker-compose.yml` needed zero changes. Verified end-to-end (not just unit
+   tests): started the real component-wired daemon pieces plus `FastApiServer` in a throwaway
+   config dir, hit `/api/v1/health` and `/api/v1/rpc` over real HTTP, got a correct RPC response,
+   shut down cleanly.
+
+   The `tornado` *package* itself is still a dependency, though: `jukebox.publishing.server.
+   PublishServer` (the core pub/sub proxy -- not the browser bridge, the actual internal message
+   bus everything uses) imports `zmq.eventloop.ioloop.IOLoop`, which unconditionally does `from
+   tornado.ioloop import IOLoop` under the hood (verified by uninstalling tornado and watching
+   `PublishServer` fail to import). Dropping the dependency needs `PublishServer` rewritten onto
+   `zmq.asyncio` first (the same pattern `FastApiServer._subscriber_loop` already uses) -- not done
+   here, tracked as the next concrete step.
 7. **Measure before/after.** "High performance" needs a number, not a vibe — concurrent library scans,
    cover-art fetches, and RPC calls during active playback are the realistic stress cases.
 

@@ -10,9 +10,9 @@ We use [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) for 
 
 `.markdownlint-cli2.yaml` configures linting consistently for the Github Action, the pre-commit hook, manual linting and the [markdownlint extension](https://github.com/DavidAnson/vscode-markdownlint) for Visual Studio Code.
 
-You can start a manual check, if you call `run_markdownlint.sh`.
+You can start a manual check, if you call `bam markdownlint`.
 
-If markdown files are changed and the pre-commit hook is enabled, `run_markdownlint.sh` is triggered on commits.
+If markdown files are changed and the pre-commit hook is enabled, `bam markdownlint` is triggered on commits.
 
 After creating a PR or pushing to the repo a Github Action triggers the linter, if markdown files are changed (see `.github/workflows/markdown_v3.yml`).
 

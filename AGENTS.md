@@ -54,39 +54,46 @@ ci/                CI helper scripts (e.g. installation testing)
 
 ## Languages, tools, conventions
 
-- **Python** (core, min version 3.9): PEP 8 style, enforced by **flake8** (`.flake8`, max line
-  127, max-complexity 12). All Python plugin/config folder & file names are `snake_case`,
-  descriptive, general→specific (see `CONTRIBUTING.md` "Naming conventions" section) — this is a
-  deliberate v2→v3 break, follow it strictly.
+- **Python** (core, min version 3.11): PEP 8 style, enforced by **ruff** (`[tool.ruff]` in
+  `pyproject.toml`, max line 127, max-complexity 12 — mirrors the old flake8 config, not yet
+  running ruff's isort/pyupgrade rules or `ruff format` on the existing tree, see
+  `documentation/developers/roadmap-core-architecture.md`). All Python plugin/config folder & file
+  names are `snake_case`, descriptive, general→specific (see `CONTRIBUTING.md` "Naming
+  conventions" section) — this is a deliberate v2→v3 break, follow it strictly.
 - **JavaScript/React** (`src/webapp`): Create React App (`react-scripts`), MUI v5, i18next for
   translations (`de`/`en` under `src/webapp/public/locales`), Ramda, react-router-dom.
 - **Config format**: YAML (`ruamel.yaml`), defaults in `resources/default-settings/`.
-- Everything under any `scratch*`-named folder is git- and flake8-ignored — safe scratch space,
+- Everything under any `scratch*`-named folder is git- and ruff-ignored — safe scratch space,
   never a place for real code.
 
 ## Common commands (run from repo root)
 
+Package manager is **uv**; the dev/CI workflow is driven by **[bam](https://gitlab.com/cascascade/bam)**
+(`bam.yaml`), a content-addressed task runner — cached, so re-running an unchanged task is instant.
+The old `run_*.sh` wrapper scripts are gone.
+
 ```bash
-./run_jukebox.sh              # start the Jukebox core (activates .venv, runs src/jukebox/run_jukebox.py)
-./run_pytest.sh                # run Python test suite (pytest -c pytest.ini), testpaths = test/
-./run_flake8.sh                 # lint Python (flake8 --config .flake8)
-./run_markdownlint.sh            # lint markdown docs (needs src/webapp/node_modules)
-./run_docgeneration.sh           # regenerate API docs (pydoc-markdown)
+uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
+uv run python src/jukebox/run_jukebox.py   # start the Jukebox core
+bam lint                        # ruff check (cached)
+bam format                      # ruff format (auto-fix)
+bam format-check                # ruff format --check (informational only for now, see roadmap)
+bam typecheck                   # pyright (informational only for now, see roadmap)
+bam test                        # pytest, writes .reports/junit.xml
+bam docs                        # regenerate API docs (pydoc-markdown)
+bam markdownlint                # lint markdown docs (needs src/webapp/node_modules)
+bam ci-checks                   # everything CI runs, in one command
 tools/run_rpc_tool.sh            # interactive/one-shot RPC CLI against a running core
 tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
 ```
-
-All Python runner scripts expect a `.venv` at the repo root
-(`python -m pip install --no-cache-dir -r requirements.txt`); they `source .venv/bin/activate`
-before running, and will fail loudly if it's missing.
 
 Webapp (`cd src/webapp`): standard CRA scripts — `npm start`, `npm run build`, `npm test`.
 
 ## Before committing / opening a PR
 
-- If you touched **any** `.py` file: run `./run_flake8.sh` and fix findings (or justify exceptions
+- If you touched **any** `.py` file: run `bam lint` and fix findings (or justify exceptions
   in the PR).
-- Run `./run_pytest.sh` if you touched code with test coverage, and add tests for new modules
+- Run `bam test` if you touched code with test coverage, and add tests for new modules
   under `test/`.
 - Commit message prefixes `(docs)`, `(maint)`, `(packaging)` are used for trivial changes that
   don't need an issue number.

@@ -21,7 +21,7 @@ $ systemctl --user stop jukebox-daemon
 $ nano ./shared/settings/jukebox.yaml
 
 # Start Jukebox in console and check the log output (optional)
-$ ./run_jukebox.sh
+$ uv run python src/jukebox/run_jukebox.py
 # and if OK, press Ctrl-C and restart the service
 
 # Restart the service
@@ -34,5 +34,5 @@ at nighttime, signaling it's time to go to bed. :-)
 The path to the custom config file must be either absolute or relative to the folder `src/jukebox/`.
 
 ```bash
-$ ./run_jukebox.sh --conf /absolute/path/to/custom/config.yaml
+$ uv run python src/jukebox/run_jukebox.py --conf /absolute/path/to/custom/config.yaml
 ```

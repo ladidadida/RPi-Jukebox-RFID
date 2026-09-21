@@ -29,20 +29,20 @@ We recommend to use at least a Pi 3 or Pi Zero 2 for development. While this har
 
 The jukebox also runs on any Linux machine. The Raspberry Pi specific stuff will not work of course. That is no issue depending our your development area. USB RFID Readers, however, will work. You will have to install and configure [MPD (Music Player Daemon)](https://www.musicpd.org/).
 
-Install the runtime and development dependencies from `requirements-dev.txt`:
+Install the runtime and development dependencies with [uv](https://docs.astral.sh/uv/) (project
+metadata and tool config live in `pyproject.toml`):
 
 ``` bash
-pip install --upgrade setuptools wheel
-pip install -r requirements-dev.txt
+uv sync --group dev
 ```
 
-`requirements-dev.txt` installs PyZMQ from a binary wheel. If a wheel is not
+This installs PyZMQ from a binary wheel by default. If a wheel is not
 available for a development system, install its `libzmq3-dev` package and
 build only the Python binding against that system library:
 
 ``` bash
 env -u ZMQ_DRAFT_API -u ZMQ_PREFIX \
-  PYZMQ_NO_BUNDLE=ON pip install --no-binary=pyzmq pyzmq
+  PYZMQ_NO_BUNDLE=ON uv pip install --no-binary-package pyzmq pyzmq
 ```
 
 `PYZMQ_NO_BUNDLE=ON` prevents the fallback build from downloading or

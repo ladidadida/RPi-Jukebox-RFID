@@ -1,5 +1,9 @@
-# Common python packages
+# Runtime dependencies for the Raspberry Pi installer and Docker builds (both still pip-based --
+# Track B in documentation/developers/roadmap-core-architecture.md hasn't moved them to uv yet).
 # You need to install these with `python -m pip install --no-cache-dir -r requirements.txt`
+#
+# Dev tooling (uv, ruff, pyright, pytest, ...) uses pyproject.toml instead -- see `uv sync --group
+# dev`. Keep the two in sync by hand until the installer/Docker are migrated.
 
 # Note:
 # sudo apt install libasound2-dev required on some machines
@@ -8,7 +12,6 @@
 # For USB inputs (reader, buttons) and bluetooth buttons
 evdev
 mutagen
-pyalsaaudio
 pulsectl
 python-mpd2
 ruamel.yaml
@@ -29,6 +32,3 @@ gpiozero
 
 # Debian and Raspberry Pi OS installations provide PyZMQ through the
 # python3-zmq package so it can use the system libzmq.
-
-# MQTT
-paho-mqtt

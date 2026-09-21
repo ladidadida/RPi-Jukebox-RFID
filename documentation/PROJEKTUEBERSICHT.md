@@ -144,21 +144,28 @@ Docker, Compose und (host-seitig) PulseAudio müssen vorher installiert sein; je
 ### 3. Manuelles Python-Setup (nur Core, ohne Installer)
 
 ```bash
-python -m pip install --no-cache-dir -r requirements.txt
+uv sync --group dev
 # ggf. vorher: sudo apt install libasound2-dev
-./run_jukebox.sh      # aktiviert .venv und startet src/jukebox/run_jukebox.py
+uv run python src/jukebox/run_jukebox.py
 ```
 
 Die Webapp wird separat mit npm gebaut/gestartet (`cd src/webapp && npm start`).
 
 ## Nützliche Kommandos (aus dem Repo-Root)
 
+Paketmanager ist **uv**, der Dev-/CI-Workflow läuft über **bam** (`bam.yaml`, content-addressed
+Task-Runner mit Caching). Die alten `run_*.sh`-Wrapper-Skripte gibt es nicht mehr.
+
 ```bash
-./run_jukebox.sh                 # Jukebox Core starten
-./run_pytest.sh                  # Python-Tests ausführen
-./run_flake8.sh                  # Python linten
-./run_markdownlint.sh            # Markdown-Doku linten
-./run_docgeneration.sh           # API-Doku neu generieren (pydoc-markdown)
+uv sync --group dev              # .venv anlegen/aktualisieren (Runtime + Dev-Dependencies)
+uv run python src/jukebox/run_jukebox.py   # Jukebox Core starten
+bam lint                         # ruff check (gecached)
+bam format                       # ruff format (Auto-Fix)
+bam test                         # pytest, schreibt .reports/junit.xml
+bam typecheck                    # pyright (aktuell nur informativ, siehe Roadmap)
+bam docs                         # API-Doku neu generieren (pydoc-markdown)
+bam markdownlint                 # Markdown-Doku linten
+bam ci-checks                    # alles, was auch CI prüft, in einem Kommando
 tools/run_rpc_tool.sh            # interaktives RPC-CLI gegen laufenden Core
 tools/run_publicity_sniffer.sh   # alle Publish-Nachrichten mitlesen
 ```

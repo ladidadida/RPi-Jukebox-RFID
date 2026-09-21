@@ -4,10 +4,10 @@
 #
 # TO ACTIVATE: cp .githooks/pre-commit .git/hooks/.
 #
-# Checks
-# - flake8 on staged python files
-#   Note: This only checks the modified files
-# - docs build of if any python file is staged
+# Checks (all via bam, see bam.yaml)
+# - ruff lint on the whole tree, if any Python file is staged
+#   Note: bam content-hashes inputs, so this is a no-op (cached) unless something relevant changed
+# - docs build if any python file is staged
 #   Note: This builds the entire documentation if a changed file goes into the documentation
 # - Markdownlint if any markdown file is staged
 #   Note: This checks all markdown files as configured in .markdownlint-cli2.yaml
@@ -17,45 +17,38 @@
 # git commit --no-verify
 
 
-# Pass all staged python files through flake8
 PY_FILES="$(git diff --diff-filter=d --staged --name-only -- **/*.py)"
-flake8_code=0
-if [[ -n $PY_FILES ]]; then
-  echo -e "\n**************************************************************"
-  echo "Modified Python source files. Running flake8 ... "
-  echo -e "**************************************************************\n"
-  ./run_flake8.sh $PY_FILES
-  flake8_code=$?
-  echo "Flake8 return code: $flake8_code"
-fi
-
-code=$(( flake8_code ))
-
+lint_code=0
 doc_code=0
 if [[ -n $PY_FILES ]]; then
   echo -e "\n**************************************************************"
+  echo "Modified Python source files. Running 'bam lint' ... "
+  echo -e "**************************************************************\n"
+  bam lint
+  lint_code=$?
+  echo "bam lint return code: $lint_code"
+
+  echo -e "\n**************************************************************"
   echo -e "Modified Python source files. Generation markdown docs from docstring ... \n"
   echo -e "**************************************************************\n"
-  ./run_docgeneration.sh -c
+  bam docs
   doc_code=$?
-  echo "pydoc_markdown return code: $doc_code"
+  echo "bam docs return code: $doc_code"
 fi
-
-code=$(( flake8_code + doc_code ))
 
 # Pass all staged markdown files through markdownlint-cli2
 MD_FILES="$(git diff --diff-filter=d --staged --name-only -- **/*.md)"
 markdownlint_code=0
 if [[ -n $MD_FILES ]]; then
   echo -e "\n**************************************************************"
-  echo "Modified Markdown files. Running markdownlint-cli2 ... "
+  echo "Modified Markdown files. Running 'bam markdownlint' ... "
   echo -e "**************************************************************\n"
-  ./run_markdownlint.sh
+  bam markdownlint
   markdownlint_code=$?
-  echo "Markdownlint-cli2 return code: $markdownlint_code"
+  echo "bam markdownlint return code: $markdownlint_code"
 fi
 
-code=$(( flake8_code + doc_code + markdownlint_code))
+code=$(( lint_code + doc_code + markdownlint_code ))
 
 if [[ code -gt 0 ]]; then
   echo -e "\n**************************************************************"
@@ -64,4 +57,3 @@ if [[ code -gt 0 ]]; then
 fi
 
 exit $code
-

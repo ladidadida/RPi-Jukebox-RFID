@@ -34,11 +34,12 @@ Inside the root folder or the repo, these folders are important:
 * `src/jukebox`
   * contains the Jukebox Core App
 * `src/jukebox/components`
-  * contains the Python packages that are loaded using the plugin interface
+  * contains the Python packages explicitly wired up by `jukebox.daemon` at start-up (player, rfid,
+    publishing, misc -- see `documentation/developers/roadmap-core-architecture.md`)
 * `src/webapp`
   * contains the Web Interface
 
-All folders on all hierarchy levels starting with `scratch*` are ignored by git and flake8. These are intended
+All folders on all hierarchy levels starting with `scratch*` are ignored by git and ruff. These are intended
 as local, temporary scratch areas.
 
 # How to contribute
@@ -114,12 +115,12 @@ cp .githooks/pre-commit .git/hooks/.
 
 ### Python Code
 
-If you touched *any* Python file (even if only for fixing spelling errors), run flake8 in the top-level folder.
-It contains out setup file.
+If you touched *any* Python file (even if only for fixing spelling errors), run the linter (ruff, via
+[bam](https://gitlab.com/cascascade/bam)) in the top-level folder. Config lives in `pyproject.toml`.
 
 ~~~bash
 cd ~/RPi-Jukebox-RFID
-./run_flake8.sh
+bam lint
 ~~~
 
 If you are convinced some issue should not apply to your case or would require extensive re-coding, that could be OK.
@@ -132,7 +133,7 @@ them.
 
 ~~~bash
 cd ~/RPi-Jukebox-RFID/
-./run_pytest.sh
+bam test
 ~~~
 
 ## Submitting Changes
@@ -165,7 +166,7 @@ The original contributor will be notified of the revert.
 ## Guidelines
 
 * Phoniebox runs on Raspberry Pi OS.
-* Minimum python version is currently **Python 3.9**.
+* Minimum python version is currently **Python 3.11**.
 
 ## Additional Resources
 

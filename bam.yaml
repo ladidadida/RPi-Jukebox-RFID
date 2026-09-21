@@ -1,0 +1,94 @@
+version: 1
+
+cache:
+  local:
+    enabled: true
+    path: .bam/cache
+
+tasks:
+  # ── Static checks ────────────────────────────────────────────────────────────
+
+  lint:
+    command: uv run ruff check src/jukebox test
+    stage: lint
+    inputs:
+      - "src/jukebox/**/*.py"
+      - "test/**/*.py"
+      - pyproject.toml
+
+  format:
+    command: uv run ruff format src/jukebox test
+    inputs:
+      - "src/jukebox/**/*.py"
+      - "test/**/*.py"
+      - pyproject.toml
+
+  format-check:
+    # Informational only for now: the codebase has never been run through a formatter (ruff format
+    # --check currently flags ~70 files), and applying it needs its own dedicated commit at a
+    # moment that's acceptable for a large diff, not bundled into unrelated changes. See
+    # documentation/developers/roadmap-core-architecture.md.
+    command: uv run ruff format --check src/jukebox test || true
+    stage: lint
+    inputs:
+      - "src/jukebox/**/*.py"
+      - "test/**/*.py"
+      - pyproject.toml
+
+  typecheck:
+    # Informational only for now: the codebase has never been type-checked (basic mode already
+    # finds hundreds of pre-existing errors), so this must not block `ci-checks`/CI until that
+    # backlog is worked down. See documentation/developers/roadmap-core-architecture.md.
+    command: uv run pyright || true
+    stage: lint
+    inputs:
+      - "src/jukebox/**/*.py"
+      - pyproject.toml
+
+  # ── Tests ─────────────────────────────────────────────────────────────────────
+
+  test:
+    command: uv run pytest --junit-xml=.reports/junit.xml
+    stage: test
+    inputs:
+      - "src/jukebox/**/*.py"
+      - "test/**/*.py"
+      - pyproject.toml
+    outputs:
+      - .reports/junit.xml
+
+  # ── Docs ──────────────────────────────────────────────────────────────────────
+
+  docs:
+    command: uv run pydoc-markdown
+    inputs:
+      - "src/jukebox/**/*.py"
+      - pydoc-markdown.yml
+    outputs:
+      - documentation/developers/docstring/
+
+  markdownlint:
+    command: src/webapp/node_modules/.bin/markdownlint-cli2 --config .markdownlint-cli2.yaml "#node_modules"
+    stage: lint
+    inputs:
+      - "**/*.md"
+      - .markdownlint-cli2.yaml
+
+  # ── Aggregate CI ──────────────────────────────────────────────────────────────
+
+  ci-checks:
+    command: echo "All CI checks passed"
+    stage: build
+    depends_on:
+      - lint
+      - format-check
+      - typecheck
+      - test
+
+ci:
+  provider: github-actions
+  python_version: "3.11"
+  triggers:
+    push:
+      branches: [main]
+    pull_request:

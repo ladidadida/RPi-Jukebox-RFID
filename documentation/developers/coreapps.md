@@ -47,15 +47,11 @@ Run this once to register and configure the RFID readers with Jukebox. It can be
 
 ### RPC
 
-**Scriptname:** [run_rpc_tool.sh](../../tools/run_rpc_tool.sh)
-
-Command Line Interface to the Jukebox RPC Server.
-
-A command-line tool for sending RPC commands to the running Jukebox app, utilizing the same interface as the Web App, provides additional control or debugging capabilities. Start the tool in interactive mode with `./run_rpc_tool.sh`.
-
-Features include auto-completion and command history, with available commands fetched from the running Jukebox service.
-
-For direct command execution, use the `-c` argument, e.g., `./run_rpc_tool.sh -c host.shutdown`.
+The interactive Python RPC CLI (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) was removed -- a
+replacement is planned but not designed yet (see
+`documentation/developers/roadmap-core-architecture.md`). The C client (`src/cli_client/pbc.c`)
+and the ZMQ REP server (`jukebox.rpc.server.RpcServer`, TCP port `5555` by default) it talks to
+are unaffected by this and still work.
 
 ### Publicity Sniffer
 

@@ -44,9 +44,11 @@ ci/                CI helper scripts (e.g. installation testing)
   functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
   `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
 - **RPC server**: the Web App (via `POST /api/v1/rpc`), RFID card swipes (direct in-process calls),
-  and the `run_rpc_tool.py` CLI (still ZeroMQ REQ/REP, `jukebox.rpc.server.RpcServer`) all
-  ultimately dispatch through the *same* `(package, plugin, method)` call shape — read
-  `documentation/builders/rpc-commands.md` before adding a new user-triggerable action.
+  and the C CLI client (`src/cli_client/pbc.c`, still ZeroMQ REQ/REP against
+  `jukebox.rpc.server.RpcServer`) all ultimately dispatch through the *same*
+  `(package, plugin, method)` call shape — read `documentation/builders/rpc-commands.md` before
+  adding a new user-triggerable action. The interactive Python RPC CLI (`run_rpc_tool.py`) was
+  removed; a replacement isn't designed yet (see roadmap).
 - **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
   the status/event channel components publish to (`publishing.get_publisher().send(topic,
   payload)`) — thread-safe, in-process, no ZMQ involved anymore (see
@@ -88,7 +90,6 @@ bam test                        # pytest, writes .reports/junit.xml
 bam docs                        # regenerate API docs (pydoc-markdown)
 bam markdownlint                # lint markdown docs (needs src/webapp/node_modules)
 bam ci-checks                   # everything CI runs, in one command
-tools/run_rpc_tool.sh            # interactive/one-shot RPC CLI against a running core
 tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
 ```
 

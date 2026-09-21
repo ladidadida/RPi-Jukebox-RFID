@@ -124,12 +124,19 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    or can CLI and webapp both call the same in-process FastAPI app / plugin dispatch directly and drop a
    hop?
 
-   **Status: not started.** Worth noting the FastAPI `/api/v1/rpc` handler already calls
-   `jukebox.rpc.processor.process_request` in-process (not through the ZMQ REP server) -- so the
-   webapp no longer touches ZMQ REP/REQ at all as of step 6 below. The only remaining consumer is
-   `run_rpc_tool.py` (external TCP client). Open question: move it to the FastAPI HTTP endpoint too
-   and retire `jukebox.rpc.server.RpcServer` + the inproc REP endpoint entirely, or leave it as a
-   deliberate separate transport for CLI use.
+   **Status: not started**, and the interactive Python RPC CLI (`run_rpc_tool.py`) that was one of
+   the two ZMQ consumers is now gone entirely (removed rather than migrated -- a replacement isn't
+   designed yet). The FastAPI `/api/v1/rpc` handler already calls
+   `jukebox.rpc.processor.process_request` in-process (not through the ZMQ REP server), so the
+   webapp doesn't touch ZMQ REP/REQ at all as of step 6 below.
+
+   **Correction:** earlier revisions of this doc claimed `run_rpc_tool.py` was the *only*
+   remaining ZMQ consumer -- that was wrong. `src/cli_client/pbc.c`, a separate C CLI client, also
+   talks ZMQ REQ to `RpcServer` and is untouched by this removal. `jukebox.rpc.server.RpcServer`
+   (and `pyzmq` as a dependency) therefore still has a real, working consumer and was deliberately
+   *not* removed. `jukebox.rpc.client.RpcClient` (the Python REQ client `run_rpc_tool.py` used) is
+   also still there, now with no non-test consumer -- kept for now since a future CLI replacement
+   might still want it, not deleted speculatively.
 6. **Remove the Tornado dependency**, and check what else assumed it: webapp nginx config
    (`resources/default-settings/nginx.default`), `installation/routines/setup_jukebox_webapp.sh`, ports
    referenced in config defaults.
@@ -248,10 +255,13 @@ relying on them.
 
 ### Still open
 
-- **ZMQ REP/REQ**: `run_rpc_tool.py` is now the *only* remaining ZMQ consumer in the whole
-  codebase (confirmed while doing the pub/sub migration above). Move it onto the FastAPI
-  `/api/v1/rpc` HTTP endpoint, then retire `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client`,
-  and the `pyzmq` dependency entirely (see step 5 further up).
+- **ZMQ REP/REQ**: `run_rpc_tool.py` (the interactive Python CLI) was removed outright rather than
+  migrated -- "we'll find another solution for that later," not designed yet. `src/cli_client/
+  pbc.c` (a separate C CLI client) is the one remaining real ZMQ consumer, so
+  `jukebox.rpc.server.RpcServer` and the `pyzmq` dependency stay for now. Whatever the eventual CLI
+  replacement is, it's a chance to decide `pbc.c`'s fate too (keep it ZMQ-based, or move it onto
+  the FastAPI `/api/v1/rpc` HTTP endpoint like everything else and retire ZMQ RPC entirely -- see
+  step 5 further up).
 
 ## Dev tooling migrated to uv + bam
 

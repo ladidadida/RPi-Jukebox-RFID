@@ -16,9 +16,9 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 .
 ├── src/
 │   ├── jukebox/            Python-Kernanwendung ("Jukebox Core"), läuft als Daemon auf dem Pi
-│   │   ├── jukebox/        Framework: Component-Registry, RPC-Server (ZeroMQ, nur noch für
-│   │   │                   run_rpc_tool.py), FastAPI-API-Bridge (HTTP + WebSocket + Webapp-
-│   │   │                   Static-Files + /logs), In-Process-Pub/Sub-Bus, Config-Handling
+│   │   ├── jukebox/        Framework: Component-Registry, RPC-Server (ZeroMQ, nur noch für den
+│   │   │                   C-Client src/cli_client/pbc.c), FastAPI-API-Bridge (HTTP + WebSocket
+│   │   │                   + Webapp-Static-Files + /logs), In-Process-Pub/Sub-Bus, Config-Handling
 │   │   ├── components/     Explizit von jukebox.daemon verdrahtet (kein Plugin-System mehr):
 │   │   │                   player, rfid, publishing, misc. Andere frühere Komponenten (gpio,
 │   │   │                   mqtt, volume, timers, battery_monitor, controls, jingle, hostif,
@@ -62,8 +62,9 @@ Punkte. Kurzfassung:
    (`register()`/`start()`), nichts wird mehr dynamisch aus der Config geladen.
 2. **FastAPI als Browser-Bridge** — HTTP (`/api/v1/rpc`, Library-Endpoints), WebSocket
    (`/api/v1/events`), und seit Kurzem auch das Webapp-Static-Build + `/logs` direkt (kein nginx
-   mehr davor). RFID-Kartenaktionen laufen direkt in-process über die Registry; nur noch das
-   CLI-Tool `run_rpc_tool.py` spricht ZeroMQ REQ/REP mit dem Core.
+   mehr davor). RFID-Kartenaktionen laufen direkt in-process über die Registry; nur noch der
+   C-Client (`src/cli_client/pbc.c`) spricht noch ZeroMQ REQ/REP mit dem Core. Das interaktive
+   Python-RPC-CLI (`run_rpc_tool.py`) wurde entfernt, ein Ersatz ist noch nicht entworfen.
 3. **In-Process Pub/Sub-Bus** (`jukebox.publishing`, `EventBus`) — Status/Events, thread-sicher,
    kein ZeroMQ mehr. Die Webapp und `run_publicity_sniffer.py` abonnieren über die
    FastAPI-WebSocket-Bridge.
@@ -174,7 +175,6 @@ bam typecheck                    # pyright (aktuell nur informativ, siehe Roadma
 bam docs                         # API-Doku neu generieren (pydoc-markdown)
 bam markdownlint                 # Markdown-Doku linten
 bam ci-checks                    # alles, was auch CI prüft, in einem Kommando
-tools/run_rpc_tool.sh            # interaktives RPC-CLI gegen laufenden Core
 tools/run_publicity_sniffer.sh   # alle Publish-Nachrichten mitlesen
 ```
 

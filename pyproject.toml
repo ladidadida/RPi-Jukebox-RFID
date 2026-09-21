@@ -47,6 +47,19 @@ package = false
 addopts = "--maxfail=2 -rf --ff -v --import-mode=importlib"
 testpaths = ["test"]
 
+[tool.coverage.run]
+omit = ["test/*"]
+
+[tool.pydoc-markdown]
+loaders = [{ type = "python", search_path = ["./src/jukebox"] }]
+processors = [{ type = "filter" }, { type = "sphinx" }, { type = "crossref" }]
+
+[tool.pydoc-markdown.renderer]
+type = "markdown"
+render_toc = true
+filename = "./documentation/developers/docstring/README.md"
+render_page_title = true
+
 [tool.ruff]
 line-length = 127
 target-version = "py311"

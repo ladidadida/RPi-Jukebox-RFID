@@ -8,7 +8,6 @@ on:
         - 'pyproject.toml'
         - 'uv.lock'
         - 'bam.yaml'
-        - '.coveragerc'
         - '**.py'
   pull_request:
     branches:
@@ -18,7 +17,6 @@ on:
         - 'pyproject.toml'
         - 'uv.lock'
         - 'bam.yaml'
-        - '.coveragerc'
         - '**.py'
 
 jobs:
@@ -50,7 +48,7 @@ jobs:
         uv pip install -r src/jukebox/components/rfid/hardware/rc522_spi/requirements.txt
     - name: Run pytest with coverage
       run: |
-        uv run pytest --cov --cov-report xml --cov-config=.coveragerc
+        uv run pytest --cov --cov-report xml
     - name: Report to Coveralls (parallel)
       uses: coverallsapp/github-action@v2
       with:

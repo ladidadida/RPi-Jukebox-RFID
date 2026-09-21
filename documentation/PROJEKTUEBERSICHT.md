@@ -119,7 +119,7 @@ Es gibt zwei grundsätzliche Wege:
    `documentation/builders/installation.md`. Kernstück ist `installation/install-jukebox.sh`,
    das über `installation/routines/*.sh` u. a. folgende Schritte orchestriert:
    - System-Pakete installieren (`packages-core.txt`, per `apt-get`)
-   - Python-`.venv` anlegen und `requirements.txt` installieren
+   - Python-`.venv` anlegen und Dependencies aus `pyproject.toml` per `uv sync` installieren
    - MPD, Audio (PulseAudio/ALSA), RFID-Reader, Autohotspot/WLAN, Samba, Kiosk-Modus (Webapp im
      Vollbild) einrichten
    - systemd-Services registrieren

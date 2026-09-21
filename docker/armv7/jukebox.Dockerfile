@@ -35,12 +35,16 @@ ENV VIRTUAL_ENV=${INSTALLATION_PATH}/.venv
 RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# uv (package manager), used below to install Python dependencies as $USER
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN UV_INSTALL_DIR=/usr/local/bin sh /uv-installer.sh && rm /uv-installer.sh
+
 USER ${USER}
 WORKDIR ${HOME}
 COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
 
-RUN pip install --no-cache-dir --upgrade setuptools wheel \
-    && pip install --no-cache-dir -r ${INSTALLATION_PATH}/requirements.txt
+# Install runtime Python dependencies via uv (see pyproject.toml)
+RUN cd ${INSTALLATION_PATH} && uv sync --no-dev --no-install-package pyzmq  # python3-zmq apt package instead, uses system libzmq
 
 EXPOSE 5555 5556 5558
 

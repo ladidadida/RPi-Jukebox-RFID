@@ -127,10 +127,20 @@ errors in basic mode) are wired up as bam tasks but deliberately non-blocking (`
 codebase has never been run through either -- same "no formatting baseline commit yet" situation
 upstream already flagged in `roadmap-plugins-and-packaging.md` for their own (not-merged-here) work.
 
-`requirements.txt` still exists, trimmed but otherwise unconverted: the real Pi installer
-(`installation/routines/setup_jukebox_core.sh`) and both Dockerfiles are still pip-based and parse
-it directly. Migrating them to `uv` is packaging/install territory (Track B, item 3 in the fork-goals
-list above), not done as part of this tooling pass -- kept in sync by hand for now.
+**Update:** `requirements.txt` / `requirements-excluded.txt` are gone too now. The real Pi installer
+(`installation/routines/setup_jukebox_core.sh`) and both Dockerfiles were migrated to `uv sync`
+against `pyproject.toml` directly (bootstrapping `uv` itself via the official install script if not
+already present). One gotcha caught by actually building `docker/Dockerfile.jukebox` and importing
+`zmq` inside the built image: PyZMQ must keep coming from the `python3-zmq` apt package (via
+`--system-site-packages`, using the system libzmq) rather than a PyPI wheel -- `uv sync
+--no-install-package pyzmq` on all three call sites keeps that true, otherwise every install would
+silently reintroduce the exact "draft-enabled PyZMQ shadowing the system package" problem the
+installer already has one-time cleanup logic for. The armv7 Dockerfile's `uv sync` step and the real
+Pi installer's `uv sync` step are unverified beyond syntax review -- no armv7 QEMU build or real Pi
+hardware available here; worth a smoke test before relying on them. This closes out the last piece
+of Track B (packaging/install) that isn't a full install/update rewrite -- runtime dependency
+installation is uv-based everywhere now, the rest of Track B (bundling the webapp as package data,
+resolving checkout-relative paths, etc.) is still open.
 
 ## Old plugin system removed
 

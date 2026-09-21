@@ -33,6 +33,7 @@ ignores:
   - "documentation/developers/docstring/*"
   - "src/**"
   - "LICENSE"
+  - ".venv/**"
 
 # Use a plugin to recognize math
 #markdownItPlugins:

@@ -2,9 +2,27 @@
 
 JUKEBOX_SERVICE_NAME="${SYSTEMD_USR_PATH}/jukebox-daemon.service"
 
+# RPi.GPIO uses direct /sys/class/gpio/ access, removed since kernel 6.6 (Trixie / Bookworm).
+# Superseded by rpi-lgpio (see pyproject.toml). See also
+# - https://github.com/MiczFlor/RPi-Jukebox-RFID/pull/2470
+# - https://github.com/MiczFlor/RPi-Jukebox-RFID/discussions/2295
+JUKEBOX_CORE_EXCLUDED_PIP_MODULE="RPi.GPIO"
+
+_jukebox_core_ensure_uv() {
+  if command -v uv >/dev/null 2>&1; then
+    return
+  fi
+  print_lc "  Install uv (Python package manager)"
+  curl -LsSf https://astral.sh/uv/install.sh | sh || exit_on_error "ERROR: Failed to install uv"
+  # The installer places uv in ~/.local/bin by default; make sure this shell session finds it.
+  export PATH="${HOME}/.local/bin:${PATH}"
+  command -v uv >/dev/null 2>&1 || exit_on_error "ERROR: uv installed but not found on PATH"
+}
+
 _jukebox_core_install_python_requirements() {
   print_lc "  Install Python requirements"
 
+  _jukebox_core_ensure_uv
   cd "${INSTALLATION_PATH}" || exit_on_error
 
   if [[ -d "${VIRTUAL_ENV}" ]]; then
@@ -22,16 +40,18 @@ _jukebox_core_install_python_requirements() {
     'from importlib.metadata import distribution; print(distribution("pyzmq").locate_file(""))' \
     2>/dev/null || true)
   if [[ "${pyzmq_path}" == "${VIRTUAL_ENV}/"* ]]; then
-    python -m pip uninstall -y pyzmq
+    uv pip uninstall pyzmq
   fi
 
-  # Build tooling is needed for native Python dependencies, but is not part of
-  # the Jukebox runtime requirements.
-  pip install --upgrade pip setuptools wheel
-  # Remove excluded libs, if installed - see https://github.com/MiczFlor/RPi-Jukebox-RFID/pull/2470
-  pip uninstall -y -r "${INSTALLATION_PATH}"/requirements-excluded.txt
+  # Remove excluded libs, if installed (see JUKEBOX_CORE_EXCLUDED_PIP_MODULE above).
+  # A no-op (exit 0, just a warning) if it wasn't installed.
+  uv pip uninstall "${JUKEBOX_CORE_EXCLUDED_PIP_MODULE}"
 
-  pip install --no-cache-dir -r "${INSTALLATION_PATH}/requirements.txt"
+  # PyZMQ comes from the python3-zmq apt package (visible via --system-site-packages, uses the
+  # system libzmq) rather than a PyPI wheel here -- that's the whole point of the pyzmq_path check
+  # above. Excluding it from `uv sync` keeps that true on every install, not just for the one-time
+  # cleanup of older, draft-enabled PyZMQ installs.
+  uv sync --no-dev --no-install-package pyzmq
 }
 
 _jukebox_core_check_zmq() {
@@ -67,11 +87,16 @@ _jukebox_core_check() {
 
     verify_dirs_exists "${VIRTUAL_ENV}"
 
-    local pip_modules=$(get_args_from_file "${INSTALLATION_PATH}/requirements.txt")
+    local pip_modules=$(python3 -c "
+import re
+import tomllib
+with open('${INSTALLATION_PATH}/pyproject.toml', 'rb') as f:
+    deps = tomllib.load(f)['project']['dependencies']
+print(' '.join(re.split(r'[<>=!; ]', dep, 1)[0] for dep in deps))
+")
     verify_pip_modules pyzmq $pip_modules
 
-    local pip_modules_excluded=$(get_args_from_file "${INSTALLATION_PATH}/requirements-excluded.txt")
-    verify_pip_modules_not $pip_modules_excluded
+    verify_pip_modules_not "${JUKEBOX_CORE_EXCLUDED_PIP_MODULE}"
 
     _jukebox_core_check_zmq
 

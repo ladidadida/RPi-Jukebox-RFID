@@ -54,6 +54,12 @@ RUN mkdir -p /tmp/lg && cd /tmp/lg \
     && make && make install \
     && cd / && rm -rf /tmp/lg
 
+# uv (package manager), used below to install Python dependencies as $USER. Installed via the
+# official script rather than `COPY --from=ghcr.io/astral-sh/uv:latest` since that image has no
+# armv7 build (see docker/armv7/jukebox.Dockerfile), and this way both Dockerfiles stay consistent.
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN UV_INSTALL_DIR=/usr/local/bin sh /uv-installer.sh && rm /uv-installer.sh
+
 # Copy in the source code using the correct permissions
 COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
 
@@ -66,9 +72,8 @@ ENV VIRTUAL_ENV=${INSTALLATION_PATH}/.venv
 RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Install build tooling and runtime Python dependencies
-RUN pip install --no-cache-dir --upgrade setuptools wheel \
-    && pip install --no-cache-dir -r ${INSTALLATION_PATH}/requirements.txt
+# Install runtime Python dependencies via uv (see pyproject.toml)
+RUN cd ${INSTALLATION_PATH} && uv sync --no-dev --no-install-package pyzmq  # python3-zmq apt package instead, uses system libzmq
 
 EXPOSE 5555 5556 5558
 WORKDIR ${INSTALLATION_PATH}/src/jukebox

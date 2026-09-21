@@ -60,8 +60,8 @@ warn_python_requirements() {
   echo "ATTENTION: Python requirements have changed since last pull!"
   echo ""
   echo "To update python requirements on the RPi run"
-  echo " uv sync"
-  echo " python -m pip uninstall -y -r requirements-excluded.txt"
+  echo " uv sync --no-dev --no-install-package pyzmq"
+  echo "(installation/routines/setup_jukebox_core.sh does this, plus the RPi.GPIO cleanup, for you)"
   echo "************************************************************"
   echo -e "\n"
 }
@@ -91,13 +91,12 @@ warn_installer() {
 
 # files_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD)"
 python_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD pyproject.toml uv.lock)"
-python_excl_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD requirements-excluded.txt)"
 webapp_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD src/webapp)"
 webapp_dep_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD src/webapp/package.json)"
 githooks_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD .githooks)"
 installer_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD installation)"
 
-if [[ -n $python_req_changed || -n $python_excl_req_changed ]]; then
+if [[ -n $python_req_changed ]]; then
     warn_python_requirements
 fi
 

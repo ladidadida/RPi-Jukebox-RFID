@@ -1,51 +1,59 @@
 #!/usr/bin/env python
 """
 A command line tool that monitors all messages being sent out from the
-Jukebox via the publishing interface.  Received messages are printed in the console.
+Jukebox via the publishing interface. Received messages are printed in the console.
 Mainly used for debugging.
+
+Connects to the FastAPI events-over-websocket endpoint (see jukebox.api.fastapi_server) rather
+than ZMQ pub/sub directly -- ZMQ was dropped as an internal transport, see
+documentation/developers/roadmap-core-architecture.md ("Simplify away ZMQ and nginx").
 """
 import argparse
+import asyncio
+import json
 import logging
+
 import misc.loggingext
-from jukebox.publishing.subscriber import Subscriber
+import websockets
 
 logger = misc.loggingext.configure_default(logging.WARNING)
 topic_width = 40
 
 
-def main(address, topic):
-    sub = Subscriber(address, topic)
-    while True:
-        try:
-            [topic, payload] = sub.receive()
-        except KeyboardInterrupt:
-            break
-        print(f"{topic:{topic_width}}: {payload}")
+async def main(url, topics):
+    async with websockets.connect(url) as websocket:
+        await websocket.send(json.dumps({'type': 'subscribe', 'topics': topics or ['']}))
+        while True:
+            message = json.loads(await websocket.recv())
+            if message['type'] == 'revoke':
+                print(f"{message['topic']:{topic_width}}: <revoked>")
+            else:
+                print(f"{message['topic']:{topic_width}}: {message['data']}")
 
 
 if __name__ == '__main__':
-    default_tcp = 5558
-    url = f"tcp://localhost:{default_tcp}"
-    argparser = argparse.ArgumentParser(description='The Jukebox Publisher sniffer tool',
-                                        epilog=f'Default connection: {url}\nExample:\n$ {__file__} -t 5558 -k core host',
-                                        formatter_class=argparse.RawDescriptionHelpFormatter)
-    port_group = argparser.add_mutually_exclusive_group()
-    port_group.add_argument("-t", "--tcp",
-                            help=f"Use tcp protocol on PORT [default: {default_tcp}]",
-                            nargs='?', const=default_tcp,
-                            metavar="PORT", default=None)
+    default_port = 5556
+    argparser = argparse.ArgumentParser(
+        description='The Jukebox Publisher sniffer tool',
+        epilog=f'Default connection port: {default_port}\nExample:\n$ {__file__} -p 5556 -k core host',
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    argparser.add_argument("-p", "--port",
+                           help=f"Connect to the API server on PORT [default: {default_port}]",
+                           type=int, default=default_port, metavar="PORT")
 
     argparser.add_argument('-k', '--topics', metavar='TOPIC',
                            help="Subscribe to this topic tree(s). If omitted all topics are subscribed.",
                            nargs='+',
-                           default='')
+                           default=None)
     args = argparser.parse_args()
 
-    if args.tcp is not None:
-        url = f"tcp://localhost:{args.tcp}"
+    url = f"ws://localhost:{args.port}/api/v1/events"
 
     print(f">>> Sniffer Client connect on {url} for topics '{args.topics}'\n\n")
 
-    main(url, args.topics)
+    try:
+        asyncio.run(main(url, args.topics))
+    except KeyboardInterrupt:
+        pass
 
     print("\n\n>>> Sniffer Client exited!")

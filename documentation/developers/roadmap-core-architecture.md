@@ -142,13 +142,13 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    config dir, hit `/api/v1/health` and `/api/v1/rpc` over real HTTP, got a correct RPC response,
    shut down cleanly.
 
-   The `tornado` *package* itself is still a dependency, though: `jukebox.publishing.server.
-   PublishServer` (the core pub/sub proxy -- not the browser bridge, the actual internal message
-   bus everything uses) imports `zmq.eventloop.ioloop.IOLoop`, which unconditionally does `from
-   tornado.ioloop import IOLoop` under the hood (verified by uninstalling tornado and watching
-   `PublishServer` fail to import). Dropping the dependency needs `PublishServer` rewritten onto
-   `zmq.asyncio` first (the same pattern `FastApiServer._subscriber_loop` already uses) -- not done
-   here, tracked as the next concrete step.
+   **Update:** the `tornado` *package* is gone now too. It was still a dependency because
+   `jukebox.publishing.server.PublishServer` (the core pub/sub proxy, not the browser bridge --
+   the actual internal message bus everything uses) imported `zmq.eventloop.ioloop.IOLoop`, which
+   unconditionally does `from tornado.ioloop import IOLoop` under the hood (verified by
+   uninstalling tornado and watching `PublishServer` fail to import). Replacing `PublishServer`
+   with the in-process `EventBus` (see "Simplify away ZMQ and nginx" below) removed that import
+   entirely -- `tornado` is no longer in `pyproject.toml`.
 7. **Measure before/after.** "High performance" needs a number, not a vibe — concurrent library scans,
    cover-art fetches, and RPC calls during active playback are the realistic stress cases.
 
@@ -172,20 +172,49 @@ single-process app on a single Pi serving a handful of local browser clients ove
   bind wherever needed -- nginx's real strengths (TLS termination, high-concurrency static serving,
   buffering under load) aren't relevant at Pi-jukebox scale.
 
-Concrete follow-up steps once picked up:
+### ZMQ pub/sub: done
 
-- Rewrite `jukebox.publishing.server.PublishServer` onto in-process `asyncio.Queue` broadcast
-  (subscribers register a queue, `publish()` puts onto each matching one) instead of ZMQ PUB/XPUB
-  -- this is also what finally drops the `tornado` dependency (see step 6 above).
-- Move `run_rpc_tool.py` (the only remaining ZMQ REP/REQ consumer, see step 5 above) onto the
-  FastAPI `/api/v1/rpc` HTTP endpoint, then retire `jukebox.rpc.server.RpcServer` and the ZMQ REP
-  socket entirely.
-- Have FastAPI serve the webapp's static build directly; update
-  `installation/routines/setup_jukebox_webapp.sh` and `resources/default-settings/nginx.default`
-  accordingly (or drop nginx from the install routine and default services entirely).
-- `run_publicity_sniffer.py` and any other external-process consumers of the pub/sub bus need a
-  replacement once ZMQ pub/sub is gone -- check what actually still uses it externally before
-  assuming in-process-only is enough.
+`jukebox.publishing` no longer uses ZMQ at all. Replaced with `jukebox.publishing.bus.EventBus`: a
+plain thread-safe last-value-cache + subscriber registry (lock + dict + set, no reactor loop, no
+background thread). `publish()` is called synchronously from whatever thread published (RFID
+reader thread, timer threads, the daemon thread, ...) and dispatches directly to registered
+callbacks -- for the FastAPI bridge, that callback (`EventBroker.publish`) is itself already
+thread-safe via `asyncio.run_coroutine_threadsafe` (it had to be, to deliver ZMQ-sourced events
+into the event loop before; now it does the same job one hop shorter).
+
+`jukebox.publishing.get_publisher().send/resend/close_server` -- the call-site API every component
+uses -- is unchanged, so no component code needed to change. `Publisher` is no longer thread-local
+(the old "one instance per thread, ZMQ sockets aren't thread-safe" rule doesn't apply to a
+lock-protected dict): one shared instance is enough now.
+
+Turned out to also fully drop the `tornado` dependency as a side effect: it was only needed
+because `jukebox.publishing.server.PublishServer` imported `zmq.eventloop.ioloop.IOLoop`, which
+unconditionally pulled in `tornado.ioloop`. Deleting that whole reactor-based server (see above)
+removed the last thing requiring it -- verified with `uv sync` after removing it from
+`pyproject.toml` and running the full test suite.
+
+`run_publicity_sniffer.py` (the one external-process consumer, previously a raw ZMQ TCP
+subscriber) now connects to `/api/v1/events` as a plain WebSocket client (`websockets` package,
+added to `[project.dependencies]`) -- verified against a real running `FastApiServer` +
+`components.publishing`, not just unit-tested. New tests: `test/publishing/test_bus.py`, including
+one that reproduces and verifies the fix for the original code's "log handler republishes through
+the bus it's logging an error for" recursion hazard (see `misc/loggingext.py`'s `PubStreamHandler`)
+-- `EventBus.publish()` caps that at one extra level via a thread-local re-entrancy depth guard
+instead of the old code's thread-identity/recursion-counter check.
+
+Also removed the now-meaningless `publishing.tcp_port` config key and the `5558` port references
+that went with it (`jukebox.default.yaml`, `docker-compose.yml`, both Dockerfiles' `EXPOSE`).
+
+### Still open
+
+- **nginx**: still reverse-proxies `/api/` and serves the webapp's static build. Have FastAPI
+  serve the static build directly instead; update `installation/routines/setup_jukebox_webapp.sh`
+  and `resources/default-settings/nginx.default` accordingly (or drop nginx from the install
+  routine and default services entirely).
+- **ZMQ REP/REQ**: `run_rpc_tool.py` is now the *only* remaining ZMQ consumer in the whole
+  codebase (confirmed while doing the pub/sub migration above). Move it onto the FastAPI
+  `/api/v1/rpc` HTTP endpoint, then retire `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client`,
+  and the `pyzmq` dependency entirely (see step 5 further up).
 
 ## Dev tooling migrated to uv + bam
 

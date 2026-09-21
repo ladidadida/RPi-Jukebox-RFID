@@ -46,7 +46,7 @@ COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
 # Install runtime Python dependencies via uv (see pyproject.toml)
 RUN cd ${INSTALLATION_PATH} && uv sync --no-dev --no-install-package pyzmq  # python3-zmq apt package instead, uses system libzmq
 
-EXPOSE 5555 5556 5558
+EXPOSE 5555 5556
 
 WORKDIR ${INSTALLATION_PATH}/src/jukebox
 

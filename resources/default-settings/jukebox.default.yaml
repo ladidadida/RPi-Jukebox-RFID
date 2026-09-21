@@ -83,9 +83,6 @@ rpc:
 api:
   bind_address: 127.0.0.1
   port: 5556
-publishing:
-  # Setting the port number to 0 disables external TCP publishing
-  tcp_port: 5558
 rfid:
   reader_config: ../../shared/settings/rfid.yaml
   card_database: ../../shared/settings/cards.yaml

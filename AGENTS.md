@@ -14,8 +14,8 @@ apply.
 
 ```
 src/jukebox/       Python core application ("Jukebox Core") — the daemon that runs on the Pi
-  jukebox/         Core framework: explicit component registry, RPC server, FastAPI/Tornado API
-                   bridges, publishing/pubsub, config handling
+  jukebox/         Core framework: explicit component registry, RPC server, FastAPI API bridge,
+                   in-process pub/sub event bus, config handling
   components/      Explicitly wired by jukebox.daemon at start-up (no plugin/config-driven
                    loading — see documentation/developers/roadmap-core-architecture.md): player
                    (MPD), rfid, publishing, misc. Other former components (gpio, mqtt, volume,
@@ -23,7 +23,8 @@ src/jukebox/       Python core application ("Jukebox Core") — the daemon that 
                    removed and will come back as new, not-yet-designed components.
   misc/            Shared utility code
   run_*.py         Entry points (jukebox core, RPC tool, RFID registration, audio config, sniffer)
-src/webapp/        React front-end (the touch/web UI), talks to the core via RPC/ZeroMQ over WebSocket
+src/webapp/        React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
+                   (FastAPI, `/api/v1/*`)
 src/cli_client/    Command-line client
 installation/      Bash install routines run on a real Raspberry Pi (install-jukebox.sh + routines/)
 docker/            Dockerfiles + compose files for a non-Pi development environment
@@ -42,12 +43,16 @@ ci/                CI helper scripts (e.g. installation testing)
   (currently: publishing, misc, player, rfid) directly by calling its `register()`/`start()`
   functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
   `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
-- **RPC server**: the Web App, RFID card swipes, and the `run_rpc_tool.py`
-  CLI all trigger core functionality through the *same* RPC protocol — read
+- **RPC server**: the Web App (via `POST /api/v1/rpc`), RFID card swipes (direct in-process calls),
+  and the `run_rpc_tool.py` CLI (still ZeroMQ REQ/REP, `jukebox.rpc.server.RpcServer`) all
+  ultimately dispatch through the *same* `(package, plugin, method)` call shape — read
   `documentation/builders/rpc-commands.md` before adding a new user-triggerable action.
-  Transport is ZeroMQ (`pyzmq` / `jszmq` on the webapp side).
-- **Publishing message queue**: the complementary status/event channel the core publishes to;
-  the webapp and `run_publicity_sniffer.py` subscribe to it.
+- **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
+  the status/event channel components publish to (`publishing.get_publisher().send(topic,
+  payload)`) — thread-safe, in-process, no ZMQ involved anymore (see
+  documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx"). The
+  webapp subscribes via the FastAPI WebSocket bridge (`/api/v1/events`); `run_publicity_sniffer.py`
+  connects there too as a plain WebSocket client.
 - **Player backend**: MPD (Music Player Daemon), driven via `python-mpd2`.
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.

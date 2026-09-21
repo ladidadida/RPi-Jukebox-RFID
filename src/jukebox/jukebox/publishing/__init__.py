@@ -1,38 +1,54 @@
-import threading
-import jukebox.publishing.server as publishing
+from typing import Optional
 
-_THREAD_PUBLISHER = threading.local()
+from jukebox.publishing.bus import EventBus
+
+_BUS = EventBus()
 
 
-def get_publisher():
-    """Return the publisher instance for this thread
+def get_bus() -> EventBus:
+    """The shared, thread-safe event bus. Prefer get_publisher() for the send/resend API."""
+    return _BUS
 
-    Per thread, only one publisher instance is required to connect to the inproc socket.
-    A new instance is created if it does not already exist.
 
-    If there is a remote-chance that your function publishing something may be called form
-    different threads, always make a fresh call to ``get_publisher()`` to get the correct instance for the current thread.
+class Publisher:
+    """Thin, source-compatible wrapper around the shared :class:`EventBus`.
+
+    Kept as a class only so existing call sites (``publishing.get_publisher().send(...)``) don't
+    need to change. Unlike the old ZMQ-backed Publisher, a single shared instance is safe to use
+    from any thread -- the "one Publisher per thread" rule from the ZMQ days is gone along with
+    ZMQ (see documentation/developers/roadmap-core-architecture.md).
+    """
+
+    def send(self, topic: str, payload) -> None:
+        """Send out a message for topic"""
+        _BUS.publish(topic, payload)
+
+    def revoke(self, topic: str) -> None:
+        """Revoke a single topic element (not a topic tree!)"""
+        _BUS.publish(topic, None)
+
+    def resend(self, topic: Optional[str] = None) -> None:
+        """Re-send current status of the topic tree `topic` (default: everything) to all subscribers.
+
+        Not necessary to call after incremental updates or new subscriptions -- that happens
+        automatically."""
+        _BUS.resend(topic or '')
+
+    def close_server(self) -> None:
+        """No-op, kept for source compatibility with components/publishing's shutdown call.
+
+        There is no separate server thread to close down anymore -- the bus is just an object."""
+
+
+_PUBLISHER = Publisher()
+
+
+def get_publisher() -> Publisher:
+    """Return the shared publisher instance.
 
     Example::
 
         import jukebox.publishing as publishing
-
-        class MyClass:
-            def __init__(self):
-                pass
-
-            def say_hello(name):
-                publishing.get_publisher().send('hello', f'Hi {name}, howya?')
-
-    To stress what **NOT** to do: don't get a publisher instance in the constructor and save it to ``self._pub``.
-    If you do and ``say_hello`` gets called from different threads, the publisher of the thread which instantiated the class
-    will be used.
-
-    If you need your very own private Publisher Instance, you'll need to instantiate it yourself.
-    But: the use cases are very rare for that. I cannot think of one at the moment.
-
-    **Remember**: Don’t share ZeroMQ sockets between threads."""
-    global _THREAD_PUBLISHER
-    if not hasattr(_THREAD_PUBLISHER, 'publisher_instance'):
-        _THREAD_PUBLISHER.publisher_instance = publishing.Publisher()
-    return _THREAD_PUBLISHER.publisher_instance
+        publishing.get_publisher().send('hello', f'Hi there, howya?')
+    """
+    return _PUBLISHER

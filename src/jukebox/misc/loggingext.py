@@ -90,8 +90,9 @@ class PubStream:
     > [!CAUTION]
     > This can lead to recursions!
     > Recursions come up when
-    > * Publish.send / PublishServer.send also emits logs, which cause a another send, which emits a log,
-    > which causes a send, .....
+    > * Publish.send / EventBus.publish also emits logs, which cause a another send, which emits a log,
+    > which causes a send, ..... `jukebox.publishing.bus.EventBus` guards against this (caps it at one
+    > extra level instead of recursing indefinitely), but still avoid triggering it needlessly.
     > * Publisher initialization emits logs, which need a Publisher instance to send logs
 
     > [!IMPORTANT]

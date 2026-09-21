@@ -7,12 +7,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
-import zmq
 from starlette.testclient import TestClient
 
-from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT
+from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE
 from jukebox.api.fastapi_server import FastApiServer, create_app
 from jukebox.library import MusicLibrary
+from jukebox.publishing.bus import EventBus
 
 
 class FakeClient:
@@ -33,11 +33,12 @@ def _make_client(rpc_processor):
 
 
 def test_broker_uses_prefix_matching_and_per_client_snapshots():
-    broker = EventBroker()
+    bus = EventBus()
+    broker = EventBroker(bus=bus)
     player = FakeClient()
     core = FakeClient()
-    broker.publish([b'player.status', b'{"playing": true}'])
-    broker.publish([b'core.version', b'"3.0"'])
+    bus.publish('player.status', {'playing': True})
+    bus.publish('core.version', '3.0')
 
     broker.register(player)
     broker.register(core)
@@ -57,21 +58,25 @@ def test_broker_uses_prefix_matching_and_per_client_snapshots():
 
 
 def test_broker_subscribe_all_unsubscribe_and_revoke():
-    broker = EventBroker()
+    bus = EventBus()
+    broker = EventBroker(bus=bus)
     client = FakeClient()
+    bus.register(broker.publish)
     broker.register(client)
     broker.subscribe(client, [''])
 
-    broker.publish([b'volume.level', b'12'])
-    broker.publish([b'volume.level', b''])
+    bus.publish('volume.level', 12)
+    bus.publish('volume.level', None)
     broker.unsubscribe(client, [''])
-    broker.publish([b'volume.level', b'13'])
+    bus.publish('volume.level', 13)
 
     assert client.messages == [
         {'type': 'event', 'topic': 'volume.level', 'data': 12},
         {'type': 'revoke', 'topic': 'volume.level'},
     ]
-    assert broker.cache['volume.level'] == 13
+    # The cache updates on every publish() regardless of subscribers; the client just didn't get
+    # this last one delivered since it unsubscribed first.
+    assert bus.cache_snapshot()['volume.level'] == 13
 
 
 @pytest.fixture
@@ -152,8 +157,9 @@ def test_http_rpc_rejects_oversized_body():
 
 
 def test_events_subscribe_receives_snapshot_and_rejects_bad_command():
-    broker = EventBroker()
-    broker.cache['core.version'] = 'test-version'
+    bus = EventBus()
+    bus.publish('core.version', 'test-version')
+    broker = EventBroker(bus=bus)
     executor = ThreadPoolExecutor(max_workers=1)
     app = create_app(broker, executor, lambda request: {'result': None})
     client = TestClient(app)
@@ -333,10 +339,8 @@ def test_fastapi_server_thread_lifecycle_and_stable_subscription():
     port = port_socket.getsockname()[1]
     port_socket.close()
 
-    context = zmq.asyncio.Context()
-    publisher = zmq.Socket(context, zmq.XPUB)
-    publisher.bind(PUBLISH_ENDPOINT)
-    server = FastApiServer(bind_address='127.0.0.1', port=port, context=context)
+    bus = EventBus()
+    server = FastApiServer(bind_address='127.0.0.1', port=port, bus=bus)
     try:
         server.start_and_wait()
 
@@ -344,17 +348,13 @@ def test_fastapi_server_thread_lifecycle_and_stable_subscription():
         with urllib.request.urlopen(f'http://127.0.0.1:{port}/api/v1/health', timeout=2) as response:
             assert json.load(response) == {'status': 'ok'}
 
-        assert publisher.poll(2000)
-        assert publisher.recv() == b'\x01'
-
-        publisher.send_multipart([b'core.version', b'"test-version"'])
+        # Published from an arbitrary (non-event-loop) thread, same as real components do.
+        bus.publish('core.version', 'test-version')
         deadline = time.monotonic() + 2
-        while 'core.version' not in server.broker.cache and time.monotonic() < deadline:
+        while 'core.version' not in bus.cache_snapshot() and time.monotonic() < deadline:
             time.sleep(0.01)
-        assert server.broker.cache.get('core.version') == 'test-version'
+        assert bus.cache_snapshot().get('core.version') == 'test-version'
     finally:
         server.terminate()
-        publisher.close(0)
-        context.term()
 
     assert not server.is_alive()

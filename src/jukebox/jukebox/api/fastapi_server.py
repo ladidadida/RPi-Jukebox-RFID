@@ -22,14 +22,13 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 import uvicorn
-import zmq
-import zmq.asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 import jukebox.cfghandler
-from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, PUBLISH_ENDPOINT, parse_subscription_command
+import jukebox.publishing
+from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
 from jukebox.rpc.processor import process_request
 
@@ -314,20 +313,18 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
 class FastApiServer(threading.Thread):
     """Run the browser API on an isolated asyncio event loop."""
 
-    def __init__(self, bind_address=None, port=None, context=None):
+    def __init__(self, bind_address=None, port=None, bus=None):
         super().__init__(name='FastApiServer', daemon=True)
         self.bind_address = bind_address or cfg.getn('api', 'bind_address', default='127.0.0.1')
         self.port = port if port is not None else cfg.getn('api', 'port', default=5556)
-        self.context = context or zmq.asyncio.Context.instance()
-        self.broker = EventBroker()
+        self.bus = bus or jukebox.publishing.get_bus()
+        self.broker = EventBroker(bus=self.bus)
         self._ready = threading.Event()
         self._startup_error = None
         self._loop = None
         self._server = None
         self._executor = None
         self._library_executor = None
-        self._subscriber = None
-        self._subscriber_task = None
 
     def start_and_wait(self, timeout=5):
         self.start()
@@ -357,11 +354,11 @@ class FastApiServer(threading.Thread):
         config = uvicorn.Config(app, host=self.bind_address, port=self.port, loop='none', log_config=None)
         self._server = uvicorn.Server(config)
 
-        self._subscriber = self.context.socket(zmq.SUB)
-        self._subscriber.setsockopt(zmq.SUBSCRIBE, b'')
-        self._subscriber.setsockopt(zmq.LINGER, 0)
-        self._subscriber.connect(PUBLISH_ENDPOINT)
-        self._subscriber_task = asyncio.ensure_future(self._subscriber_loop())
+        # broker.publish is called synchronously from whatever thread published (see
+        # jukebox.publishing.bus.EventBus); it hands off to this server's event loop itself via
+        # asyncio.run_coroutine_threadsafe (see _WebSocketClient.write_message), so no separate
+        # subscriber loop/bridging is needed here -- unlike the old ZMQ SUB-socket version.
+        self.bus.register(self.broker.publish)
 
         serve_task = asyncio.ensure_future(self._server.serve())
         while not self._server.started and not serve_task.done():
@@ -374,18 +371,9 @@ class FastApiServer(threading.Thread):
         try:
             await serve_task
         finally:
-            self._subscriber_task.cancel()
-            self._subscriber.close(linger=0)
+            self.bus.unregister(self.broker.publish)
             self._executor.shutdown(wait=False, cancel_futures=True)
             self._library_executor.shutdown(wait=False, cancel_futures=True)
-
-    async def _subscriber_loop(self):
-        try:
-            while True:
-                message = await self._subscriber.recv_multipart()
-                self.broker.publish(message)
-        except asyncio.CancelledError:
-            pass
 
     def terminate(self, timeout=5):
         logger.info("Closing FastAPI server")

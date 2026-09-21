@@ -2,24 +2,22 @@
 """Transport-neutral pieces of the browser events-over-websocket bridge.
 
 Split out of the old Tornado bridge (`jukebox.api.server`, removed once `jukebox.api.fastapi_server`
-became the sole HTTP/WebSocket bridge -- see documentation/developers/roadmap-core-architecture.md)
-so nothing here depends on a specific web framework.
+became the sole HTTP/WebSocket bridge) so nothing here depends on a specific web framework.
 """
 
-import json
-import logging
-
-logger = logging.getLogger('jb.api.events')
-
 MAX_MESSAGE_SIZE = 1024 * 1024
-PUBLISH_ENDPOINT = 'inproc://PublisherToProxy'
 
 
 class EventBroker:
-    """Maintain browser subscriptions and a private last-value cache."""
+    """Maintain browser subscriptions, backed by the shared :class:`jukebox.publishing.bus.EventBus`.
 
-    def __init__(self):
-        self.cache = {}
+    Register :meth:`publish` as a bus subscriber callback (``bus.register(broker.publish)``); the
+    bus already delivers `payload=None` for revocations and calls this from whatever thread
+    published, so no separate transport bridging is needed here.
+    """
+
+    def __init__(self, bus=None):
+        self._bus = bus
         self.clients = set()
 
     def register(self, client):
@@ -34,7 +32,9 @@ class EventBroker:
 
     def subscribe(self, client, topics):
         client.subscriptions.update(topics)
-        for topic, data in self.cache.items():
+        if self._bus is None:
+            return
+        for topic, data in self._bus.cache_snapshot().items():
             if self._matches(topic, topics):
                 self._send(client, {
                     'type': 'event',
@@ -46,29 +46,12 @@ class EventBroker:
     def unsubscribe(client, topics):
         client.subscriptions.difference_update(topics)
 
-    def publish(self, message):
-        if len(message) != 2:
-            logger.warning(f"Ignoring malformed publisher message with {len(message)} parts")
-            return
-
-        topic_bytes, payload = message
-        try:
-            topic = topic_bytes.decode('utf-8')
-        except UnicodeDecodeError as error:
-            logger.warning(f"Ignoring publisher topic that is not UTF-8: {error}")
-            return
-
-        if payload == b'':
-            self.cache.pop(topic, None)
+    def publish(self, topic, payload):
+        """Bus subscriber callback. `payload=None` means the topic was revoked."""
+        if payload is None:
             outgoing = {'type': 'revoke', 'topic': topic}
         else:
-            try:
-                data = json.loads(payload)
-            except (json.JSONDecodeError, UnicodeDecodeError) as error:
-                logger.warning(f"Ignoring malformed publisher payload for '{topic}': {error}")
-                return
-            self.cache[topic] = data
-            outgoing = {'type': 'event', 'topic': topic, 'data': data}
+            outgoing = {'type': 'event', 'topic': topic, 'data': payload}
 
         for client in tuple(self.clients):
             if self._matches(topic, client.subscriptions):

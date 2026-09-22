@@ -1,15 +1,15 @@
 # Jukebox Apps
 
-The Jukebox's core apps are located in `src/jukebox`. To learn more about each app and its parameters, run the following command:
+The Jukebox's core apps are located in `packages/jukebox/scripts`. To learn more about each app and its parameters, run the following command:
 
 ``` bash
-$ cd src/jukebox
+$ cd packages/jukebox/scripts
 $ ./<scriptname> -h
 ```
 
 ## Jukebox Core
 
-**Scriptname:** [run_jukebox.py](../../src/jukebox/run_jukebox.py) (run via `uv run python src/jukebox/run_jukebox.py`)
+**Scriptname:** [run_jukebox.py](../../packages/jukebox/scripts/run_jukebox.py) (run via `uv run python packages/jukebox/scripts/run_jukebox.py`)
 
 This is the main app. It starts the Jukebox Core.
 

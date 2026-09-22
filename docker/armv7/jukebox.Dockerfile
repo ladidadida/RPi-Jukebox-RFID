@@ -47,8 +47,8 @@ RUN cd ${INSTALLATION_PATH} && uv sync --no-dev
 
 EXPOSE 5556
 
-WORKDIR ${INSTALLATION_PATH}/src/jukebox
+WORKDIR ${INSTALLATION_PATH}
 
 # Run Jukebox
 # CMD bash
-CMD python ${INSTALLATION_PATH}/src/jukebox/run_jukebox.py
+CMD python ${INSTALLATION_PATH}/packages/jukebox/scripts/run_jukebox.py

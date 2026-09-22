@@ -36,11 +36,11 @@ services:
     restart: unless-stopped
     tty: true
     volumes:
-      - ../src/jukebox:/root/RPi-Jukebox-RFID/src/jukebox
-      - ../src/webapp/public/cover-cache:/root/RPi-Jukebox-RFID/src/webapp/build/cover-cache
+      - ../packages/jukebox:/root/RPi-Jukebox-RFID/packages/jukebox
+      - ../packages/webapp/public/cover-cache:/root/RPi-Jukebox-RFID/packages/webapp/build/cover-cache
       - ../shared:/root/RPi-Jukebox-RFID/shared
       - ./config/docker.mpd.conf:/root/.config/mpd/mpd.conf
-    command: python run_jukebox.py
+    command: python packages/jukebox/scripts/run_jukebox.py
 
   webapp:
     build:
@@ -57,5 +57,5 @@ services:
       - 3000:3000
     restart: unless-stopped
     volumes:
-      - ../src/webapp:/home/node/webapp
+      - ../packages/webapp:/home/node/webapp
       - /home/node/webapp/node_modules

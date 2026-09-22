@@ -2,11 +2,6 @@
 
 ## Table of Contents
 
-* [run\_register\_rfid\_reader](#run_register_rfid_reader)
-* [run\_jukebox](#run_jukebox)
-* [\_\_init\_\_](#__init__)
-* [run\_configure\_audio](#run_configure_audio)
-* [run\_publicity\_sniffer](#run_publicity_sniffer)
 * [jukebox](#jukebox)
 * [jukebox.library](#jukebox.library)
   * [LibraryError](#jukebox.library.LibraryError)
@@ -24,7 +19,70 @@
   * [generate\_cmd\_alias\_rst](#jukebox.utils.generate_cmd_alias_rst)
   * [generate\_cmd\_alias\_reference](#jukebox.utils.generate_cmd_alias_reference)
   * [get\_git\_state](#jukebox.utils.get_git_state)
-* [jukebox.NvManager](#jukebox.NvManager)
+* [jukebox.command\_aliases](#jukebox.command_aliases)
+* [jukebox.rfid.reader](#jukebox.rfid.reader)
+  * [RfidCardDetectCallbacks](#jukebox.rfid.reader.RfidCardDetectCallbacks)
+    * [register](#jukebox.rfid.reader.RfidCardDetectCallbacks.register)
+    * [run\_callbacks](#jukebox.rfid.reader.RfidCardDetectCallbacks.run_callbacks)
+  * [rfid\_card\_detect\_callbacks](#jukebox.rfid.reader.rfid_card_detect_callbacks)
+  * [CardRemovalTimerClass](#jukebox.rfid.reader.CardRemovalTimerClass)
+    * [\_\_init\_\_](#jukebox.rfid.reader.CardRemovalTimerClass.__init__)
+  * [start\_readers](#jukebox.rfid.reader.start_readers)
+* [jukebox.rfid.configure](#jukebox.rfid.configure)
+  * [reader\_install\_dependencies](#jukebox.rfid.configure.reader_install_dependencies)
+  * [reader\_load\_module](#jukebox.rfid.configure.reader_load_module)
+  * [query\_user\_for\_reader](#jukebox.rfid.configure.query_user_for_reader)
+  * [write\_config](#jukebox.rfid.configure.write_config)
+* [jukebox.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon)
+  * [create\_inputs](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs)
+  * [set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state)
+  * [que\_set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state)
+  * [fix\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state)
+  * [pbox\_set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state)
+  * [que\_set\_pbox](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox)
+  * [create\_outputs](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs)
+* [jukebox.rfid.hardware.fake\_reader\_gui.description](#jukebox.rfid.hardware.fake_reader_gui.description)
+* [jukebox.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui](#jukebox.rfid.hardware.fake_reader_gui.fake_reader_gui)
+* [jukebox.rfid.hardware.rdm6300\_serial.rdm6300\_serial](#jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial)
+  * [decode](#jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial.decode)
+* [jukebox.rfid.hardware.rdm6300\_serial.description](#jukebox.rfid.hardware.rdm6300_serial.description)
+* [jukebox.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c](#jukebox.rfid.hardware.mfrc522_i2c.mfrc522_i2c)
+* [jukebox.rfid.hardware.mfrc522\_i2c.description](#jukebox.rfid.hardware.mfrc522_i2c.description)
+* [jukebox.rfid.hardware.rc522\_spi.rc522\_spi](#jukebox.rfid.hardware.rc522_spi.rc522_spi)
+* [jukebox.rfid.hardware.rc522\_spi.description](#jukebox.rfid.hardware.rc522_spi.description)
+* [jukebox.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532](#jukebox.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532)
+* [jukebox.rfid.hardware.pn532\_i2c\_py532.description](#jukebox.rfid.hardware.pn532_i2c_py532.description)
+* [jukebox.rfid.hardware.generic\_nfcpy.description](#jukebox.rfid.hardware.generic_nfcpy.description)
+* [jukebox.rfid.hardware.generic\_nfcpy.generic\_nfcpy](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy)
+  * [ReaderClass](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass)
+    * [cleanup](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup)
+    * [stop](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop)
+    * [read\_card](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card)
+* [jukebox.rfid.hardware.template\_new\_reader.template\_new\_reader](#jukebox.rfid.hardware.template_new_reader.template_new_reader)
+  * [query\_customization](#jukebox.rfid.hardware.template_new_reader.template_new_reader.query_customization)
+  * [ReaderClass](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass)
+    * [\_\_init\_\_](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__)
+    * [cleanup](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup)
+    * [stop](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop)
+    * [read\_card](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card)
+* [jukebox.rfid.hardware.template\_new\_reader.description](#jukebox.rfid.hardware.template_new_reader.description)
+* [jukebox.rfid.hardware.generic\_usb.generic\_usb](#jukebox.rfid.hardware.generic_usb.generic_usb)
+* [jukebox.rfid.hardware.generic\_usb.description](#jukebox.rfid.hardware.generic_usb.description)
+* [jukebox.rfid.readerbase](#jukebox.rfid.readerbase)
+  * [ReaderBaseClass](#jukebox.rfid.readerbase.ReaderBaseClass)
+* [jukebox.rfid](#jukebox.rfid)
+* [jukebox.rfid.cards](#jukebox.rfid.cards)
+  * [list\_cards](#jukebox.rfid.cards.list_cards)
+  * [delete\_card](#jukebox.rfid.cards.delete_card)
+  * [register\_card](#jukebox.rfid.cards.register_card)
+  * [register\_card\_custom](#jukebox.rfid.cards.register_card_custom)
+  * [save\_card\_database](#jukebox.rfid.cards.save_card_database)
+  * [register](#jukebox.rfid.cards.register)
+* [jukebox.rfid.cardutils](#jukebox.rfid.cardutils)
+  * [decode\_card\_command](#jukebox.rfid.cardutils.decode_card_command)
+  * [card\_command\_to\_str](#jukebox.rfid.cardutils.card_command_to_str)
+  * [card\_to\_str](#jukebox.rfid.cardutils.card_to_str)
+* [jukebox.nv\_manager](#jukebox.nv_manager)
 * [jukebox.publishing.bus](#jukebox.publishing.bus)
   * [EventBus](#jukebox.publishing.bus.EventBus)
     * [publish](#jukebox.publishing.bus.EventBus.publish)
@@ -38,6 +96,7 @@
     * [resend](#jukebox.publishing.Publisher.resend)
     * [close\_server](#jukebox.publishing.Publisher.close_server)
   * [get\_publisher](#jukebox.publishing.get_publisher)
+  * [republish](#jukebox.publishing.republish)
 * [jukebox.playlistgenerator](#jukebox.playlistgenerator)
   * [TYPE\_DECODE](#jukebox.playlistgenerator.TYPE_DECODE)
   * [PlaylistCollector](#jukebox.playlistgenerator.PlaylistCollector)
@@ -50,6 +109,8 @@
     * [publish](#jukebox.api.events.EventBroker.publish)
   * [parse\_subscription\_command](#jukebox.api.events.parse_subscription_command)
 * [jukebox.api](#jukebox.api)
+* [jukebox.api.dispatch](#jukebox.api.dispatch)
+  * [process\_request](#jukebox.api.dispatch.process_request)
 * [jukebox.api.fastapi\_server](#jukebox.api.fastapi_server)
   * [FastApiServer](#jukebox.api.fastapi_server.FastApiServer)
 * [jukebox.api.webapp\_static](#jukebox.api.webapp_static)
@@ -78,9 +139,6 @@
     * [register](#jukebox.callingback.CallbackHandler.register)
     * [run\_callbacks](#jukebox.callingback.CallbackHandler.run_callbacks)
     * [has\_callbacks](#jukebox.callingback.CallbackHandler.has_callbacks)
-* [jukebox.rpc](#jukebox.rpc)
-* [jukebox.rpc.processor](#jukebox.rpc.processor)
-  * [process\_request](#jukebox.rpc.processor.process_request)
 * [jukebox.registry](#jukebox.registry)
   * [register](#jukebox.registry.register)
   * [callable\_method](#jukebox.registry.callable_method)
@@ -110,190 +168,65 @@
   * [log\_active\_threads](#jukebox.daemon.log_active_threads)
   * [JukeBox](#jukebox.daemon.JukeBox)
     * [signal\_handler](#jukebox.daemon.JukeBox.signal_handler)
-* [jukebox.speaking\_text](#jukebox.speaking_text)
-* [components](#components)
-* [components.misc](#components.misc)
-  * [get\_start\_time](#components.misc.get_start_time)
-  * [get\_log](#components.misc.get_log)
-  * [get\_log\_debug](#components.misc.get_log_debug)
-  * [get\_log\_error](#components.misc.get_log_error)
-  * [get\_git\_state](#components.misc.get_git_state)
-  * [empty\_rpc\_call](#components.misc.empty_rpc_call)
-  * [get\_app\_settings](#components.misc.get_app_settings)
-  * [set\_app\_settings](#components.misc.set_app_settings)
-* [components.rfid.reader](#components.rfid.reader)
-  * [RfidCardDetectCallbacks](#components.rfid.reader.RfidCardDetectCallbacks)
-    * [register](#components.rfid.reader.RfidCardDetectCallbacks.register)
-    * [run\_callbacks](#components.rfid.reader.RfidCardDetectCallbacks.run_callbacks)
-  * [rfid\_card\_detect\_callbacks](#components.rfid.reader.rfid_card_detect_callbacks)
-  * [CardRemovalTimerClass](#components.rfid.reader.CardRemovalTimerClass)
-    * [\_\_init\_\_](#components.rfid.reader.CardRemovalTimerClass.__init__)
-  * [start\_readers](#components.rfid.reader.start_readers)
-* [components.rfid.configure](#components.rfid.configure)
-  * [reader\_install\_dependencies](#components.rfid.configure.reader_install_dependencies)
-  * [reader\_load\_module](#components.rfid.configure.reader_load_module)
-  * [query\_user\_for\_reader](#components.rfid.configure.query_user_for_reader)
-  * [write\_config](#components.rfid.configure.write_config)
-* [components.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon)
-  * [create\_inputs](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs)
-  * [set\_state](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state)
-  * [que\_set\_state](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state)
-  * [fix\_state](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state)
-  * [pbox\_set\_state](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state)
-  * [que\_set\_pbox](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox)
-  * [create\_outputs](#components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs)
-* [components.rfid.hardware.fake\_reader\_gui.description](#components.rfid.hardware.fake_reader_gui.description)
-* [components.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui](#components.rfid.hardware.fake_reader_gui.fake_reader_gui)
-* [components.rfid.hardware.rdm6300\_serial.rdm6300\_serial](#components.rfid.hardware.rdm6300_serial.rdm6300_serial)
-  * [decode](#components.rfid.hardware.rdm6300_serial.rdm6300_serial.decode)
-* [components.rfid.hardware.rdm6300\_serial.description](#components.rfid.hardware.rdm6300_serial.description)
-* [components.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c](#components.rfid.hardware.mfrc522_i2c.mfrc522_i2c)
-* [components.rfid.hardware.mfrc522\_i2c.description](#components.rfid.hardware.mfrc522_i2c.description)
-* [components.rfid.hardware.rc522\_spi.rc522\_spi](#components.rfid.hardware.rc522_spi.rc522_spi)
-* [components.rfid.hardware.rc522\_spi.description](#components.rfid.hardware.rc522_spi.description)
-* [components.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532](#components.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532)
-* [components.rfid.hardware.pn532\_i2c\_py532.description](#components.rfid.hardware.pn532_i2c_py532.description)
-* [components.rfid.hardware.generic\_nfcpy.description](#components.rfid.hardware.generic_nfcpy.description)
-* [components.rfid.hardware.generic\_nfcpy.generic\_nfcpy](#components.rfid.hardware.generic_nfcpy.generic_nfcpy)
-  * [ReaderClass](#components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass)
-    * [cleanup](#components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup)
-    * [stop](#components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop)
-    * [read\_card](#components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card)
-* [components.rfid.hardware.template\_new\_reader.template\_new\_reader](#components.rfid.hardware.template_new_reader.template_new_reader)
-  * [query\_customization](#components.rfid.hardware.template_new_reader.template_new_reader.query_customization)
-  * [ReaderClass](#components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass)
-    * [\_\_init\_\_](#components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__)
-    * [cleanup](#components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup)
-    * [stop](#components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop)
-    * [read\_card](#components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card)
-* [components.rfid.hardware.template\_new\_reader.description](#components.rfid.hardware.template_new_reader.description)
-* [components.rfid.hardware.generic\_usb.generic\_usb](#components.rfid.hardware.generic_usb.generic_usb)
-* [components.rfid.hardware.generic\_usb.description](#components.rfid.hardware.generic_usb.description)
-* [components.rfid.readerbase](#components.rfid.readerbase)
-  * [ReaderBaseClass](#components.rfid.readerbase.ReaderBaseClass)
-* [components.rfid](#components.rfid)
-* [components.rfid.cards](#components.rfid.cards)
-  * [list\_cards](#components.rfid.cards.list_cards)
-  * [delete\_card](#components.rfid.cards.delete_card)
-  * [register\_card](#components.rfid.cards.register_card)
-  * [register\_card\_custom](#components.rfid.cards.register_card_custom)
-  * [save\_card\_database](#components.rfid.cards.save_card_database)
-  * [register](#components.rfid.cards.register)
-* [components.rfid.cardutils](#components.rfid.cardutils)
-  * [decode\_card\_command](#components.rfid.cardutils.decode_card_command)
-  * [card\_command\_to\_str](#components.rfid.cardutils.card_command_to_str)
-  * [card\_to\_str](#components.rfid.cardutils.card_to_str)
-* [components.rpc\_command\_alias](#components.rpc_command_alias)
-* [components.publishing](#components.publishing)
-  * [republish](#components.publishing.republish)
-* [components.player.mpd\_plugin](#components.player.mpd_plugin)
-  * [initialize\_mpd\_player](#components.player.mpd_plugin.initialize_mpd_player)
-* [components.player.coordinator](#components.player.coordinator)
-  * [PlayerCoordinator](#components.player.coordinator.PlayerCoordinator)
-    * [register\_backend](#components.player.coordinator.PlayerCoordinator.register_backend)
-    * [select\_backend](#components.player.coordinator.PlayerCoordinator.select_backend)
-* [components.player.playcontentcallback](#components.player.playcontentcallback)
-  * [PlayContentCallbacks](#components.player.playcontentcallback.PlayContentCallbacks)
-    * [register](#components.player.playcontentcallback.PlayContentCallbacks.register)
-    * [run\_callbacks](#components.player.playcontentcallback.PlayContentCallbacks.run_callbacks)
-* [components.player.plugin](#components.player.plugin)
-* [components.player](#components.player)
-  * [play\_card\_callbacks](#components.player.play_card_callbacks)
-  * [MusicLibPath](#components.player.MusicLibPath)
-  * [get\_music\_library\_path](#components.player.get_music_library_path)
-* [components.player.backends.coverart\_cache\_manager](#components.player.backends.coverart_cache_manager)
-* [components.player.backends.mpd](#components.player.backends.mpd)
-  * [PlayerMPD](#components.player.backends.mpd.PlayerMPD)
-    * [mpd\_retry\_with\_mutex](#components.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex)
-    * [pause](#components.player.backends.mpd.PlayerMPD.pause)
-    * [next](#components.player.backends.mpd.PlayerMPD.next)
-    * [rewind](#components.player.backends.mpd.PlayerMPD.rewind)
-    * [replay](#components.player.backends.mpd.PlayerMPD.replay)
-    * [toggle](#components.player.backends.mpd.PlayerMPD.toggle)
-    * [replay\_if\_stopped](#components.player.backends.mpd.PlayerMPD.replay_if_stopped)
-    * [is\_second\_swipe](#components.player.backends.mpd.PlayerMPD.is_second_swipe)
-    * [play\_second\_swipe](#components.player.backends.mpd.PlayerMPD.play_second_swipe)
-    * [flush\_coverart\_cache](#components.player.backends.mpd.PlayerMPD.flush_coverart_cache)
-    * [get\_folder\_content](#components.player.backends.mpd.PlayerMPD.get_folder_content)
-    * [play\_folder](#components.player.backends.mpd.PlayerMPD.play_folder)
-    * [play\_album](#components.player.backends.mpd.PlayerMPD.play_album)
-    * [get\_volume](#components.player.backends.mpd.PlayerMPD.get_volume)
-    * [set\_volume](#components.player.backends.mpd.PlayerMPD.set_volume)
-* [components.player.backends](#components.player.backends)
-* [misc](#misc)
-  * [recursive\_chmod](#misc.recursive_chmod)
-  * [flatten](#misc.flatten)
-  * [getattr\_hierarchical](#misc.getattr_hierarchical)
-* [misc.simplecolors](#misc.simplecolors)
-  * [Colors](#misc.simplecolors.Colors)
-  * [resolve](#misc.simplecolors.resolve)
-  * [print](#misc.simplecolors.print)
-* [misc.inputminus](#misc.inputminus)
-  * [input\_int](#misc.inputminus.input_int)
-  * [input\_yesno](#misc.inputminus.input_yesno)
-* [misc.loggingext](#misc.loggingext)
-  * [ColorFilter](#misc.loggingext.ColorFilter)
-    * [\_\_init\_\_](#misc.loggingext.ColorFilter.__init__)
-  * [PubStream](#misc.loggingext.PubStream)
-  * [PubStreamHandler](#misc.loggingext.PubStreamHandler)
-
-<a id="run_register_rfid_reader"></a>
-
-# run\_register\_rfid\_reader
-
-Setup tool to configure the RFID Readers.
-
-Run this once to register and configure the RFID readers with the Jukebox. Can be re-run at any time to change
-the settings. For more information see [RFID Readers](../rfid/README.md).
-
-> [!NOTE]
-> This tool will always write a new configurations file. Thus, overwrite the old one (after checking with the user).
-> Any manual modifications to the settings will have to be re-applied
-
-
-<a id="run_jukebox"></a>
-
-# run\_jukebox
-
-This is the main app and starts the Jukebox Core.
-
-Usually this runs as a service, which is started automatically after boot-up. At times, it may be necessary to restart
-the service.
-For example after a configuration change. Not all configuration changes can be applied on-the-fly.
-See [Jukebox Configuration](../../builders/configuration.md#jukebox-configuration).
-
-For debugging, it is usually desirable to run the Jukebox directly from the console rather than
-as service. This gives direct logging info in the console and allows changing command line parameters.
-See [Troubleshooting](../../builders/troubleshooting.md).
-
-
-<a id="__init__"></a>
-
-# \_\_init\_\_
-
-<a id="run_configure_audio"></a>
-
-# run\_configure\_audio
-
-Setup tool to register the audio sinks as primary and secondary audio outputs.
-
-Run this once after installation. Can be re-run at any time to change the settings.
-For more information see [Audio Configuration](../../builders/audio.md#configuration).
-
-
-<a id="run_publicity_sniffer"></a>
-
-# run\_publicity\_sniffer
-
-A command line tool that monitors all messages being sent out from the
-
-Jukebox via the publishing interface. Received messages are printed in the console.
-Mainly used for debugging.
-
-Connects to the FastAPI events-over-websocket endpoint (see jukebox.api.fastapi_server) rather
-than ZMQ pub/sub directly -- ZMQ was dropped as an internal transport, see
-documentation/developers/roadmap-core-architecture.md ("Simplify away ZMQ and nginx").
-
+* [jukebox.misc.simplecolors](#jukebox.misc.simplecolors)
+  * [Colors](#jukebox.misc.simplecolors.Colors)
+  * [resolve](#jukebox.misc.simplecolors.resolve)
+  * [print](#jukebox.misc.simplecolors.print)
+* [jukebox.misc](#jukebox.misc)
+  * [recursive\_chmod](#jukebox.misc.recursive_chmod)
+  * [flatten](#jukebox.misc.flatten)
+  * [getattr\_hierarchical](#jukebox.misc.getattr_hierarchical)
+* [jukebox.misc.inputminus](#jukebox.misc.inputminus)
+  * [input\_int](#jukebox.misc.inputminus.input_int)
+  * [input\_yesno](#jukebox.misc.inputminus.input_yesno)
+* [jukebox.misc.loggingext](#jukebox.misc.loggingext)
+  * [ColorFilter](#jukebox.misc.loggingext.ColorFilter)
+    * [\_\_init\_\_](#jukebox.misc.loggingext.ColorFilter.__init__)
+  * [PubStream](#jukebox.misc.loggingext.PubStream)
+  * [PubStreamHandler](#jukebox.misc.loggingext.PubStreamHandler)
+* [jukebox.system](#jukebox.system)
+  * [get\_start\_time](#jukebox.system.get_start_time)
+  * [get\_log](#jukebox.system.get_log)
+  * [get\_log\_debug](#jukebox.system.get_log_debug)
+  * [get\_log\_error](#jukebox.system.get_log_error)
+  * [get\_git\_state](#jukebox.system.get_git_state)
+  * [empty\_rpc\_call](#jukebox.system.empty_rpc_call)
+  * [get\_app\_settings](#jukebox.system.get_app_settings)
+  * [set\_app\_settings](#jukebox.system.set_app_settings)
+* [jukebox.player.mpd\_plugin](#jukebox.player.mpd_plugin)
+  * [initialize\_mpd\_player](#jukebox.player.mpd_plugin.initialize_mpd_player)
+* [jukebox.player.coordinator](#jukebox.player.coordinator)
+  * [PlayerCoordinator](#jukebox.player.coordinator.PlayerCoordinator)
+    * [register\_backend](#jukebox.player.coordinator.PlayerCoordinator.register_backend)
+    * [select\_backend](#jukebox.player.coordinator.PlayerCoordinator.select_backend)
+* [jukebox.player.playcontentcallback](#jukebox.player.playcontentcallback)
+  * [PlayContentCallbacks](#jukebox.player.playcontentcallback.PlayContentCallbacks)
+    * [register](#jukebox.player.playcontentcallback.PlayContentCallbacks.register)
+    * [run\_callbacks](#jukebox.player.playcontentcallback.PlayContentCallbacks.run_callbacks)
+* [jukebox.player.plugin](#jukebox.player.plugin)
+* [jukebox.player](#jukebox.player)
+  * [play\_card\_callbacks](#jukebox.player.play_card_callbacks)
+  * [MusicLibPath](#jukebox.player.MusicLibPath)
+  * [get\_music\_library\_path](#jukebox.player.get_music_library_path)
+* [jukebox.player.backends.coverart\_cache\_manager](#jukebox.player.backends.coverart_cache_manager)
+* [jukebox.player.backends.mpd](#jukebox.player.backends.mpd)
+  * [PlayerMPD](#jukebox.player.backends.mpd.PlayerMPD)
+    * [mpd\_retry\_with\_mutex](#jukebox.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex)
+    * [pause](#jukebox.player.backends.mpd.PlayerMPD.pause)
+    * [next](#jukebox.player.backends.mpd.PlayerMPD.next)
+    * [rewind](#jukebox.player.backends.mpd.PlayerMPD.rewind)
+    * [replay](#jukebox.player.backends.mpd.PlayerMPD.replay)
+    * [toggle](#jukebox.player.backends.mpd.PlayerMPD.toggle)
+    * [replay\_if\_stopped](#jukebox.player.backends.mpd.PlayerMPD.replay_if_stopped)
+    * [is\_second\_swipe](#jukebox.player.backends.mpd.PlayerMPD.is_second_swipe)
+    * [play\_second\_swipe](#jukebox.player.backends.mpd.PlayerMPD.play_second_swipe)
+    * [flush\_coverart\_cache](#jukebox.player.backends.mpd.PlayerMPD.flush_coverart_cache)
+    * [get\_folder\_content](#jukebox.player.backends.mpd.PlayerMPD.get_folder_content)
+    * [play\_folder](#jukebox.player.backends.mpd.PlayerMPD.play_folder)
+    * [play\_album](#jukebox.player.backends.mpd.PlayerMPD.play_album)
+    * [get\_volume](#jukebox.player.backends.mpd.PlayerMPD.get_volume)
+    * [set\_volume](#jukebox.player.backends.mpd.PlayerMPD.set_volume)
+* [jukebox.player.backends](#jukebox.player.backends)
 
 <a id="jukebox"></a>
 
@@ -529,9 +462,725 @@ def get_git_state()
 Return git state information for the current branch
 
 
-<a id="jukebox.NvManager"></a>
+<a id="jukebox.command_aliases"></a>
 
-# jukebox.NvManager
+# jukebox.command\_aliases
+
+This file provides definitions for RPC command aliases
+
+See [RPC Commands](../../builders/rpc-commands.md)
+
+Trimmed to the components that survived the plugin-system removal (see
+documentation/developers/roadmap-core-architecture.md): only 'player' right now. Aliases for
+volume/host/timers/synchronisation will come back once those are reintroduced as components.
+
+
+<a id="jukebox.rfid.reader"></a>
+
+# jukebox.rfid.reader
+
+<a id="jukebox.rfid.reader.RfidCardDetectCallbacks"></a>
+
+## RfidCardDetectCallbacks Objects
+
+```python
+class RfidCardDetectCallbacks(CallbackHandler)
+```
+
+Callbacks are executed if rfid card is detected
+
+
+<a id="jukebox.rfid.reader.RfidCardDetectCallbacks.register"></a>
+
+#### register
+
+```python
+def register(func: Callable[[str, RfidCardDetectState], None])
+```
+
+Add a new callback function :attr:`func`.
+
+Callback signature is
+
+.. py:function:: func(card_id: str, state: int)
+    :noindex:
+
+**Arguments**:
+
+- `card_id`: Card ID
+- `state`: See `RfidCardDetectState`
+
+<a id="jukebox.rfid.reader.RfidCardDetectCallbacks.run_callbacks"></a>
+
+#### run\_callbacks
+
+```python
+def run_callbacks(card_id: str, state: RfidCardDetectState)
+```
+
+
+
+<a id="jukebox.rfid.reader.rfid_card_detect_callbacks"></a>
+
+#### rfid\_card\_detect\_callbacks
+
+Callback handler instance for rfid_card_detect_callbacks events.
+
+See [`RfidCardDetectCallbacks`](#jukebox.rfid.reader.RfidCardDetectCallbacks)
+
+
+<a id="jukebox.rfid.reader.CardRemovalTimerClass"></a>
+
+## CardRemovalTimerClass Objects
+
+```python
+class CardRemovalTimerClass(threading.Thread)
+```
+
+A timer watchdog thread that calls timeout_action on time-out
+
+
+<a id="jukebox.rfid.reader.CardRemovalTimerClass.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(on_timeout_callback, logger: logging.Logger = None)
+```
+
+**Arguments**:
+
+- `on_timeout_callback`: The function to execute on time-out
+
+<a id="jukebox.rfid.reader.start_readers"></a>
+
+#### start\_readers
+
+```python
+def start_readers()
+```
+
+Load the reader config/database and start a ReaderRunner thread per configured reader.
+
+Called explicitly by jukebox.daemon at start-up (no plugin system, see
+documentation/developers/roadmap-core-architecture.md).
+
+
+<a id="jukebox.rfid.configure"></a>
+
+# jukebox.rfid.configure
+
+<a id="jukebox.rfid.configure.reader_install_dependencies"></a>
+
+#### reader\_install\_dependencies
+
+```python
+def reader_install_dependencies(reader_path: str,
+                                dependency_install: str) -> None
+```
+
+Install dependencies for the selected reader module
+
+**Arguments**:
+
+- `reader_path`: Path to the reader module
+- `dependency_install`: how to handle installing of dependencies
+'query': query user (default)
+'auto': automatically
+'no': don't install dependencies
+
+<a id="jukebox.rfid.configure.reader_load_module"></a>
+
+#### reader\_load\_module
+
+```python
+def reader_load_module(reader_name)
+```
+
+Load the module for the reader_name
+
+A ModuleNotFoundError is unrecoverable, but we at least want to give some hint how to resolve that to the user
+All other errors will NOT be handled. Modules that do not load due to compile errors have other problems
+
+**Arguments**:
+
+- `reader_name`: Name of the reader to load the module for
+
+**Returns**:
+
+module
+
+<a id="jukebox.rfid.configure.query_user_for_reader"></a>
+
+#### query\_user\_for\_reader
+
+```python
+def query_user_for_reader(dependency_install='query') -> dict
+```
+
+Ask the user to select a RFID reader and prompt for the reader's configuration
+
+This function performs the following steps, to find and present all available readers to the user
+
+- search for available reader subpackages
+- dynamically load the description module for each reader subpackage
+- queries user for selection
+- if no_dep_install=False, install dependencies as given by requirements.txt and execute setup.inc.sh of subpackage
+- dynamically load the actual reader module from the reader subpackage
+- if selected reader has customization options query user for that now
+- return configuration
+
+There are checks to make sure we have the right reader modules and they are what we expect.
+The are as few requirements towards the reader module as possible and everything else is optional
+(see reader_template for these requirements)
+However, there is no error handling w.r.t to user input and reader's query_config. Firstly, in this script
+we cannot gracefully handle an exception that occurs on reader level, and secondly the exception will simply
+exit the script w/o writing the config to file. No harm done.
+
+This script expects to reside in the directory with all the reader subpackages, i.e it is part of the rfid-reader package.
+Otherwise you'll need to adjust sys.path
+
+**Arguments**:
+
+- `dependency_install`: how to handle installing of dependencies
+'query': query user (default)
+'auto': automatically
+'no': don't install dependencies
+
+**Returns**:
+
+`dict as {section: {parameter: value}}`: nested dict with entire configuration that can be read into ConfigParser
+
+<a id="jukebox.rfid.configure.write_config"></a>
+
+#### write\_config
+
+```python
+def write_config(config_file: str,
+                 config_dict: dict,
+                 force_overwrite=False) -> None
+```
+
+Write configuration to config_file
+
+**Arguments**:
+
+- `config_file`: relative or absolute path to config file
+- `config_dict`: nested dict with configuration parameters for ConfigParser consumption
+- `force_overwrite`: overwrite existing configuration file without asking
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon"></a>
+
+# jukebox.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon
+
+Add GPIO input devices and output devices to the RFID Mock Reader GUI
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs"></a>
+
+#### create\_inputs
+
+```python
+def create_inputs(frame, default_btn_width, default_padx, default_pady)
+```
+
+Add all input devies to the GUI
+
+**Arguments**:
+
+- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the buttons to
+
+**Returns**:
+
+List of all added GUI buttons
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state"></a>
+
+#### set\_state
+
+```python
+def set_state(value, box_state_var)
+```
+
+Change the value of a checkbox state variable
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state"></a>
+
+#### que\_set\_state
+
+```python
+def que_set_state(value, box_state_var)
+```
+
+Queue the action to change a checkbox state variable to the TK GUI main thread
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state"></a>
+
+#### fix\_state
+
+```python
+def fix_state(box_state_var)
+```
+
+Prevent a checkbox state variable to change on checkbox mouse press
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state"></a>
+
+#### pbox\_set\_state
+
+```python
+def pbox_set_state(value, pbox_state_var, label_var)
+```
+
+Update progress bar state and related state label
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox"></a>
+
+#### que\_set\_pbox
+
+```python
+def que_set_pbox(value, pbox_state_var, label_var)
+```
+
+Queue the action to change the progress bar state to the TK GUI main thread
+
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs"></a>
+
+#### create\_outputs
+
+```python
+def create_outputs(frame, default_btn_width, default_padx, default_pady)
+```
+
+Add all output devices to the GUI
+
+**Arguments**:
+
+- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the representations to
+
+**Returns**:
+
+List of all added GUI objects
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.description"></a>
+
+# jukebox.rfid.hardware.fake\_reader\_gui.description
+
+<a id="jukebox.rfid.hardware.fake_reader_gui.fake_reader_gui"></a>
+
+# jukebox.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui
+
+<a id="jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial"></a>
+
+# jukebox.rfid.hardware.rdm6300\_serial.rdm6300\_serial
+
+<a id="jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial.decode"></a>
+
+#### decode
+
+```python
+def decode(raw_card_id: bytearray, number_format: int) -> str
+```
+
+Decode the RDM6300 data format into actual card ID
+
+
+<a id="jukebox.rfid.hardware.rdm6300_serial.description"></a>
+
+# jukebox.rfid.hardware.rdm6300\_serial.description
+
+<a id="jukebox.rfid.hardware.mfrc522_i2c.mfrc522_i2c"></a>
+
+# jukebox.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c
+
+<a id="jukebox.rfid.hardware.mfrc522_i2c.description"></a>
+
+# jukebox.rfid.hardware.mfrc522\_i2c.description
+
+<a id="jukebox.rfid.hardware.rc522_spi.rc522_spi"></a>
+
+# jukebox.rfid.hardware.rc522\_spi.rc522\_spi
+
+<a id="jukebox.rfid.hardware.rc522_spi.description"></a>
+
+# jukebox.rfid.hardware.rc522\_spi.description
+
+<a id="jukebox.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532"></a>
+
+# jukebox.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532
+
+<a id="jukebox.rfid.hardware.pn532_i2c_py532.description"></a>
+
+# jukebox.rfid.hardware.pn532\_i2c\_py532.description
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.description"></a>
+
+# jukebox.rfid.hardware.generic\_nfcpy.description
+
+List of supported devices https://nfcpy.readthedocs.io/en/latest/overview.html
+
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy"></a>
+
+# jukebox.rfid.hardware.generic\_nfcpy.generic\_nfcpy
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass"></a>
+
+## ReaderClass Objects
+
+```python
+class ReaderClass(ReaderBaseClass)
+```
+
+The reader class for nfcpy supported NFC card readers.
+
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup"></a>
+
+#### cleanup
+
+```python
+def cleanup()
+```
+
+The cleanup function: free and release all resources used by this card reader (if any).
+
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop"></a>
+
+#### stop
+
+```python
+def stop()
+```
+
+This function is called to tell the reader to exit its reading function.
+
+
+<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card"></a>
+
+#### read\_card
+
+```python
+def read_card() -> str
+```
+
+Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader"></a>
+
+# jukebox.rfid.hardware.template\_new\_reader.template\_new\_reader
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.query_customization"></a>
+
+#### query\_customization
+
+```python
+def query_customization() -> dict
+```
+
+Query the user for reader parameter customization
+
+This function will be called during the configuration/setup phase when the user selects this reader module.
+It must return all configuration parameters that are necessary to later use the Reader class.
+You can ask the user for selections and choices. And/or provide default values.
+If your reader requires absolutely no configuration return {}
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass"></a>
+
+## ReaderClass Objects
+
+```python
+class ReaderClass(ReaderBaseClass)
+```
+
+The actual reader class that is used to read RFID cards.
+
+It will be instantiated once and then read_card() is called in an endless loop.
+
+It will be used in a  manner
+  with Reader(reader_cfg_key) as reader:
+    for card_id in reader:
+      ...
+which ensures proper resource de-allocation. For this to work derive this class from ReaderBaseClass.
+All the required interfaces are implemented there.
+
+Put your code into these functions (see below for more information)
+  - `__init__`
+  - read_card
+  - cleanup
+  - stop
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(reader_cfg_key)
+```
+
+In the constructor, you will get the `reader_cfg_key` with which you can access the configuration data
+
+As you are dealing directly with potentially user-manipulated config information, it is
+advisable to do some sanity checks and give useful error messages. Even if you cannot recover gracefully,
+a good error message helps :-)
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup"></a>
+
+#### cleanup
+
+```python
+def cleanup()
+```
+
+The cleanup function: free and release all resources used by this card reader (if any).
+
+Put all your cleanup code here, e.g. if you are using the serial bus or GPIO pins.
+Will be called implicitly via the __exit__ function
+This function must exist! If there is nothing to do, just leave the pass statement in place below
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop"></a>
+
+#### stop
+
+```python
+def stop()
+```
+
+This function is called to tell the reader to exist it's reading function.
+
+This function is called before cleanup is called.
+
+> [!NOTE]
+> This is usually called from a different thread than the reader's thread! And this is the reason for the
+> two-step exit strategy. This function works across threads to indicate to the reader that is should stop attempt
+> to read a card. Once called, the function read_card will not be called again. When the reader thread exits
+> cleanup is called from the reader thread itself.
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card"></a>
+
+#### read\_card
+
+```python
+def read_card() -> str
+```
+
+Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
+
+This is were your main code goes :-)
+This function must return a string with the card id
+In case of error, it may return None or an empty string
+
+The function should break and return with an empty string, once stop() is called
+
+
+<a id="jukebox.rfid.hardware.template_new_reader.description"></a>
+
+# jukebox.rfid.hardware.template\_new\_reader.description
+
+Provide a short title for this reader.
+
+This is what that user will see when asked for selecting his RFID reader
+So, be precise but readable. Precise means 40 characters or less
+
+
+<a id="jukebox.rfid.hardware.generic_usb.generic_usb"></a>
+
+# jukebox.rfid.hardware.generic\_usb.generic\_usb
+
+<a id="jukebox.rfid.hardware.generic_usb.description"></a>
+
+# jukebox.rfid.hardware.generic\_usb.description
+
+<a id="jukebox.rfid.readerbase"></a>
+
+# jukebox.rfid.readerbase
+
+<a id="jukebox.rfid.readerbase.ReaderBaseClass"></a>
+
+## ReaderBaseClass Objects
+
+```python
+class ReaderBaseClass(ABC)
+```
+
+Abstract Base Class for all Reader Classes to ensure common API
+
+Look at template_new_reader.py for documentation how to integrate a new RFID reader
+
+
+<a id="jukebox.rfid"></a>
+
+# jukebox.rfid
+
+<a id="jukebox.rfid.cards"></a>
+
+# jukebox.rfid.cards
+
+Handling the RFID card database
+
+A few considerations:
+- Changing the Card DB influences to current state
+  - rfid.reader: Does not care, as it always freshly looks into the DB when a new card is triggered
+  - fake_reader_gui: Initializes the Drop-down menu once on start --> Will get out of date!
+
+Do we need a notifier? Or a callback for modules to get notified?
+Do we want to publish the information about a card DB update?
+TODO: Add callback for on_database_change
+
+TODO: check card id type (if int, convert to str)
+TODO: check if args is really a list (convert if not?)
+
+
+<a id="jukebox.rfid.cards.list_cards"></a>
+
+#### list\_cards
+
+```python
+def list_cards()
+```
+
+Provide a summarized, decoded list of all card actions
+
+This is intended as basis for a formatter function
+
+Format: 'id': {decoded_function_call, ignore_same_id_delay, ignore_card_removal_action, description, from_alias}
+
+
+<a id="jukebox.rfid.cards.delete_card"></a>
+
+#### delete\_card
+
+```python
+def delete_card(card_id: str, auto_save: bool = True)
+```
+
+**Arguments**:
+
+- `auto_save`: 
+- `card_id`: 
+
+<a id="jukebox.rfid.cards.register_card"></a>
+
+#### register\_card
+
+```python
+def register_card(card_id: str,
+                  cmd_alias: str,
+                  args: Optional[List] = None,
+                  kwargs: Optional[Dict] = None,
+                  ignore_card_removal_action: Optional[bool] = None,
+                  ignore_same_id_delay: Optional[bool] = None,
+                  overwrite: bool = False,
+                  auto_save: bool = True)
+```
+
+Register a new card based on quick-selection
+
+If you are going to call this through the RPC it will get a little verbose
+
+**Example:** Registering a new card with ID *0009* for increment volume with a custom argument to inc_volume
+(*here: 15*) and custom *ignore_same_id_delay value*::
+
+    plugin.call_ignore_errors('cards', 'register_card',
+                              args=['0009', 'inc_volume'],
+                              kwargs={'args': [15], 'ignore_same_id_delay': True, 'overwrite': True})
+
+
+<a id="jukebox.rfid.cards.register_card_custom"></a>
+
+#### register\_card\_custom
+
+```python
+def register_card_custom()
+```
+
+Register a new card with full RPC call specification (Not implemented yet)
+
+
+<a id="jukebox.rfid.cards.save_card_database"></a>
+
+#### save\_card\_database
+
+```python
+def save_card_database(filename=None, *, only_if_changed=True)
+```
+
+Store the current card database. If filename is None, it is saved back to the file it was loaded from
+
+
+<a id="jukebox.rfid.cards.register"></a>
+
+#### register
+
+```python
+def register()
+```
+
+Register the card-database RPC calls as 'cards.<name>'.
+
+Called explicitly by jukebox.daemon at start-up (no plugin system, see
+documentation/developers/roadmap-core-architecture.md).
+
+
+<a id="jukebox.rfid.cardutils"></a>
+
+# jukebox.rfid.cardutils
+
+Common card decoding functions
+
+TODO: Thread safety when accessing the card DB!
+
+
+<a id="jukebox.rfid.cardutils.decode_card_command"></a>
+
+#### decode\_card\_command
+
+```python
+def decode_card_command(cfg_rpc_cmd: Mapping, logger: logging.Logger = log)
+```
+
+Extension of utils.decode_action with card-specific parameters
+
+
+<a id="jukebox.rfid.cardutils.card_command_to_str"></a>
+
+#### card\_command\_to\_str
+
+```python
+def card_command_to_str(cfg_rpc_cmd: Mapping, long=False) -> List[str]
+```
+
+Returns a list of strings with [card_action, ignore_same_id_delay, ignore_card_removal_action]
+
+The last two parameters are only present, if *long* is True and if they are present in the cfg_rpc_cmd
+
+
+<a id="jukebox.rfid.cardutils.card_to_str"></a>
+
+#### card\_to\_str
+
+```python
+def card_to_str(card_id: str, long=False) -> List[str]
+```
+
+Returns a list of strings from card entry command in the format of :func:`card_command_to_str`
+
+
+<a id="jukebox.nv_manager"></a>
+
+# jukebox.nv\_manager
 
 <a id="jukebox.publishing.bus"></a>
 
@@ -666,7 +1315,7 @@ automatically.
 def close_server() -> None
 ```
 
-No-op, kept for source compatibility with components/publishing's shutdown call.
+No-op, kept for source compatibility with the old shutdown call.
 
 There is no separate server thread to close down anymore -- the bus is just an object.
 
@@ -686,6 +1335,20 @@ Example::
     import jukebox.publishing as publishing
     publishing.get_publisher().send('hello', f'Hi there, howya?')
 
+
+<a id="jukebox.publishing.republish"></a>
+
+#### republish
+
+```python
+def republish(topic=None)
+```
+
+Re-publish the topic tree 'topic' to all subscribers
+
+**Arguments**:
+
+- `topic`: Topic tree to republish. None = resend all
 
 <a id="jukebox.playlistgenerator"></a>
 
@@ -879,6 +1542,27 @@ Validate a decoded events-websocket command.
 # jukebox.api
 
 HTTP and WebSocket API for browser clients.
+
+
+<a id="jukebox.api.dispatch"></a>
+
+# jukebox.api.dispatch
+
+Transport-neutral processing for Jukebox RPC requests.
+
+
+<a id="jukebox.api.dispatch.process_request"></a>
+
+#### process\_request
+
+```python
+def process_request(client_request, received_at_ns=None)
+```
+
+Execute an RPC request and return its response envelope.
+
+The request is copied before any values are passed to plugin code so the
+caller's dictionary, including nested ``args`` and ``kwargs``, is retained.
 
 
 <a id="jukebox.api.fastapi_server"></a>
@@ -1307,31 +1991,6 @@ def has_callbacks()
 
 
 
-<a id="jukebox.rpc"></a>
-
-# jukebox.rpc
-
-<a id="jukebox.rpc.processor"></a>
-
-# jukebox.rpc.processor
-
-Transport-neutral processing for Jukebox RPC requests.
-
-
-<a id="jukebox.rpc.processor.process_request"></a>
-
-#### process\_request
-
-```python
-def process_request(client_request, received_at_ns=None)
-```
-
-Execute an RPC request and return its response envelope.
-
-The request is copied before any values are passed to plugin code so the
-caller's dictionary, including nested ``args`` and ``kwargs``, is retained.
-
-
 <a id="jukebox.registry"></a>
 
 # jukebox.registry
@@ -1683,25 +2342,287 @@ On first Ctrl-C (or SIGTERM) orderly shutdown procedure is embarked upon. It get
 On third Ctrl-C (or SIGTERM), this is interrupted and there will be a hard exit!
 
 
-<a id="jukebox.speaking_text"></a>
+<a id="jukebox.misc.simplecolors"></a>
 
-# jukebox.speaking\_text
+# jukebox.misc.simplecolors
 
-Text to Speech. Plugin to speak any given text via speaker
+Zero 3rd-party dependency module to add colors to unix terminal output
+
+Yes, there are modules out there to do the same and they have more features.
+However, this is low-complexity and has zero dependencies
 
 
-<a id="components"></a>
+<a id="jukebox.misc.simplecolors.Colors"></a>
 
-# components
+## Colors Objects
 
-<a id="components.misc"></a>
+```python
+class Colors()
+```
 
-# components.misc
+Container class for all the colors as constants
+
+
+<a id="jukebox.misc.simplecolors.resolve"></a>
+
+#### resolve
+
+```python
+def resolve(color_name: str)
+```
+
+Resolve a color name into the respective color constant
+
+**Arguments**:
+
+- `color_name`: Name of the color
+
+**Returns**:
+
+color constant
+
+<a id="jukebox.misc.simplecolors.print"></a>
+
+#### print
+
+```python
+def print(color: Colors,
+          *values,
+          sep=' ',
+          end='\n',
+          file=sys.stdout,
+          flush=False)
+```
+
+Drop-in replacement for print with color choice and auto color reset for convenience
+
+Use just as a regular print function, but with first parameter as color
+
+
+<a id="jukebox.misc"></a>
+
+# jukebox.misc
+
+<a id="jukebox.misc.recursive_chmod"></a>
+
+#### recursive\_chmod
+
+```python
+def recursive_chmod(path, mode_files, mode_dirs)
+```
+
+Recursively change folder and file permissions
+
+mode_files/mode dirs can be given in octal notation e.g. 0o777
+flags from the stats module.
+
+Reference: https://docs.python.org/3/library/os.html#os.chmod
+
+
+<a id="jukebox.misc.flatten"></a>
+
+#### flatten
+
+```python
+def flatten(iterable)
+```
+
+Flatten all levels of hierarchy in nested iterables
+
+
+<a id="jukebox.misc.getattr_hierarchical"></a>
+
+#### getattr\_hierarchical
+
+```python
+def getattr_hierarchical(obj: Any, name: str) -> Any
+```
+
+Like the builtin getattr, but descends though the hierarchy levels
+
+
+<a id="jukebox.misc.inputminus"></a>
+
+# jukebox.misc.inputminus
+
+Zero 3rd-party dependency module for user prompting
+
+Yes, there are modules out there to do the same and they have more features.
+However, this is low-complexity and has zero dependencies
+
+
+<a id="jukebox.misc.inputminus.input_int"></a>
+
+#### input\_int
+
+```python
+def input_int(prompt,
+              blank=None,
+              min=None,
+              max=None,
+              prompt_color=None,
+              prompt_hint=False) -> int
+```
+
+Request an integer input from user
+
+**Arguments**:
+
+- `prompt`: The prompt to display
+- `blank`: Value to return when user just hits enter. Leave at None, if blank is invalid
+- `min`: Minimum valid integer value (None disables this check)
+- `max`: Maximum valid integer value (None disables this check)
+- `prompt_color`: Color of the prompt. Color will be reset at end of prompt
+- `prompt_hint`: Append a 'hint' with [min...max, default=xx] to end of prompt
+
+**Returns**:
+
+integer value read from user input
+
+<a id="jukebox.misc.inputminus.input_yesno"></a>
+
+#### input\_yesno
+
+```python
+def input_yesno(prompt,
+                blank=None,
+                prompt_color=None,
+                prompt_hint=False) -> bool
+```
+
+Request a yes / no choice from user
+
+Accepts multiple input for true/false and is case insensitive
+
+**Arguments**:
+
+- `prompt`: The prompt to display
+- `blank`: Value to return when user just hits enter. Leave at None, if blank is invalid
+- `prompt_color`: Color of the prompt. Color will be reset at end of prompt
+- `prompt_hint`: Append a 'hint' with [y/n] to end of prompt. Default choice will be capitalized
+
+**Returns**:
+
+boolean value read from user input
+
+<a id="jukebox.misc.loggingext"></a>
+
+# jukebox.misc.loggingext
+
+## Logger
+
+We use a hierarchical Logger structure based on pythons logging module. It can be finely configured with a yaml file.
+
+The top-level logger is called 'jb' (to make it short). In any module you may simple create a child-logger at any hierarchy
+level below 'jb'. It will inherit settings from it's parent logger unless otherwise configured in the yaml file.
+Hierarchy separator is the '.'. If the logger already exits, getLogger will return a reference to the same, else it will be
+created on the spot.
+
+Example: How to get logger and log away at your heart's content:
+
+    >>> import logging
+    >>> logger = logging.getLogger('jb.awesome_module')
+    >>> logger.info('Started general awesomeness aura')
+
+Example: YAML snippet, setting WARNING as default level everywhere and DEBUG for jb.awesome_module:
+
+    loggers:
+      jb:
+        level: WARNING
+        handlers: [console, debug_file_handler, error_file_handler]
+        propagate: no
+      jb.awesome_module:
+        level: DEBUG
+
+
+> [!NOTE]
+> The name (and hierarchy path) of the logger can be arbitrary and must not necessarily match the module name (still makes
+> sense).
+> There can be multiple loggers per module, e.g. for special classes, to further control the amount of log output
+
+
+<a id="jukebox.misc.loggingext.ColorFilter"></a>
+
+## ColorFilter Objects
+
+```python
+class ColorFilter(logging.Filter)
+```
+
+This filter adds colors to the logger
+
+It adds all colors from simplecolors by using the color name as new keyword,
+i.e. use %(colorname)c or {colorname} in the formatter string
+
+It also adds the keyword {levelnameColored} which is an auto-colored drop-in replacement
+for the levelname depending on severity.
+
+Don't forget to {reset} the color settings at the end of the string.
+
+
+<a id="jukebox.misc.loggingext.ColorFilter.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(enable=True, color_levelname=True)
+```
+
+**Arguments**:
+
+- `enable`: Enable the coloring
+- `color_levelname`: Enable auto-coloring when using the levelname keyword
+
+<a id="jukebox.misc.loggingext.PubStream"></a>
+
+## PubStream Objects
+
+```python
+class PubStream()
+```
+
+Stream handler wrapper around the publisher for logging.StreamHandler
+
+Allows logging to send all log information (based on logging configuration)
+to the Publisher.
+
+> [!CAUTION]
+> This can lead to recursions!
+> Recursions come up when
+> * Publish.send / EventBus.publish also emits logs, which cause a another send, which emits a log,
+> which causes a send, ..... `jukebox.publishing.bus.EventBus` guards against this (caps it at one
+> extra level instead of recursing indefinitely), but still avoid triggering it needlessly.
+> * Publisher initialization emits logs, which need a Publisher instance to send logs
+
+> [!IMPORTANT]
+> To avoid endless recursions: The creation of a Publisher MUST NOT generate any log messages! Nor any of the
+> functions in the send-function stack!
+
+
+<a id="jukebox.misc.loggingext.PubStreamHandler"></a>
+
+## PubStreamHandler Objects
+
+```python
+class PubStreamHandler(logging.StreamHandler)
+```
+
+Wrapper for logging.StreamHandler with stream = PubStream
+
+This serves one purpose: In logger.yaml custom handlers
+can be configured (which are automatically instantiated).
+Using this Handler, we can output to PubStream whithout
+support code to instantiate PubStream keeping this file generic
+
+
+<a id="jukebox.system"></a>
+
+# jukebox.system
 
 Miscellaneous RPC calls, registered explicitly by jukebox.daemon (no plugin system)
 
 
-<a id="components.misc.get_start_time"></a>
+<a id="jukebox.system.get_start_time"></a>
 
 #### get\_start\_time
 
@@ -1712,7 +2633,7 @@ def get_start_time()
 Time when JukeBox has been started
 
 
-<a id="components.misc.get_log"></a>
+<a id="jukebox.system.get_log"></a>
 
 #### get\_log
 
@@ -1723,7 +2644,7 @@ def get_log(handler_name: str)
 Get the log file from the loggers (debug_file_handler, error_file_handler)
 
 
-<a id="components.misc.get_log_debug"></a>
+<a id="jukebox.system.get_log_debug"></a>
 
 #### get\_log\_debug
 
@@ -1734,7 +2655,7 @@ def get_log_debug()
 Get the log file (from the debug_file_handler)
 
 
-<a id="components.misc.get_log_error"></a>
+<a id="jukebox.system.get_log_error"></a>
 
 #### get\_log\_error
 
@@ -1745,7 +2666,7 @@ def get_log_error()
 Get the log file (from the error_file_handler)
 
 
-<a id="components.misc.get_git_state"></a>
+<a id="jukebox.system.get_git_state"></a>
 
 #### get\_git\_state
 
@@ -1756,7 +2677,7 @@ def get_git_state()
 Return git state information for the current branch
 
 
-<a id="components.misc.empty_rpc_call"></a>
+<a id="jukebox.system.empty_rpc_call"></a>
 
 #### empty\_rpc\_call
 
@@ -1776,7 +2697,7 @@ up the module call stack.
 
 - `msg`: If present, this message is send to the logger with severity warning
 
-<a id="components.misc.get_app_settings"></a>
+<a id="jukebox.system.get_app_settings"></a>
 
 #### get\_app\_settings
 
@@ -1787,7 +2708,7 @@ def get_app_settings()
 Return settings for web app stored in jukebox.yaml
 
 
-<a id="components.misc.set_app_settings"></a>
+<a id="jukebox.system.set_app_settings"></a>
 
 #### set\_app\_settings
 
@@ -1798,750 +2719,11 @@ def set_app_settings(settings={})
 Set configuration settings for the web app.
 
 
-<a id="components.rfid.reader"></a>
+<a id="jukebox.player.mpd_plugin"></a>
 
-# components.rfid.reader
+# jukebox.player.mpd\_plugin
 
-<a id="components.rfid.reader.RfidCardDetectCallbacks"></a>
-
-## RfidCardDetectCallbacks Objects
-
-```python
-class RfidCardDetectCallbacks(CallbackHandler)
-```
-
-Callbacks are executed if rfid card is detected
-
-
-<a id="components.rfid.reader.RfidCardDetectCallbacks.register"></a>
-
-#### register
-
-```python
-def register(func: Callable[[str, RfidCardDetectState], None])
-```
-
-Add a new callback function :attr:`func`.
-
-Callback signature is
-
-.. py:function:: func(card_id: str, state: int)
-    :noindex:
-
-**Arguments**:
-
-- `card_id`: Card ID
-- `state`: See `RfidCardDetectState`
-
-<a id="components.rfid.reader.RfidCardDetectCallbacks.run_callbacks"></a>
-
-#### run\_callbacks
-
-```python
-def run_callbacks(card_id: str, state: RfidCardDetectState)
-```
-
-
-
-<a id="components.rfid.reader.rfid_card_detect_callbacks"></a>
-
-#### rfid\_card\_detect\_callbacks
-
-Callback handler instance for rfid_card_detect_callbacks events.
-
-See [`RfidCardDetectCallbacks`](#components.rfid.reader.RfidCardDetectCallbacks)
-
-
-<a id="components.rfid.reader.CardRemovalTimerClass"></a>
-
-## CardRemovalTimerClass Objects
-
-```python
-class CardRemovalTimerClass(threading.Thread)
-```
-
-A timer watchdog thread that calls timeout_action on time-out
-
-
-<a id="components.rfid.reader.CardRemovalTimerClass.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(on_timeout_callback, logger: logging.Logger = None)
-```
-
-**Arguments**:
-
-- `on_timeout_callback`: The function to execute on time-out
-
-<a id="components.rfid.reader.start_readers"></a>
-
-#### start\_readers
-
-```python
-def start_readers()
-```
-
-Load the reader config/database and start a ReaderRunner thread per configured reader.
-
-Called explicitly by jukebox.daemon at start-up (no plugin system, see
-documentation/developers/roadmap-core-architecture.md).
-
-
-<a id="components.rfid.configure"></a>
-
-# components.rfid.configure
-
-<a id="components.rfid.configure.reader_install_dependencies"></a>
-
-#### reader\_install\_dependencies
-
-```python
-def reader_install_dependencies(reader_path: str,
-                                dependency_install: str) -> None
-```
-
-Install dependencies for the selected reader module
-
-**Arguments**:
-
-- `reader_path`: Path to the reader module
-- `dependency_install`: how to handle installing of dependencies
-'query': query user (default)
-'auto': automatically
-'no': don't install dependencies
-
-<a id="components.rfid.configure.reader_load_module"></a>
-
-#### reader\_load\_module
-
-```python
-def reader_load_module(reader_name)
-```
-
-Load the module for the reader_name
-
-A ModuleNotFoundError is unrecoverable, but we at least want to give some hint how to resolve that to the user
-All other errors will NOT be handled. Modules that do not load due to compile errors have other problems
-
-**Arguments**:
-
-- `reader_name`: Name of the reader to load the module for
-
-**Returns**:
-
-module
-
-<a id="components.rfid.configure.query_user_for_reader"></a>
-
-#### query\_user\_for\_reader
-
-```python
-def query_user_for_reader(dependency_install='query') -> dict
-```
-
-Ask the user to select a RFID reader and prompt for the reader's configuration
-
-This function performs the following steps, to find and present all available readers to the user
-
-- search for available reader subpackages
-- dynamically load the description module for each reader subpackage
-- queries user for selection
-- if no_dep_install=False, install dependencies as given by requirements.txt and execute setup.inc.sh of subpackage
-- dynamically load the actual reader module from the reader subpackage
-- if selected reader has customization options query user for that now
-- return configuration
-
-There are checks to make sure we have the right reader modules and they are what we expect.
-The are as few requirements towards the reader module as possible and everything else is optional
-(see reader_template for these requirements)
-However, there is no error handling w.r.t to user input and reader's query_config. Firstly, in this script
-we cannot gracefully handle an exception that occurs on reader level, and secondly the exception will simply
-exit the script w/o writing the config to file. No harm done.
-
-This script expects to reside in the directory with all the reader subpackages, i.e it is part of the rfid-reader package.
-Otherwise you'll need to adjust sys.path
-
-**Arguments**:
-
-- `dependency_install`: how to handle installing of dependencies
-'query': query user (default)
-'auto': automatically
-'no': don't install dependencies
-
-**Returns**:
-
-`dict as {section: {parameter: value}}`: nested dict with entire configuration that can be read into ConfigParser
-
-<a id="components.rfid.configure.write_config"></a>
-
-#### write\_config
-
-```python
-def write_config(config_file: str,
-                 config_dict: dict,
-                 force_overwrite=False) -> None
-```
-
-Write configuration to config_file
-
-**Arguments**:
-
-- `config_file`: relative or absolute path to config file
-- `config_dict`: nested dict with configuration parameters for ConfigParser consumption
-- `force_overwrite`: overwrite existing configuration file without asking
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon"></a>
-
-# components.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon
-
-Add GPIO input devices and output devices to the RFID Mock Reader GUI
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs"></a>
-
-#### create\_inputs
-
-```python
-def create_inputs(frame, default_btn_width, default_padx, default_pady)
-```
-
-Add all input devies to the GUI
-
-**Arguments**:
-
-- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the buttons to
-
-**Returns**:
-
-List of all added GUI buttons
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state"></a>
-
-#### set\_state
-
-```python
-def set_state(value, box_state_var)
-```
-
-Change the value of a checkbox state variable
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state"></a>
-
-#### que\_set\_state
-
-```python
-def que_set_state(value, box_state_var)
-```
-
-Queue the action to change a checkbox state variable to the TK GUI main thread
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state"></a>
-
-#### fix\_state
-
-```python
-def fix_state(box_state_var)
-```
-
-Prevent a checkbox state variable to change on checkbox mouse press
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state"></a>
-
-#### pbox\_set\_state
-
-```python
-def pbox_set_state(value, pbox_state_var, label_var)
-```
-
-Update progress bar state and related state label
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox"></a>
-
-#### que\_set\_pbox
-
-```python
-def que_set_pbox(value, pbox_state_var, label_var)
-```
-
-Queue the action to change the progress bar state to the TK GUI main thread
-
-
-<a id="components.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs"></a>
-
-#### create\_outputs
-
-```python
-def create_outputs(frame, default_btn_width, default_padx, default_pady)
-```
-
-Add all output devices to the GUI
-
-**Arguments**:
-
-- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the representations to
-
-**Returns**:
-
-List of all added GUI objects
-
-<a id="components.rfid.hardware.fake_reader_gui.description"></a>
-
-# components.rfid.hardware.fake\_reader\_gui.description
-
-<a id="components.rfid.hardware.fake_reader_gui.fake_reader_gui"></a>
-
-# components.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui
-
-<a id="components.rfid.hardware.rdm6300_serial.rdm6300_serial"></a>
-
-# components.rfid.hardware.rdm6300\_serial.rdm6300\_serial
-
-<a id="components.rfid.hardware.rdm6300_serial.rdm6300_serial.decode"></a>
-
-#### decode
-
-```python
-def decode(raw_card_id: bytearray, number_format: int) -> str
-```
-
-Decode the RDM6300 data format into actual card ID
-
-
-<a id="components.rfid.hardware.rdm6300_serial.description"></a>
-
-# components.rfid.hardware.rdm6300\_serial.description
-
-<a id="components.rfid.hardware.mfrc522_i2c.mfrc522_i2c"></a>
-
-# components.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c
-
-<a id="components.rfid.hardware.mfrc522_i2c.description"></a>
-
-# components.rfid.hardware.mfrc522\_i2c.description
-
-<a id="components.rfid.hardware.rc522_spi.rc522_spi"></a>
-
-# components.rfid.hardware.rc522\_spi.rc522\_spi
-
-<a id="components.rfid.hardware.rc522_spi.description"></a>
-
-# components.rfid.hardware.rc522\_spi.description
-
-<a id="components.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532"></a>
-
-# components.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532
-
-<a id="components.rfid.hardware.pn532_i2c_py532.description"></a>
-
-# components.rfid.hardware.pn532\_i2c\_py532.description
-
-<a id="components.rfid.hardware.generic_nfcpy.description"></a>
-
-# components.rfid.hardware.generic\_nfcpy.description
-
-List of supported devices https://nfcpy.readthedocs.io/en/latest/overview.html
-
-
-<a id="components.rfid.hardware.generic_nfcpy.generic_nfcpy"></a>
-
-# components.rfid.hardware.generic\_nfcpy.generic\_nfcpy
-
-<a id="components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass"></a>
-
-## ReaderClass Objects
-
-```python
-class ReaderClass(ReaderBaseClass)
-```
-
-The reader class for nfcpy supported NFC card readers.
-
-
-<a id="components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup"></a>
-
-#### cleanup
-
-```python
-def cleanup()
-```
-
-The cleanup function: free and release all resources used by this card reader (if any).
-
-
-<a id="components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop"></a>
-
-#### stop
-
-```python
-def stop()
-```
-
-This function is called to tell the reader to exit its reading function.
-
-
-<a id="components.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card"></a>
-
-#### read\_card
-
-```python
-def read_card() -> str
-```
-
-Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader"></a>
-
-# components.rfid.hardware.template\_new\_reader.template\_new\_reader
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.query_customization"></a>
-
-#### query\_customization
-
-```python
-def query_customization() -> dict
-```
-
-Query the user for reader parameter customization
-
-This function will be called during the configuration/setup phase when the user selects this reader module.
-It must return all configuration parameters that are necessary to later use the Reader class.
-You can ask the user for selections and choices. And/or provide default values.
-If your reader requires absolutely no configuration return {}
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass"></a>
-
-## ReaderClass Objects
-
-```python
-class ReaderClass(ReaderBaseClass)
-```
-
-The actual reader class that is used to read RFID cards.
-
-It will be instantiated once and then read_card() is called in an endless loop.
-
-It will be used in a  manner
-  with Reader(reader_cfg_key) as reader:
-    for card_id in reader:
-      ...
-which ensures proper resource de-allocation. For this to work derive this class from ReaderBaseClass.
-All the required interfaces are implemented there.
-
-Put your code into these functions (see below for more information)
-  - `__init__`
-  - read_card
-  - cleanup
-  - stop
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(reader_cfg_key)
-```
-
-In the constructor, you will get the `reader_cfg_key` with which you can access the configuration data
-
-As you are dealing directly with potentially user-manipulated config information, it is
-advisable to do some sanity checks and give useful error messages. Even if you cannot recover gracefully,
-a good error message helps :-)
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup"></a>
-
-#### cleanup
-
-```python
-def cleanup()
-```
-
-The cleanup function: free and release all resources used by this card reader (if any).
-
-Put all your cleanup code here, e.g. if you are using the serial bus or GPIO pins.
-Will be called implicitly via the __exit__ function
-This function must exist! If there is nothing to do, just leave the pass statement in place below
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop"></a>
-
-#### stop
-
-```python
-def stop()
-```
-
-This function is called to tell the reader to exist it's reading function.
-
-This function is called before cleanup is called.
-
-> [!NOTE]
-> This is usually called from a different thread than the reader's thread! And this is the reason for the
-> two-step exit strategy. This function works across threads to indicate to the reader that is should stop attempt
-> to read a card. Once called, the function read_card will not be called again. When the reader thread exits
-> cleanup is called from the reader thread itself.
-
-
-<a id="components.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card"></a>
-
-#### read\_card
-
-```python
-def read_card() -> str
-```
-
-Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
-
-This is were your main code goes :-)
-This function must return a string with the card id
-In case of error, it may return None or an empty string
-
-The function should break and return with an empty string, once stop() is called
-
-
-<a id="components.rfid.hardware.template_new_reader.description"></a>
-
-# components.rfid.hardware.template\_new\_reader.description
-
-Provide a short title for this reader.
-
-This is what that user will see when asked for selecting his RFID reader
-So, be precise but readable. Precise means 40 characters or less
-
-
-<a id="components.rfid.hardware.generic_usb.generic_usb"></a>
-
-# components.rfid.hardware.generic\_usb.generic\_usb
-
-<a id="components.rfid.hardware.generic_usb.description"></a>
-
-# components.rfid.hardware.generic\_usb.description
-
-<a id="components.rfid.readerbase"></a>
-
-# components.rfid.readerbase
-
-<a id="components.rfid.readerbase.ReaderBaseClass"></a>
-
-## ReaderBaseClass Objects
-
-```python
-class ReaderBaseClass(ABC)
-```
-
-Abstract Base Class for all Reader Classes to ensure common API
-
-Look at template_new_reader.py for documentation how to integrate a new RFID reader
-
-
-<a id="components.rfid"></a>
-
-# components.rfid
-
-<a id="components.rfid.cards"></a>
-
-# components.rfid.cards
-
-Handling the RFID card database
-
-A few considerations:
-- Changing the Card DB influences to current state
-  - rfid.reader: Does not care, as it always freshly looks into the DB when a new card is triggered
-  - fake_reader_gui: Initializes the Drop-down menu once on start --> Will get out of date!
-
-Do we need a notifier? Or a callback for modules to get notified?
-Do we want to publish the information about a card DB update?
-TODO: Add callback for on_database_change
-
-TODO: check card id type (if int, convert to str)
-TODO: check if args is really a list (convert if not?)
-
-
-<a id="components.rfid.cards.list_cards"></a>
-
-#### list\_cards
-
-```python
-def list_cards()
-```
-
-Provide a summarized, decoded list of all card actions
-
-This is intended as basis for a formatter function
-
-Format: 'id': {decoded_function_call, ignore_same_id_delay, ignore_card_removal_action, description, from_alias}
-
-
-<a id="components.rfid.cards.delete_card"></a>
-
-#### delete\_card
-
-```python
-def delete_card(card_id: str, auto_save: bool = True)
-```
-
-**Arguments**:
-
-- `auto_save`: 
-- `card_id`: 
-
-<a id="components.rfid.cards.register_card"></a>
-
-#### register\_card
-
-```python
-def register_card(card_id: str,
-                  cmd_alias: str,
-                  args: Optional[List] = None,
-                  kwargs: Optional[Dict] = None,
-                  ignore_card_removal_action: Optional[bool] = None,
-                  ignore_same_id_delay: Optional[bool] = None,
-                  overwrite: bool = False,
-                  auto_save: bool = True)
-```
-
-Register a new card based on quick-selection
-
-If you are going to call this through the RPC it will get a little verbose
-
-**Example:** Registering a new card with ID *0009* for increment volume with a custom argument to inc_volume
-(*here: 15*) and custom *ignore_same_id_delay value*::
-
-    plugin.call_ignore_errors('cards', 'register_card',
-                              args=['0009', 'inc_volume'],
-                              kwargs={'args': [15], 'ignore_same_id_delay': True, 'overwrite': True})
-
-
-<a id="components.rfid.cards.register_card_custom"></a>
-
-#### register\_card\_custom
-
-```python
-def register_card_custom()
-```
-
-Register a new card with full RPC call specification (Not implemented yet)
-
-
-<a id="components.rfid.cards.save_card_database"></a>
-
-#### save\_card\_database
-
-```python
-def save_card_database(filename=None, *, only_if_changed=True)
-```
-
-Store the current card database. If filename is None, it is saved back to the file it was loaded from
-
-
-<a id="components.rfid.cards.register"></a>
-
-#### register
-
-```python
-def register()
-```
-
-Register the card-database RPC calls as 'cards.<name>'.
-
-Called explicitly by jukebox.daemon at start-up (no plugin system, see
-documentation/developers/roadmap-core-architecture.md).
-
-
-<a id="components.rfid.cardutils"></a>
-
-# components.rfid.cardutils
-
-Common card decoding functions
-
-TODO: Thread safety when accessing the card DB!
-
-
-<a id="components.rfid.cardutils.decode_card_command"></a>
-
-#### decode\_card\_command
-
-```python
-def decode_card_command(cfg_rpc_cmd: Mapping, logger: logging.Logger = log)
-```
-
-Extension of utils.decode_action with card-specific parameters
-
-
-<a id="components.rfid.cardutils.card_command_to_str"></a>
-
-#### card\_command\_to\_str
-
-```python
-def card_command_to_str(cfg_rpc_cmd: Mapping, long=False) -> List[str]
-```
-
-Returns a list of strings with [card_action, ignore_same_id_delay, ignore_card_removal_action]
-
-The last two parameters are only present, if *long* is True and if they are present in the cfg_rpc_cmd
-
-
-<a id="components.rfid.cardutils.card_to_str"></a>
-
-#### card\_to\_str
-
-```python
-def card_to_str(card_id: str, long=False) -> List[str]
-```
-
-Returns a list of strings from card entry command in the format of :func:`card_command_to_str`
-
-
-<a id="components.rpc_command_alias"></a>
-
-# components.rpc\_command\_alias
-
-This file provides definitions for RPC command aliases
-
-See [RPC Commands](../../builders/rpc-commands.md)
-
-Trimmed to the components that survived the plugin-system removal (see
-documentation/developers/roadmap-core-architecture.md): only 'player' right now. Aliases for
-volume/host/timers/synchronisation will come back once those are reintroduced as components.
-
-
-<a id="components.publishing"></a>
-
-# components.publishing
-
-Publisher start-up/shutdown and RPC calls, called explicitly by jukebox.daemon (no plugin system).
-
-This is the first component started and the last stopped: Hello/Goodbye publish messages live here.
-
-
-<a id="components.publishing.republish"></a>
-
-#### republish
-
-```python
-def republish(topic=None)
-```
-
-Re-publish the topic tree 'topic' to all subscribers
-
-**Arguments**:
-
-- `topic`: Topic tree to republish. None = resend all
-
-<a id="components.player.mpd_plugin"></a>
-
-# components.player.mpd\_plugin
-
-<a id="components.player.mpd_plugin.initialize_mpd_player"></a>
+<a id="jukebox.player.mpd_plugin.initialize_mpd_player"></a>
 
 #### initialize\_mpd\_player
 
@@ -2552,11 +2734,11 @@ def initialize_mpd_player() -> PlayerCoordinator
 Create the coordinator with MPD as its sole backend and register it as 'player.ctrl'.
 
 
-<a id="components.player.coordinator"></a>
+<a id="jukebox.player.coordinator"></a>
 
-# components.player.coordinator
+# jukebox.player.coordinator
 
-<a id="components.player.coordinator.PlayerCoordinator"></a>
+<a id="jukebox.player.coordinator.PlayerCoordinator"></a>
 
 ## PlayerCoordinator Objects
 
@@ -2567,7 +2749,7 @@ class PlayerCoordinator()
 Provider-neutral facade for playback and content backends.
 
 
-<a id="components.player.coordinator.PlayerCoordinator.register_backend"></a>
+<a id="jukebox.player.coordinator.PlayerCoordinator.register_backend"></a>
 
 #### register\_backend
 
@@ -2580,7 +2762,7 @@ def register_backend(name: str,
 Register a backend, selecting the first registered backend by default.
 
 
-<a id="components.player.coordinator.PlayerCoordinator.select_backend"></a>
+<a id="jukebox.player.coordinator.PlayerCoordinator.select_backend"></a>
 
 #### select\_backend
 
@@ -2592,11 +2774,11 @@ def select_backend(name: str)
 Stop the current backend and select another registered backend.
 
 
-<a id="components.player.playcontentcallback"></a>
+<a id="jukebox.player.playcontentcallback"></a>
 
-# components.player.playcontentcallback
+# jukebox.player.playcontentcallback
 
-<a id="components.player.playcontentcallback.PlayContentCallbacks"></a>
+<a id="jukebox.player.playcontentcallback.PlayContentCallbacks"></a>
 
 ## PlayContentCallbacks Objects
 
@@ -2607,7 +2789,7 @@ class PlayContentCallbacks(Generic[STATE], CallbackHandler)
 Callbacks executed before card-triggered playback actions.
 
 
-<a id="components.player.playcontentcallback.PlayContentCallbacks.register"></a>
+<a id="jukebox.player.playcontentcallback.PlayContentCallbacks.register"></a>
 
 #### register
 
@@ -2621,7 +2803,7 @@ Register a callback with the signature ``callback(content, state)``.
 
 - `func`: Callback to register
 
-<a id="components.player.playcontentcallback.PlayContentCallbacks.run_callbacks"></a>
+<a id="jukebox.player.playcontentcallback.PlayContentCallbacks.run_callbacks"></a>
 
 #### run\_callbacks
 
@@ -2631,18 +2813,18 @@ def run_callbacks(content: str, state: STATE)
 
 
 
-<a id="components.player.plugin"></a>
+<a id="jukebox.player.plugin"></a>
 
-# components.player.plugin
+# jukebox.player.plugin
 
 Player start-up/shutdown, called explicitly by jukebox.daemon (no plugin system).
 
 
-<a id="components.player"></a>
+<a id="jukebox.player"></a>
 
-# components.player
+# jukebox.player
 
-<a id="components.player.play_card_callbacks"></a>
+<a id="jukebox.player.play_card_callbacks"></a>
 
 #### play\_card\_callbacks
 
@@ -2651,7 +2833,7 @@ Callback handler for card-triggered playback. This belongs to the player
 facade rather than to a specific playback backend.
 
 
-<a id="components.player.MusicLibPath"></a>
+<a id="jukebox.player.MusicLibPath"></a>
 
 ## MusicLibPath Objects
 
@@ -2662,7 +2844,7 @@ class MusicLibPath()
 Extract the music directory from the mpd.conf file
 
 
-<a id="components.player.get_music_library_path"></a>
+<a id="jukebox.player.get_music_library_path"></a>
 
 #### get\_music\_library\_path
 
@@ -2673,16 +2855,16 @@ def get_music_library_path()
 Get the music library path
 
 
-<a id="components.player.backends.coverart_cache_manager"></a>
+<a id="jukebox.player.backends.coverart_cache_manager"></a>
 
-# components.player.backends.coverart\_cache\_manager
+# jukebox.player.backends.coverart\_cache\_manager
 
 Cover-art cache support for the MPD backend.
 
 
-<a id="components.player.backends.mpd"></a>
+<a id="jukebox.player.backends.mpd"></a>
 
-# components.player.backends.mpd
+# jukebox.player.backends.mpd
 
 Package for interfacing with the MPD Music Player Daemon
 
@@ -2739,7 +2921,7 @@ https://mpd.readthedocs.io/en/latest/protocol.html
 sudo -u mpd speaker-test -t wav -c 2
 
 
-<a id="components.player.backends.mpd.PlayerMPD"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD"></a>
 
 ## PlayerMPD Objects
 
@@ -2750,7 +2932,7 @@ class PlayerMPD()
 Interface to MPD Music Player Daemon
 
 
-<a id="components.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex"></a>
 
 #### mpd\_retry\_with\_mutex
 
@@ -2766,7 +2948,7 @@ In case of a communication error the connection will be reestablished and the pe
 I think this should be refactored to a decorator
 
 
-<a id="components.player.backends.mpd.PlayerMPD.pause"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.pause"></a>
 
 #### pause
 
@@ -2781,7 +2963,7 @@ This is what you want as card removal action: pause the playback, so it can be r
 on the reader again. What happens on re-placement depends on configured second swipe option
 
 
-<a id="components.player.backends.mpd.PlayerMPD.next"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.next"></a>
 
 #### next
 
@@ -2793,7 +2975,7 @@ def next()
 Play next track in current playlist
 
 
-<a id="components.player.backends.mpd.PlayerMPD.rewind"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.rewind"></a>
 
 #### rewind
 
@@ -2807,7 +2989,7 @@ Re-start current playlist from first track
 Note: Will not re-read folder config, but leave settings untouched
 
 
-<a id="components.player.backends.mpd.PlayerMPD.replay"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.replay"></a>
 
 #### replay
 
@@ -2821,7 +3003,7 @@ Re-start playing the last-played folder
 Will reset settings to folder config
 
 
-<a id="components.player.backends.mpd.PlayerMPD.toggle"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.toggle"></a>
 
 #### toggle
 
@@ -2833,7 +3015,7 @@ def toggle()
 Toggle pause state, i.e. do a pause / resume depending on current state
 
 
-<a id="components.player.backends.mpd.PlayerMPD.replay_if_stopped"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.replay_if_stopped"></a>
 
 #### replay\_if\_stopped
 
@@ -2849,7 +3031,7 @@ Re-start playing the last-played folder unless playlist is still playing
 > but we keep it as it is specifically implemented in box 2.X
 
 
-<a id="components.player.backends.mpd.PlayerMPD.is_second_swipe"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.is_second_swipe"></a>
 
 #### is\_second\_swipe
 
@@ -2860,7 +3042,7 @@ def is_second_swipe(folder: str) -> bool
 Return whether a card request should run the configured second-swipe action.
 
 
-<a id="components.player.backends.mpd.PlayerMPD.play_second_swipe"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.play_second_swipe"></a>
 
 #### play\_second\_swipe
 
@@ -2871,7 +3053,7 @@ def play_second_swipe()
 Run the configured second-swipe action.
 
 
-<a id="components.player.backends.mpd.PlayerMPD.flush_coverart_cache"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.flush_coverart_cache"></a>
 
 #### flush\_coverart\_cache
 
@@ -2883,7 +3065,7 @@ def flush_coverart_cache()
 Deletes the Cover Art Cache
 
 
-<a id="components.player.backends.mpd.PlayerMPD.get_folder_content"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.get_folder_content"></a>
 
 #### get\_folder\_content
 
@@ -2900,7 +3082,7 @@ Call repeatedly to descend in hierarchy
 
 - `folder`: Folder path relative to music library path
 
-<a id="components.player.backends.mpd.PlayerMPD.play_folder"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.play_folder"></a>
 
 #### play\_folder
 
@@ -2919,7 +3101,7 @@ The playlist is cleared first.
 - `folder`: Folder path relative to music library path
 - `recursive`: Add folder recursively
 
-<a id="components.player.backends.mpd.PlayerMPD.play_album"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.play_album"></a>
 
 #### play\_album
 
@@ -2938,7 +3120,7 @@ The playlist is cleared first.
 - `albumartist`: Artist of the Album provided by MPD database
 - `album`: Album name provided by MPD database
 
-<a id="components.player.backends.mpd.PlayerMPD.get_volume"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.get_volume"></a>
 
 #### get\_volume
 
@@ -2952,7 +3134,7 @@ For volume control do not use directly, but use through the plugin 'volume',
 as the user may have configured a volume control manager other than MPD
 
 
-<a id="components.player.backends.mpd.PlayerMPD.set_volume"></a>
+<a id="jukebox.player.backends.mpd.PlayerMPD.set_volume"></a>
 
 #### set\_volume
 
@@ -2966,283 +3148,10 @@ For volume control do not use directly, but use through the plugin 'volume',
 as the user may have configured a volume control manager other than MPD
 
 
-<a id="components.player.backends"></a>
+<a id="jukebox.player.backends"></a>
 
-# components.player.backends
+# jukebox.player.backends
 
 Playback backend implementations used by the player coordinator.
-
-
-<a id="misc"></a>
-
-# misc
-
-<a id="misc.recursive_chmod"></a>
-
-#### recursive\_chmod
-
-```python
-def recursive_chmod(path, mode_files, mode_dirs)
-```
-
-Recursively change folder and file permissions
-
-mode_files/mode dirs can be given in octal notation e.g. 0o777
-flags from the stats module.
-
-Reference: https://docs.python.org/3/library/os.html#os.chmod
-
-
-<a id="misc.flatten"></a>
-
-#### flatten
-
-```python
-def flatten(iterable)
-```
-
-Flatten all levels of hierarchy in nested iterables
-
-
-<a id="misc.getattr_hierarchical"></a>
-
-#### getattr\_hierarchical
-
-```python
-def getattr_hierarchical(obj: Any, name: str) -> Any
-```
-
-Like the builtin getattr, but descends though the hierarchy levels
-
-
-<a id="misc.simplecolors"></a>
-
-# misc.simplecolors
-
-Zero 3rd-party dependency module to add colors to unix terminal output
-
-Yes, there are modules out there to do the same and they have more features.
-However, this is low-complexity and has zero dependencies
-
-
-<a id="misc.simplecolors.Colors"></a>
-
-## Colors Objects
-
-```python
-class Colors()
-```
-
-Container class for all the colors as constants
-
-
-<a id="misc.simplecolors.resolve"></a>
-
-#### resolve
-
-```python
-def resolve(color_name: str)
-```
-
-Resolve a color name into the respective color constant
-
-**Arguments**:
-
-- `color_name`: Name of the color
-
-**Returns**:
-
-color constant
-
-<a id="misc.simplecolors.print"></a>
-
-#### print
-
-```python
-def print(color: Colors,
-          *values,
-          sep=' ',
-          end='\n',
-          file=sys.stdout,
-          flush=False)
-```
-
-Drop-in replacement for print with color choice and auto color reset for convenience
-
-Use just as a regular print function, but with first parameter as color
-
-
-<a id="misc.inputminus"></a>
-
-# misc.inputminus
-
-Zero 3rd-party dependency module for user prompting
-
-Yes, there are modules out there to do the same and they have more features.
-However, this is low-complexity and has zero dependencies
-
-
-<a id="misc.inputminus.input_int"></a>
-
-#### input\_int
-
-```python
-def input_int(prompt,
-              blank=None,
-              min=None,
-              max=None,
-              prompt_color=None,
-              prompt_hint=False) -> int
-```
-
-Request an integer input from user
-
-**Arguments**:
-
-- `prompt`: The prompt to display
-- `blank`: Value to return when user just hits enter. Leave at None, if blank is invalid
-- `min`: Minimum valid integer value (None disables this check)
-- `max`: Maximum valid integer value (None disables this check)
-- `prompt_color`: Color of the prompt. Color will be reset at end of prompt
-- `prompt_hint`: Append a 'hint' with [min...max, default=xx] to end of prompt
-
-**Returns**:
-
-integer value read from user input
-
-<a id="misc.inputminus.input_yesno"></a>
-
-#### input\_yesno
-
-```python
-def input_yesno(prompt,
-                blank=None,
-                prompt_color=None,
-                prompt_hint=False) -> bool
-```
-
-Request a yes / no choice from user
-
-Accepts multiple input for true/false and is case insensitive
-
-**Arguments**:
-
-- `prompt`: The prompt to display
-- `blank`: Value to return when user just hits enter. Leave at None, if blank is invalid
-- `prompt_color`: Color of the prompt. Color will be reset at end of prompt
-- `prompt_hint`: Append a 'hint' with [y/n] to end of prompt. Default choice will be capitalized
-
-**Returns**:
-
-boolean value read from user input
-
-<a id="misc.loggingext"></a>
-
-# misc.loggingext
-
-## Logger
-
-We use a hierarchical Logger structure based on pythons logging module. It can be finely configured with a yaml file.
-
-The top-level logger is called 'jb' (to make it short). In any module you may simple create a child-logger at any hierarchy
-level below 'jb'. It will inherit settings from it's parent logger unless otherwise configured in the yaml file.
-Hierarchy separator is the '.'. If the logger already exits, getLogger will return a reference to the same, else it will be
-created on the spot.
-
-Example: How to get logger and log away at your heart's content:
-
-    >>> import logging
-    >>> logger = logging.getLogger('jb.awesome_module')
-    >>> logger.info('Started general awesomeness aura')
-
-Example: YAML snippet, setting WARNING as default level everywhere and DEBUG for jb.awesome_module:
-
-    loggers:
-      jb:
-        level: WARNING
-        handlers: [console, debug_file_handler, error_file_handler]
-        propagate: no
-      jb.awesome_module:
-        level: DEBUG
-
-
-> [!NOTE]
-> The name (and hierarchy path) of the logger can be arbitrary and must not necessarily match the module name (still makes
-> sense).
-> There can be multiple loggers per module, e.g. for special classes, to further control the amount of log output
-
-
-<a id="misc.loggingext.ColorFilter"></a>
-
-## ColorFilter Objects
-
-```python
-class ColorFilter(logging.Filter)
-```
-
-This filter adds colors to the logger
-
-It adds all colors from simplecolors by using the color name as new keyword,
-i.e. use %(colorname)c or {colorname} in the formatter string
-
-It also adds the keyword {levelnameColored} which is an auto-colored drop-in replacement
-for the levelname depending on severity.
-
-Don't forget to {reset} the color settings at the end of the string.
-
-
-<a id="misc.loggingext.ColorFilter.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(enable=True, color_levelname=True)
-```
-
-**Arguments**:
-
-- `enable`: Enable the coloring
-- `color_levelname`: Enable auto-coloring when using the levelname keyword
-
-<a id="misc.loggingext.PubStream"></a>
-
-## PubStream Objects
-
-```python
-class PubStream()
-```
-
-Stream handler wrapper around the publisher for logging.StreamHandler
-
-Allows logging to send all log information (based on logging configuration)
-to the Publisher.
-
-> [!CAUTION]
-> This can lead to recursions!
-> Recursions come up when
-> * Publish.send / EventBus.publish also emits logs, which cause a another send, which emits a log,
-> which causes a send, ..... `jukebox.publishing.bus.EventBus` guards against this (caps it at one
-> extra level instead of recursing indefinitely), but still avoid triggering it needlessly.
-> * Publisher initialization emits logs, which need a Publisher instance to send logs
-
-> [!IMPORTANT]
-> To avoid endless recursions: The creation of a Publisher MUST NOT generate any log messages! Nor any of the
-> functions in the send-function stack!
-
-
-<a id="misc.loggingext.PubStreamHandler"></a>
-
-## PubStreamHandler Objects
-
-```python
-class PubStreamHandler(logging.StreamHandler)
-```
-
-Wrapper for logging.StreamHandler with stream = PubStream
-
-This serves one purpose: In logger.yaml custom handlers
-can be configured (which are automatically instantiated).
-Using this Handler, we can output to PubStream whithout
-support code to instantiate PubStream keeping this file generic
 
 

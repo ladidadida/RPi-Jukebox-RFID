@@ -4,10 +4,10 @@ from unittest.mock import Mock, call, sentinel
 
 import pytest
 
-from components.player.backends.mpd import PlayerMPD
-from components.player.coordinator import PlayerCoordinator
-from components.player.playcontentcallback import PlayCardState, PlayContentCallbacks
-from components.rpc_command_alias import cmd_alias_definitions
+from jukebox.player.backends.mpd import PlayerMPD
+from jukebox.player.coordinator import PlayerCoordinator
+from jukebox.player.playcontentcallback import PlayCardState, PlayContentCallbacks
+from jukebox.command_aliases import cmd_alias_definitions
 
 
 def backend_with(**methods):

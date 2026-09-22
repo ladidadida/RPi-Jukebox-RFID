@@ -1,5 +1,5 @@
 # IMPORTANT:
-# Always use relative path from folder `src/jukebox` (`../../`), but do not use relative paths with `~/`.
+# Always use relative path from the repository root (the Jukebox daemon's working directory), but do not use relative paths with `~/`.
 # Sole (!) exception is in playermpd.mpd_conf
 system:
   box_name: Jukebox
@@ -46,10 +46,10 @@ pulse:
       # pulse_sink_name: bluez_sink.C4_FB_20_63_CO_FE.a2dp_sink
 jingle:
    # Supported file formats as jingles: *.wav and *.mp3. Note that *.wav is faster!
-  startup_sound: ../../resources/audio/startupsound.wav
-  # startup_sound: ../../resources/audio/startupsound.mp3
+  startup_sound: resources/audio/startupsound.wav
+  # startup_sound: resources/audio/startupsound.mp3
   # Shutdown sound is not played on Ctrl-C (to reduce developer's stain)
-  shutdown_sound: ../../resources/audio/shutdownsound.wav
+  shutdown_sound: resources/audio/shutdownsound.wav
   # Use file ending to choose player from available jingle services
   service: auto
   # The playback volume of the jingles. (Comment out means use current system volume)
@@ -63,7 +63,7 @@ alsawave:
   device: default
 playermpd:
   host: localhost
-  status_file: ../../shared/settings/music_player_status.json
+  status_file: shared/settings/music_player_status.json
   second_swipe_action:
     # Note: Does not follow the RPC alias convention (yet)
     # Must be one of: 'toggle', 'play', 'skip', 'rewind', 'replay', 'none'
@@ -85,11 +85,11 @@ api:
   bind_address: 0.0.0.0
   port: 5556
 rfid:
-  reader_config: ../../shared/settings/rfid.yaml
-  card_database: ../../shared/settings/cards.yaml
+  reader_config: shared/settings/rfid.yaml
+  card_database: shared/settings/cards.yaml
 gpioz:
   enable: false
-  config_file: ../../shared/settings/gpio.yaml
+  config_file: shared/settings/gpio.yaml
 timers:
   idle_shutdown:
     # If you want the box to shutdown on inactivity automatically, configure timeout_sec with a number of seconds (at least 60).
@@ -137,9 +137,9 @@ speaking_text:
   voice: female
 sync_rfidcards:
   enable: false
-  config_file: ../../shared/settings/sync_rfidcards.yaml
+  config_file: shared/settings/sync_rfidcards.yaml
 webapp:
-  coverart_cache_path: ../../src/webapp/build/cover-cache
+  coverart_cache_path: packages/webapp/build/cover-cache
   # Load cover arts in Webapp. Change to false in case you have performance issue
   # when handling a lot of music
   # Defaults to true

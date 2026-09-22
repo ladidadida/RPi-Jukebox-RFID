@@ -20,7 +20,7 @@ TEST_VERSION="3.7.0-alpha"
 ATTEMPTED_URLS=()
 AVAILABLE_URL=""
 
-mkdir -p "${INSTALLATION_PATH}/src/webapp"
+mkdir -p "${INSTALLATION_PATH}/packages/webapp"
 mkdir -p "${TEST_ROOT}/payload/build"
 echo "test bundle" > "${TEST_ROOT}/payload/build/index.html"
 tar -czf "${TEST_ROOT}/fixture.tar.gz" -C "${TEST_ROOT}/payload" build
@@ -66,7 +66,7 @@ exit_on_error() {
 reset_download() {
     ATTEMPTED_URLS=()
     AVAILABLE_URL="$1"
-    rm -rf "${INSTALLATION_PATH}/src/webapp/build"
+    rm -rf "${INSTALLATION_PATH}/packages/webapp/build"
 }
 
 assert_attempts() {
@@ -91,7 +91,7 @@ ENABLE_WEBAPP_PROD_DOWNLOAD=true
 reset_download "${SOURCE_DEVELOPMENT_URL}"
 _jukebox_webapp_download
 assert_attempts "${SOURCE_DEVELOPMENT_URL}"
-[[ -f "${INSTALLATION_PATH}/src/webapp/build/index.html" ]]
+[[ -f "${INSTALLATION_PATH}/packages/webapp/build/index.html" ]]
 
 # Fall back only to other exact-commit locations.
 reset_download "${UPSTREAM_DEVELOPMENT_URL}"
@@ -123,7 +123,7 @@ assert_attempts \
     "${SOURCE_RELEASE_URL}" \
     "${UPSTREAM_DEVELOPMENT_URL}" \
     "${UPSTREAM_RELEASE_URL}"
-[[ ! -e "${INSTALLATION_PATH}/src/webapp/build" ]]
+[[ ! -e "${INSTALLATION_PATH}/packages/webapp/build" ]]
 
 _jukebox_webapp_register_as_system_service_with_nginx() {
     :

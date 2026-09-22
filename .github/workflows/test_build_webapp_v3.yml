@@ -16,7 +16,7 @@ on:
         - '.github/workflows/test_build_webapp_v3.yml'
         - '.github/actions/build-webapp/**'
         - '.github/actions/bundle-webapp/**'
-        - 'src/webapp/**'
+        - 'packages/webapp/**'
 
 permissions:
   contents: read
@@ -37,19 +37,19 @@ jobs:
         uses: ./.github/actions/build-webapp
 
       - name: Lint Web App
-        working-directory: ./src/webapp
+        working-directory: ./packages/webapp
         run: npm run lint
 
       - name: Test Web App
-        working-directory: ./src/webapp
+        working-directory: ./packages/webapp
         run: npm test
 
       - name: Install Playwright browser
-        working-directory: ./src/webapp
+        working-directory: ./packages/webapp
         run: npx playwright install --with-deps chromium
 
       - name: Test Web App in Chromium
-        working-directory: ./src/webapp
+        working-directory: ./packages/webapp
         run: npm run test:e2e
 
       - name: Bundle Web App

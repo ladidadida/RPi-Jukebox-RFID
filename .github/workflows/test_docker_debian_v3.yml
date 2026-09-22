@@ -11,7 +11,7 @@ on:
         - 'installation/**'
         - 'ci/**'
         - 'resources/**'
-        - 'src/jukebox/jukebox/version.py'
+        - 'packages/jukebox/src/jukebox/version.py'
         - 'packages*.txt'
         - 'requirements*.txt'
   pull_request:
@@ -24,7 +24,7 @@ on:
         - 'installation/**'
         - 'ci/**'
         - 'resources/**'
-        - 'src/jukebox/jukebox/version.py'
+        - 'packages/jukebox/src/jukebox/version.py'
         - 'packages*.txt'
         - 'requirements*.txt'
 

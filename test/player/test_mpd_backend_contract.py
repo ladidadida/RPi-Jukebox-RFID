@@ -4,7 +4,7 @@ from unittest.mock import Mock, sentinel
 
 import jukebox.publishing as publishing
 
-from components.player.backends.mpd import PlayerMPD
+from jukebox.player.backends.mpd import PlayerMPD
 
 
 def mpd_backend():

@@ -13,18 +13,25 @@ apply.
 ## Repository layout
 
 ```
-src/jukebox/       Python core application ("Jukebox Core") — the daemon that runs on the Pi
-  jukebox/         Core framework: explicit component registry, RPC server, FastAPI API bridge,
-                   in-process pub/sub event bus, config handling
-  components/      Explicitly wired by jukebox.daemon at start-up (no plugin/config-driven
-                   loading — see documentation/developers/roadmap-core-architecture.md): player
-                   (MPD), rfid, publishing, misc. Other former components (gpio, mqtt, volume,
-                   timers, battery_monitor, controls, jingle, hostif, synchronisation) were
-                   removed and will come back as new, not-yet-designed components.
-  misc/            Shared utility code
-  run_*.py         Entry points (jukebox core, RFID registration, audio config, publicity sniffer)
-src/webapp/        React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
-                   (FastAPI, `/api/v1/*`)
+pyproject.toml     uv workspace root (virtual: no [project] table); shared dev-tool config
+                   (ruff/pyright/pytest/coverage/pydoc-markdown) lives here
+packages/          uv workspace members
+  jukebox/         Python core application ("Jukebox Core") — the daemon that runs on the Pi
+    pyproject.toml Real [project] table (package=true), runtime dependencies, hatchling backend
+    scripts/       Entry points (jukebox core, RFID registration, audio config, publicity
+                   sniffer) — launcher scripts, not part of the installable package
+    src/jukebox/   The installable package: explicit component registry, FastAPI API bridge
+                   (api/), in-process pub/sub event bus (publishing/), config handling, and the
+                   components explicitly wired by jukebox.daemon at start-up (no plugin/
+                   config-driven loading — see documentation/developers/roadmap-core-architecture.md):
+                   player (MPD), rfid, publishing, system (formerly "misc" RPC calls), misc
+                   (shared utility code). Other former components (gpio, mqtt, volume, timers,
+                   battery_monitor, controls, jingle, hostif, synchronisation) were removed and
+                   will come back as new, not-yet-designed components.
+  cli/             Scaffold for a future CLI (jukebox-cli) — empty stub, not implemented yet
+  webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
+                   (FastAPI, `/api/v1/*`). Not a uv workspace member (npm/Vite project), but lives
+                   alongside the Python packages structurally.
 installation/      Bash install routines run on a real Raspberry Pi (install-jukebox.sh + routines/)
 docker/            Dockerfiles + compose files for a non-Pi development environment
 resources/         Default settings, systemd services, sample audio, autohotspot configs
@@ -39,7 +46,7 @@ ci/                CI helper scripts (e.g. installation testing)
 
 - **Component registry**: `jukebox.registry` (replacing the old `jukebox.plugs` dynamic plugin
   system) is a minimal explicit call registry. `jukebox.daemon.run()` wires up each component
-  (currently: publishing, misc, player, rfid) directly by calling its `register()`/`start()`
+  (currently: publishing, system, player, rfid) directly by calling its `register()`/`start()`
   functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
   `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
 - **RPC**: the Web App (via `POST /api/v1/rpc`) and RFID card swipes (direct in-process calls)
@@ -67,8 +74,8 @@ ci/                CI helper scripts (e.g. installation testing)
   `documentation/developers/roadmap-core-architecture.md`). All Python plugin/config folder & file
   names are `snake_case`, descriptive, general→specific (see `CONTRIBUTING.md` "Naming
   conventions" section) — this is a deliberate v2→v3 break, follow it strictly.
-- **JavaScript/React** (`src/webapp`): Create React App (`react-scripts`), MUI v5, i18next for
-  translations (`de`/`en` under `src/webapp/public/locales`), Ramda, react-router-dom.
+- **JavaScript/React** (`packages/webapp`): Create React App (`react-scripts`), MUI v5, i18next for
+  translations (`de`/`en` under `packages/webapp/public/locales`), Ramda, react-router-dom.
 - **Config format**: YAML (`ruamel.yaml`), defaults in `resources/default-settings/`.
 - Everything under any `scratch*`-named folder is git- and ruff-ignored — safe scratch space,
   never a place for real code.
@@ -81,19 +88,19 @@ The old `run_*.sh` wrapper scripts are gone.
 
 ```bash
 uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
-uv run python src/jukebox/run_jukebox.py   # start the Jukebox core
+uv run python packages/jukebox/scripts/run_jukebox.py   # start the Jukebox core
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)
 bam typecheck                   # pyright (informational only for now, see roadmap)
 bam test                        # pytest, writes .reports/junit.xml
 bam docs                        # regenerate API docs (pydoc-markdown)
-bam markdownlint                # lint markdown docs (needs src/webapp/node_modules)
+bam markdownlint                # lint markdown docs (needs packages/webapp/node_modules)
 bam ci-checks                   # everything CI runs, in one command
 tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
 ```
 
-Webapp (`cd src/webapp`): standard CRA scripts — `npm start`, `npm run build`, `npm test`.
+Webapp (`cd packages/webapp`): standard CRA scripts — `npm start`, `npm run build`, `npm test`.
 
 ## Before committing / opening a PR
 

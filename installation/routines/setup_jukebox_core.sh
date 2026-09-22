@@ -72,7 +72,7 @@ _jukebox_core_check() {
     local pip_modules=$(python3 -c "
 import re
 import tomllib
-with open('${INSTALLATION_PATH}/pyproject.toml', 'rb') as f:
+with open('${INSTALLATION_PATH}/packages/jukebox/pyproject.toml', 'rb') as f:
     deps = tomllib.load(f)['project']['dependencies']
 print(' '.join(re.split(r'[<>=!; ]', dep, 1)[0] for dep in deps))
 ")

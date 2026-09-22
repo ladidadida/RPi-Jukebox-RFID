@@ -82,7 +82,7 @@ Typically these steps need to be considered
     - Backup the current Web App build:
 
         ```bash
-        cd ~/RPi-Jukebox-RFID/src/webapp
+        cd ~/RPi-Jukebox-RFID/packages/webapp
         rm -rf build-backup
         mv build build-backup
         ```
@@ -90,7 +90,7 @@ Typically these steps need to be considered
     - On your Phoniebox, download and extract the bundle. Afterwards, delete the archive:
 
         ```bash
-        cd ~/RPi-Jukebox-RFID/src/webapp
+        cd ~/RPi-Jukebox-RFID/packages/webapp
         bundle_name="webapp-build-$(git rev-parse --short=10 HEAD).tar.gz"
         wget "{URL}" -O "${bundle_name}"
         tar -xzf "${bundle_name}"
@@ -138,7 +138,7 @@ Verify the version of your Phoniebox in the settings tab.
 - Revert Web App:
 
     ```bash
-    cd ~/RPi-Jukebox-RFID/src/webapp
+    cd ~/RPi-Jukebox-RFID/packages/webapp
     rm -rf build
     mv build-backup build
     ```

@@ -1,30 +1,9 @@
-[project]
-name = "rpi-jukebox-rfid"
-# Not sourced from src/jukebox/jukebox/version.py yet -- real packaging (installable wheel,
-# version sourcing) is Track B in documentation/developers/roadmap-core-architecture.md, not this
-# tooling migration.
-version = "3.7.0"
-description = "RFID-controlled audio jukebox for the Raspberry Pi (fork)"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-  "evdev",
-  "mutagen",
-  "pulsectl",
-  "python-mpd2",
-  "ruamel.yaml",
-  "requests",
-  "fastapi",
-  "uvicorn",
-  "websockets",  # run_publicity_sniffer.py: a plain WebSocket client for /api/v1/events
-  "gpiozero",
-  # RPi.GPIO shim for kernels >= 6.6 (Trixie), where /sys/class/gpio/ is gone. Only meaningful on
-  # real Pi hardware; harmless to attempt elsewhere since uv will just skip it if unresolvable.
-  # Originally installed with `pip install rpi-lgpio --no-binary=lgpio`; uv's equivalent
-  # (`uv sync --no-binary-package rpi-lgpio` or `[tool.uv] no-binary-package`) is not yet verified
-  # against real Pi hardware -- flagged as a known gap, not solved here.
-  "rpi-lgpio; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
-]
+[tool.uv.workspace]
+members = ["packages/*"]
+# webapp is a Node/Vite project, not a Python package -- can't be a uv workspace member (uv
+# workspaces are PEP 621/Python-only). It still lives under packages/ structurally, alongside the
+# Python packages.
+exclude = ["packages/webapp"]
 
 [dependency-groups]
 dev = [
@@ -39,9 +18,6 @@ dev = [
   "bam-tool",
 ]
 
-[tool.uv]
-package = false
-
 [tool.pytest.ini_options]
 addopts = "--maxfail=2 -rf --ff -v --import-mode=importlib"
 testpaths = ["test"]
@@ -50,7 +26,7 @@ testpaths = ["test"]
 omit = ["test/*"]
 
 [tool.pydoc-markdown]
-loaders = [{ type = "python", search_path = ["./src/jukebox"] }]
+loaders = [{ type = "python", search_path = ["./packages/jukebox/src"] }]
 processors = [{ type = "filter" }, { type = "sphinx" }, { type = "crossref" }]
 
 [tool.pydoc-markdown.renderer]
@@ -64,7 +40,7 @@ line-length = 127
 target-version = "py311"
 extend-exclude = [
   "scratch*",
-  "*/jukebox/NvManager.py",  # not ported/linted yet, matches the old flake8 exclusion
+  "*/jukebox/nv_manager.py",  # not ported/linted yet, matches the old flake8 exclusion
   "**/node_modules",
 ]
 
@@ -87,11 +63,11 @@ max-complexity = 12
 [tool.pyright]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"
-include = ["src/jukebox"]
+include = ["packages/jukebox/src", "packages/cli/src"]
 exclude = [
   "**/node_modules",
   "**/__pycache__",
   "**/scratch*",
   ".venv",
-  "src/jukebox/jukebox/NvManager.py",
+  "packages/jukebox/src/jukebox/nv_manager.py",
 ]

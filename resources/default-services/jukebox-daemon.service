@@ -7,7 +7,7 @@ Requires=mpd.service pipewire-pulse.service
 
 [Service]
 WorkingDirectory=%%INSTALLATION_PATH%%
-ExecStart=/bin/bash -c '%%INSTALLATION_PATH%%/run_jukebox.sh'
+ExecStart=/bin/bash -c 'uv run python packages/jukebox/scripts/run_jukebox.py'
 StandardOutput=inherit
 StandardError=inherit
 Restart=always

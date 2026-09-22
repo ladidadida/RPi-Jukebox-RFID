@@ -4,7 +4,7 @@ inputs:
   webapp-root-path:
     description: 'root path of the Web App sources'
     required: false
-    default: './src/webapp'
+    default: './packages/webapp'
 outputs:
   webapp-root-path:
     description: 'used root path of the Web App sources'

@@ -4,7 +4,7 @@ inputs:
   webapp-root-path:
     description: 'Root path of the built Web App'
     required: false
-    default: './src/webapp'
+    default: './packages/webapp'
 outputs:
   commit-sha:
     description: 'Commit containing the Web App sources'

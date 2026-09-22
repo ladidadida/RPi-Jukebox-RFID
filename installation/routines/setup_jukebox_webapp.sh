@@ -32,7 +32,7 @@ _jukebox_webapp_download() {
   local upstream_release_url
   local bundle_downloaded=false
 
-  jukebox_version=$(python "${INSTALLATION_PATH}/src/jukebox/jukebox/version.py") \
+  jukebox_version=$(python "${INSTALLATION_PATH}/packages/jukebox/src/jukebox/version.py") \
     || exit_on_error "Could not determine the Jukebox version"
   git_head_hash=$(git -C "${INSTALLATION_PATH}" rev-parse --verify --quiet HEAD) \
     || exit_on_error "Could not determine the installed commit"
@@ -45,7 +45,7 @@ _jukebox_webapp_download() {
   git_user_normalized=$(printf '%s' "${GIT_USER}" | tr '[:upper:]' '[:lower:]')
   git_upstream_user_normalized=$(printf '%s' "${GIT_UPSTREAM_USER}" | tr '[:upper:]' '[:lower:]')
 
-  cd "${INSTALLATION_PATH}/src/webapp" || exit_on_error
+  cd "${INSTALLATION_PATH}/packages/webapp" || exit_on_error
 
   if [[ "$ENABLE_WEBAPP_PROD_DOWNLOAD" != "release-only" ]] \
       && _jukebox_webapp_try_download "${source_development_url}" "${tar_filename}"; then
@@ -73,7 +73,7 @@ _jukebox_webapp_download() {
 _jukebox_webapp_check() {
     print_verify_installation
 
-    verify_dirs_exists "${INSTALLATION_PATH}/src/webapp/build"
+    verify_dirs_exists "${INSTALLATION_PATH}/packages/webapp/build"
 }
 
 _run_setup_jukebox_webapp() {

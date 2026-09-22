@@ -22,7 +22,7 @@ warn_npm_dependency() {
   echo "ATTENTION: npm dependencies have changed since last pull!"
   echo ""
   echo "For workstation development, update dependencies with:"
-  echo " cd src/webapp && npm ci"
+  echo " cd packages/webapp && npm ci"
   echo ""
   echo "On an installed Phoniebox, use the exact CI bundle for:"
   git rev-parse HEAD
@@ -90,9 +90,9 @@ warn_installer() {
 }
 
 # files_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD)"
-python_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD pyproject.toml uv.lock)"
-webapp_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD src/webapp)"
-webapp_dep_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD src/webapp/package.json)"
+python_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD pyproject.toml packages/jukebox/pyproject.toml uv.lock)"
+webapp_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD packages/webapp)"
+webapp_dep_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD packages/webapp/package.json)"
 githooks_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD .githooks)"
 installer_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD installation)"
 

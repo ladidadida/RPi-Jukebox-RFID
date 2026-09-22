@@ -112,5 +112,5 @@ The [Web App](../developers/webapp.md) is served directly by the Jukebox Core (n
 process): `jukebox-daemon` serves the static build alongside `/api/*`. The build is located at
 
 ```text
-./src/webapp/build
+./packages/webapp/build
 ```

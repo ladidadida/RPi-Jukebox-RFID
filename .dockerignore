@@ -11,8 +11,8 @@ shared
 .venv
 
 # webapp
-!src/webapp
-src/webapp/node_modules
-src/webapp/npm-debug.log
-src/webapp/build
-src/webapp/build.bak
+!packages/webapp
+packages/webapp/node_modules
+packages/webapp/npm-debug.log
+packages/webapp/build
+packages/webapp/build.bak

@@ -9,17 +9,19 @@ tasks:
   # ── Static checks ────────────────────────────────────────────────────────────
 
   lint:
-    command: uv run ruff check src/jukebox test
+    command: uv run ruff check packages/jukebox/src packages/cli/src test
     stage: lint
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
 
   format:
-    command: uv run ruff format src/jukebox test
+    command: uv run ruff format packages/jukebox/src packages/cli/src test
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
 
@@ -28,10 +30,11 @@ tasks:
     # --check currently flags ~70 files), and applying it needs its own dedicated commit at a
     # moment that's acceptable for a large diff, not bundled into unrelated changes. See
     # documentation/developers/roadmap-core-architecture.md.
-    command: uv run ruff format --check src/jukebox test || true
+    command: uv run ruff format --check packages/jukebox/src packages/cli/src test || true
     stage: lint
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
 
@@ -42,7 +45,8 @@ tasks:
     command: uv run pyright || true
     stage: lint
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - pyproject.toml
 
   # ── Tests ─────────────────────────────────────────────────────────────────────
@@ -51,7 +55,8 @@ tasks:
     command: uv run pytest --junit-xml=.reports/junit.xml
     stage: test
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
     outputs:
@@ -62,13 +67,14 @@ tasks:
   docs:
     command: uv run pydoc-markdown
     inputs:
-      - "src/jukebox/**/*.py"
+      - "packages/jukebox/src/**/*.py"
+      - "packages/cli/src/**/*.py"
       - pydoc-markdown.yml
     outputs:
       - documentation/developers/docstring/
 
   markdownlint:
-    command: src/webapp/node_modules/.bin/markdownlint-cli2 --config .markdownlint-cli2.yaml "#node_modules"
+    command: packages/webapp/node_modules/.bin/markdownlint-cli2 --config .markdownlint-cli2.yaml "#node_modules"
     stage: lint
     inputs:
       - "**/*.md"

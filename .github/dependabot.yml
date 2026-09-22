@@ -11,7 +11,7 @@ updates:
       interval: "monthly"
       
   - package-ecosystem: "npm"
-    directory: "/src/webapp"
+    directory: "/packages/webapp"
     schedule:
       interval: "monthly"
       

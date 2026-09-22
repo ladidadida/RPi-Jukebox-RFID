@@ -30,6 +30,6 @@ nothing else on the system needs them.
 ## Configuration
 
 In `jukebox.yaml` (and all other config files):
-Always use relative path from folder `src/jukebox` (`../../`), but do not use relative paths with `~/`.
+Always use relative path from the repository root (the Jukebox daemon's working directory), but do not use relative paths with `~/`.
 
 **Sole** exception is in `playermpd.mpd_conf`.

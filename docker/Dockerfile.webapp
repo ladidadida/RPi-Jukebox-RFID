@@ -4,7 +4,7 @@ USER node
 RUN mkdir -p /home/node/webapp
 WORKDIR /home/node/webapp
 
-COPY --chown=node:node ./src/webapp ./
+COPY --chown=node:node ./packages/webapp ./
 
 RUN npm ci
 

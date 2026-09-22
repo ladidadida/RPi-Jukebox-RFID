@@ -6,10 +6,7 @@
 /shared/logs/*.log*
 /shared/*.*
 /shared/*
-/src/webapp/public/cover-cache/*.*
-
-# Application
-/src/cli_client/pbc
+/packages/webapp/public/cover-cache/*.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

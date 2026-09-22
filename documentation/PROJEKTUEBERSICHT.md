@@ -73,7 +73,7 @@ Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per 
 
 ## Eingesetzte Tools und Libraries
 
-### Python-Kern (`src/jukebox`)
+### Python-Kern (`packages/jukebox`)
 
 | Zweck | Library |
 |---|---|
@@ -92,7 +92,7 @@ Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per 
 Kein ZeroMQ mehr (siehe `documentation/developers/roadmap-core-architecture.md`). Minimale
 Python-Version: **3.11**.
 
-### Web-App (`src/webapp`, React/JavaScript)
+### Web-App (`packages/webapp`, React/JavaScript)
 
 | Zweck | Library |
 |---|---|
@@ -154,10 +154,10 @@ Docker, Compose und (host-seitig) PulseAudio müssen vorher installiert sein; je
 ```bash
 uv sync --group dev
 # ggf. vorher: sudo apt install libasound2-dev
-uv run python src/jukebox/run_jukebox.py
+uv run python packages/jukebox/scripts/run_jukebox.py
 ```
 
-Die Webapp wird separat mit npm gebaut/gestartet (`cd src/webapp && npm start`).
+Die Webapp wird separat mit npm gebaut/gestartet (`cd packages/webapp && npm start`).
 
 ## Nützliche Kommandos (aus dem Repo-Root)
 
@@ -166,7 +166,7 @@ Task-Runner mit Caching). Die alten `run_*.sh`-Wrapper-Skripte gibt es nicht meh
 
 ```bash
 uv sync --group dev              # .venv anlegen/aktualisieren (Runtime + Dev-Dependencies)
-uv run python src/jukebox/run_jukebox.py   # Jukebox Core starten
+uv run python packages/jukebox/scripts/run_jukebox.py   # Jukebox Core starten
 bam lint                         # ruff check (gecached)
 bam format                       # ruff format (Auto-Fix)
 bam test                         # pytest, schreibt .reports/junit.xml

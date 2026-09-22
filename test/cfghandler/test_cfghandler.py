@@ -1,8 +1,3 @@
-import sys
-import os
-# In case this is run locally from
-sys.path.append(os.path.abspath('../../src/jukebox'))
-
 import jukebox.cfghandler as cfghandler # noqa
 from ruamel.yaml import YAML # noqa
 

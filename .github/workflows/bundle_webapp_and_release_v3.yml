@@ -39,7 +39,7 @@ jobs:
 
 
           # Get the version and calculate release type
-          VERSION=$(python ./src/jukebox/jukebox/version.py)
+          VERSION=$(python ./packages/jukebox/src/jukebox/version.py)
           if echo "$VERSION" | grep -qoE "$REGEX_VERSION_RELEASE" ; then
             RELEASE_TYPE=release
           elif echo "$VERSION" | grep -qoE "$REGEX_VERSION_PRERELEASE" ; then

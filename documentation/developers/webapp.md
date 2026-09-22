@@ -1,6 +1,6 @@
 # Web App
 
-The Web App sources are located in `src/webapp`. Installations download and
+The Web App sources are located in `packages/webapp`. Installations download and
 serve pre-built static assets, so Node.js and local compilation are not
 required on the target system.
 
@@ -57,7 +57,7 @@ The Web App is a React application built with Vite. Use Node.js 22 and npm 10
 or newer on a workstation or in the provided Docker environment:
 
 ```bash
-cd ~/RPi-Jukebox-RFID/src/webapp
+cd ~/RPi-Jukebox-RFID/packages/webapp
 npm ci
 npm run dev
 ```
@@ -103,6 +103,6 @@ npm run test:e2e
 npm run build
 ```
 
-`npm run build` writes the production assets to `src/webapp/build`. CI packages
+`npm run build` writes the production assets to `packages/webapp/build`. CI packages
 that directory without source maps as the commit-addressed installation
 bundle.

@@ -31,12 +31,12 @@ The Jukebox core app is written entirely in Python. Therefore, we follow the [Py
 
 Inside the root folder or the repo, these folders are important:
 
-* `src/jukebox`
+* `packages/jukebox`
   * contains the Jukebox Core App
-* `src/jukebox/components`
-  * contains the Python packages explicitly wired up by `jukebox.daemon` at start-up (player, rfid,
-    publishing, misc -- see `documentation/developers/roadmap-core-architecture.md`)
-* `src/webapp`
+* `packages/jukebox/src/jukebox`
+  * contains the Python modules/packages explicitly wired up by `jukebox.daemon` at start-up
+    (player, rfid, publishing, system -- see `documentation/developers/roadmap-core-architecture.md`)
+* `packages/webapp`
   * contains the Web Interface
 
 All folders on all hierarchy levels starting with `scratch*` are ignored by git and ruff. These are intended

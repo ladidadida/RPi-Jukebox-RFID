@@ -326,7 +326,7 @@ The following command can be run on a Mac.
 ``` bash
 docker build -f docker/Dockerfile.jukebox -t jukebox .
 docker run -it --rm \
-    -v $(PWD)/src/jukebox:/home/pi/RPi-Jukebox-RFID/src/jukebox \
+    -v $(PWD)/packages/jukebox:/home/pi/RPi-Jukebox-RFID/packages/jukebox \
     -v $(PWD)/shared/audiofolders:/home/pi/RPi-Jukebox-RFID/shared/audiofolders \
     -v ~/.config/pulse:/root/.config/pulse \
     -e PULSE_SERVER=tcp:host.docker.internal:4713 \

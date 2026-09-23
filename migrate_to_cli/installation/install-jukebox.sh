@@ -2,11 +2,11 @@
 # One-line install script for the Jukebox Version 3
 #
 # To install, simply execute
-# cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+# cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
 #
 # If you want to get a specific branch or a different repository (mainly for developers)
 # you may specify them like this
-# cd; GIT_USER='MiczFlor' GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+# cd; GIT_USER='MiczFlor' GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
 #
 export LC_ALL=C
 
@@ -124,11 +124,11 @@ _download_jukebox_source() {
 
 _load_sources() {
     # Load / Source dependencies
-    for i in "${INSTALLATION_PATH}"/installation/includes/*; do
+    for i in "${INSTALLATION_PATH}"/migrate_to_cli/installation/includes/*; do
         source "$i" || exit_on_error
     done
 
-    for j in "${INSTALLATION_PATH}"/installation/routines/*; do
+    for j in "${INSTALLATION_PATH}"/migrate_to_cli/installation/routines/*; do
         source "$j" || exit_on_error
     done
 }

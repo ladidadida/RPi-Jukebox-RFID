@@ -6,7 +6,7 @@ SOURCE="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(dirname "$SOURCE")"
 REPOSITORY_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-source "${REPOSITORY_ROOT}/installation/routines/setup_jukebox_webapp.sh"
+source "${REPOSITORY_ROOT}/migrate_to_cli/installation/routines/setup_jukebox_webapp.sh"
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "${TEST_ROOT}"' EXIT
@@ -152,7 +152,7 @@ fi
 [[ "${local_output}" == *"Local Web App builds were removed"* ]]
 [[ "${local_output}" == *"ENABLE_WEBAPP_PROD_DOWNLOAD=false is unsupported"* ]]
 
-source "${REPOSITORY_ROOT}/installation/routines/customize_options.sh"
+source "${REPOSITORY_ROOT}/migrate_to_cli/installation/routines/customize_options.sh"
 
 GIT_BRANCH="feature/test-bundles"
 GIT_BRANCH_RELEASE="future3/main"
@@ -175,7 +175,7 @@ ENABLE_WEBAPP_PROD_DOWNLOAD=release-only
 _configure_webapp_bundle_download
 [[ "${ENABLE_WEBAPP_PROD_DOWNLOAD}" == "release-only" ]]
 
-source "${REPOSITORY_ROOT}/installation/routines/prepare_dependencies.sh"
+source "${REPOSITORY_ROOT}/migrate_to_cli/installation/routines/prepare_dependencies.sh"
 
 # Bash 3.2 treats an empty array expansion as unset under nounset.
 set +u

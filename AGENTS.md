@@ -18,8 +18,6 @@ pyproject.toml     uv workspace root (virtual: no [project] table); shared dev-t
 packages/          uv workspace members
   jukebox/         Python core application ("Jukebox Core") — the daemon that runs on the Pi
     pyproject.toml Real [project] table (package=true), runtime dependencies, hatchling backend
-    scripts/       Entry points (jukebox core, RFID registration, audio config, publicity
-                   sniffer) — launcher scripts, not part of the installable package
     src/jukebox/   The installable package: explicit component registry, FastAPI API bridge
                    (api/), in-process pub/sub event bus (publishing/), config handling, and the
                    components explicitly wired by jukebox.daemon at start-up (no plugin/
@@ -32,13 +30,21 @@ packages/          uv workspace members
   webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
                    (FastAPI, `/api/v1/*`). Not a uv workspace member (npm/Vite project), but lives
                    alongside the Python packages structurally.
-installation/      Bash install routines run on a real Raspberry Pi (install-jukebox.sh + routines/)
+migrate_to_cli/    Working area for everything slated to become CLI functionality and not yet
+                   rewritten (see documentation/developers/roadmap-core-architecture.md,
+                   "Packaging/install overhaul") — moved here so it's obviously provisional rather
+                   than mixed in with permanent code. Runs exactly as before, just relocated:
+  installation/    Bash install routines run on a real Raspberry Pi (install-jukebox.sh +
+                   routines/) — the eventual target is `jukebox setup ...` CLI subcommands
+  scripts/         Launcher scripts (jukebox core, RFID registration, audio config, publicity
+                   sniffer) — the eventual target is `jukebox run` / `jukebox setup ...` /
+                   `jukebox debug ...` CLI subcommands
+  tools/           Dev wrapper for the publicity sniffer
 docker/            Dockerfiles + compose files for a non-Pi development environment
 resources/         Default settings, systemd services, sample audio, autohotspot configs
 shared/            Runtime data: audiofolders, playlists, settings, logs (mounted/shared at runtime)
 documentation/     Project docs: builders/ (end users/installers) and developers/ (contributors)
 test/              Python unit tests (pytest)
-tools/             Dev/debug CLI tools (publicity sniffer)
 ci/                CI helper scripts (e.g. installation testing)
 ```
 
@@ -88,7 +94,7 @@ The old `run_*.sh` wrapper scripts are gone.
 
 ```bash
 uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
-uv run python packages/jukebox/scripts/run_jukebox.py   # start the Jukebox core
+uv run python migrate_to_cli/scripts/run_jukebox.py   # start the Jukebox core
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)
@@ -97,7 +103,7 @@ bam test                        # pytest, writes .reports/junit.xml
 bam docs                        # regenerate API docs (pydoc-markdown)
 bam markdownlint                # lint markdown docs (needs packages/webapp/node_modules)
 bam ci-checks                   # everything CI runs, in one command
-tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
+migrate_to_cli/tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
 ```
 
 Webapp (`cd packages/webapp`): standard CRA scripts — `npm start`, `npm run build`, `npm test`.

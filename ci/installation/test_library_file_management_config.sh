@@ -31,7 +31,7 @@ if grep -Fq 'proxy_request_buffering off;' <<< "${API_LOCATION}"; then
     exit 1
 fi
 
-source "${REPOSITORY_ROOT}/installation/includes/01_default_config.sh"
+source "${REPOSITORY_ROOT}/migrate_to_cli/installation/includes/01_default_config.sh"
 [[ "${ENABLE_SAMBA}" == false ]]
 
 clear_c() {
@@ -46,7 +46,7 @@ log() {
     :
 }
 
-source "${REPOSITORY_ROOT}/installation/routines/customize_options.sh"
+source "${REPOSITORY_ROOT}/migrate_to_cli/installation/routines/customize_options.sh"
 
 ENABLE_SAMBA=true
 _option_samba <<< ''

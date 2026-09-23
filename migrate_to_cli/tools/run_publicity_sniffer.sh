@@ -10,4 +10,7 @@ SCRIPT_DIR="$(dirname "$SOURCE")"
 PROJECT_ROOT="$SCRIPT_DIR"/../..
 cd "$PROJECT_ROOT" || { echo "Could not change directory"; exit 1; }
 
-uv run python packages/jukebox/scripts/run_register_rfid_reader.py $@
+source .venv/bin/activate || { echo "ERROR: Failed to activate virtual environment for python"; exit 1; }
+
+cd migrate_to_cli/scripts || { echo "Could not change directory"; exit 1; }
+python run_publicity_sniffer.py $@

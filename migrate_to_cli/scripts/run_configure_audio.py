@@ -125,7 +125,7 @@ def goodbye(audio_config: AudioConfig):
 
 def main():
     script_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    default_cfg_jukebox = os.path.abspath(os.path.join(script_path, '../../../shared/settings/jukebox.yaml'))
+    default_cfg_jukebox = os.path.abspath(os.path.join(script_path, '../../shared/settings/jukebox.yaml'))
 
     argparser = argparse.ArgumentParser(description='The Jukebox audio configuration tool')
     argparser.add_argument('-j', '--jukebox', type=argparse.FileType('r'), default=default_cfg_jukebox,

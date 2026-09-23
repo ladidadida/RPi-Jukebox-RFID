@@ -14,27 +14,36 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 
 ```
 .
-├── src/
-│   ├── jukebox/            Python-Kernanwendung ("Jukebox Core"), läuft als Daemon auf dem Pi
-│   │   ├── jukebox/        Framework: Component-Registry, FastAPI-API-Bridge (HTTP + WebSocket +
-│   │   │                   Webapp-Static-Files + /logs, ersetzt RPC-Server und nginx), In-Process-
-│   │   │                   Pub/Sub-Bus, Config-Handling. Kein ZeroMQ mehr im ganzen Projekt.
-│   │   ├── components/     Explizit von jukebox.daemon verdrahtet (kein Plugin-System mehr):
-│   │   │                   player, rfid, publishing, misc. Andere frühere Komponenten (gpio,
-│   │   │                   mqtt, volume, timers, battery_monitor, controls, jingle, hostif,
-│   │   │                   synchronisation) wurden entfernt, kommen später neu gestaltet zurück.
-│   │   ├── misc/           Utility-Code
-│   │   └── run_*.py        Einstiegspunkte (Core, RFID-Registrierung, Audio-Config, Publicity-Sniffer)
-│   └── webapp/              React-Frontend (Touch-/Web-UI), kommuniziert per HTTP/WebSocket
-│       │                    mit der FastAPI-Bridge (`/api/v1/*`)
-│       ├── src/             Components, Contexts, Sockets, Commands
-│       └── public/          Statische Assets, i18n-Übersetzungen (de/en)
-├── installation/             Bash-Installationsroutinen für den echten Raspberry Pi
-│   ├── install-jukebox.sh    Haupt-Installer
-│   ├── routines/             Einzelne Installationsschritte (MPD, RFID, Autohotspot, Samba, …)
-│   ├── components/           Wiederverwendbare Setup-Skripte (Audio, RFID, HiFiBerry)
-│   └── options/               Optionale Zusatzfeatures
-├── docker/                    Dockerfiles + docker-compose für eine Nicht-Pi-Entwicklungsumgebung
+├── pyproject.toml              uv-Workspace-Root (virtuell: keine [project]-Tabelle); zentrale
+│                                Dev-Tool-Config (ruff/pyright/pytest/coverage/pydoc-markdown)
+├── uv.lock                     Gepinnte Dependency-Versionen (uv)
+├── bam.yaml                    Task-Runner-Config (bam)
+├── packages/                   uv-Workspace-Member
+│   ├── jukebox/                Python-Kernanwendung ("Jukebox Core"), läuft als Daemon auf dem Pi
+│   │   ├── pyproject.toml      Echtes [project] (package=true), Runtime-Dependencies, hatchling
+│   │   └── src/jukebox/        Das installierbare Package: Component-Registry, FastAPI-API-Bridge
+│   │                           (api/: HTTP + WebSocket + Webapp-Static-Files + /logs, ersetzt
+│   │                           RPC-Server und nginx), In-Process-Pub/Sub-Bus (publishing/),
+│   │                           Config-Handling, sowie die von jukebox.daemon explizit verdrahteten
+│   │                           Komponenten (kein Plugin-System mehr): player, rfid, publishing,
+│   │                           system (vormals "misc"-RPC-Funktionen), misc (Utility-Code). Andere
+│   │                           frühere Komponenten (gpio, mqtt, volume, timers, battery_monitor,
+│   │                           controls, jingle, hostif, synchronisation) wurden entfernt, kommen
+│   │                           später neu gestaltet zurück. Kein ZeroMQ mehr im ganzen Projekt.
+│   ├── cli/                    Scaffold für eine künftige CLI (jukebox-cli) — leerer Platzhalter
+│   └── webapp/                 React-Frontend (Touch-/Web-UI), kommuniziert per HTTP/WebSocket mit
+│                                der FastAPI-Bridge (`/api/v1/*`). Kein uv-Workspace-Member
+│                                (npm/Vite-Projekt), liegt aber strukturell neben den Python-Packages.
+├── migrate_to_cli/             Alles, was perspektivisch CLI-Funktionalität wird und noch nicht
+│   │                           umgebaut ist (siehe Roadmap, "Packaging/install overhaul") — bewusst
+│   │                           hierher verschoben, damit klar als provisorisch erkennbar; läuft
+│   │                           aber unverändert weiter, nur der Pfad hat sich geändert:
+│   ├── installation/           Bash-Installationsroutinen (install-jukebox.sh, routines/, …) —
+│   │                           Ziel: `jukebox setup ...`-Subcommands
+│   ├── scripts/                 Einstiegspunkte (Core, RFID-Registrierung, Audio-Config,
+│   │                            Publicity-Sniffer) — Ziel: `jukebox run`/`setup`/`debug`-Subcommands
+│   └── tools/                    Dev-Wrapper für den Publicity-Sniffer
+├── docker/                     Dockerfiles + docker-compose für eine Nicht-Pi-Entwicklungsumgebung
 ├── resources/                  Default-Settings, systemd-Services, Beispiel-Audio, Autohotspot-Configs
 ├── shared/                     Laufzeitdaten: audiofolders, playlists, settings, logs
 │                                (wird in Docker gemountet, enthält die vom Nutzer editierbare
@@ -43,12 +52,9 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 │   ├── builders/                 Für Endanwender/Installateure (Installation, Konfiguration, GPIO, RFID, …)
 │   └── developers/                Für Mitwirkende (Python, Webapp, Docker, RPC, Architekturkonzepte)
 ├── test/                         Python-Unittests (pytest)
-├── tools/                        Dev-/Debug-CLI-Tools (Publicity-Sniffer)
 ├── ci/                           CI-Hilfsskripte (u. a. Installationstests)
 ├── AGENTS.md / CLAUDE.md          Anleitung für KI-Coding-Agenten
-├── CONTRIBUTING.md                Contributor-Richtlinien (Namenskonventionen, PR-Prozess)
-├── pyproject.toml / bam.yaml      Python-Tooling (uv, ruff, pyright, pytest) + Task-Runner
-└── uv.lock                        Gepinnte Dependency-Versionen (uv)
+└── CONTRIBUTING.md                Contributor-Richtlinien (Namenskonventionen, PR-Prozess)
 ```
 
 ## Architektur in Kürze
@@ -124,8 +130,8 @@ Es gibt zwei grundsätzliche Wege:
 1. Raspberry Pi OS Lite (Legacy, 32-bit) mit dem Raspberry Pi Imager aufspielen (SSH + WLAN direkt
    beim Flashen konfigurieren).
 2. Auf dem Pi einloggen und den Installer ausführen — Details in
-   `documentation/builders/installation.md`. Kernstück ist `installation/install-jukebox.sh`,
-   das über `installation/routines/*.sh` u. a. folgende Schritte orchestriert:
+   `documentation/builders/installation.md`. Kernstück ist `migrate_to_cli/installation/install-jukebox.sh`,
+   das über `migrate_to_cli/installation/routines/*.sh` u. a. folgende Schritte orchestriert:
    - System-Pakete installieren (`packages-core.txt`, per `apt-get`)
    - Python-`.venv` anlegen und Dependencies aus `pyproject.toml` per `uv sync` installieren
    - MPD, Audio (PulseAudio/ALSA), RFID-Reader, Autohotspot/WLAN, Samba, Kiosk-Modus (Webapp im
@@ -154,7 +160,7 @@ Docker, Compose und (host-seitig) PulseAudio müssen vorher installiert sein; je
 ```bash
 uv sync --group dev
 # ggf. vorher: sudo apt install libasound2-dev
-uv run python packages/jukebox/scripts/run_jukebox.py
+uv run python migrate_to_cli/scripts/run_jukebox.py
 ```
 
 Die Webapp wird separat mit npm gebaut/gestartet (`cd packages/webapp && npm start`).
@@ -166,7 +172,7 @@ Task-Runner mit Caching). Die alten `run_*.sh`-Wrapper-Skripte gibt es nicht meh
 
 ```bash
 uv sync --group dev              # .venv anlegen/aktualisieren (Runtime + Dev-Dependencies)
-uv run python packages/jukebox/scripts/run_jukebox.py   # Jukebox Core starten
+uv run python migrate_to_cli/scripts/run_jukebox.py   # Jukebox Core starten
 bam lint                         # ruff check (gecached)
 bam format                       # ruff format (Auto-Fix)
 bam test                         # pytest, schreibt .reports/junit.xml
@@ -174,7 +180,7 @@ bam typecheck                    # pyright (aktuell nur informativ, siehe Roadma
 bam docs                         # API-Doku neu generieren (pydoc-markdown)
 bam markdownlint                 # Markdown-Doku linten
 bam ci-checks                    # alles, was auch CI prüft, in einem Kommando
-tools/run_publicity_sniffer.sh   # alle Publish-Nachrichten mitlesen
+migrate_to_cli/tools/run_publicity_sniffer.sh   # alle Publish-Nachrichten mitlesen
 ```
 
 ## Sonstiges Erwähnenswertes

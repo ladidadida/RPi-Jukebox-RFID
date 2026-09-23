@@ -57,7 +57,7 @@ UPDATE_RASPI_OS=true
 This will install the latest **stable release** from the *future3/main* branch.
 
 ```bash
-cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/installation/install-jukebox.sh)
+cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/migrate_to_cli/installation/install-jukebox.sh)
 ```
 
 ### Pre-Release
@@ -65,7 +65,7 @@ cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID
 This will install the latest **pre-release** from the *future3/develop* branch.
 
 ```bash
-cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
 ```
 
 ### Development
@@ -77,7 +77,7 @@ You can also install a specific branch and/or a fork repository. Update the vari
 > repository.
 
 ```bash
-cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/installation/install-jukebox.sh)
+cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
 ```
 
 The installer uses HTTPS and fetches only the selected branch with shallow history. Set `GIT_USE_SSH=true` to opt in to SSH access. The installed checkout remains a normal tracking branch, so `git pull` works as usual.

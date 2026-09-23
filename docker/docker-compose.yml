@@ -38,9 +38,10 @@ services:
     volumes:
       - ../packages/jukebox:/root/RPi-Jukebox-RFID/packages/jukebox
       - ../packages/webapp/public/cover-cache:/root/RPi-Jukebox-RFID/packages/webapp/build/cover-cache
+      - ../migrate_to_cli/scripts:/root/RPi-Jukebox-RFID/migrate_to_cli/scripts
       - ../shared:/root/RPi-Jukebox-RFID/shared
       - ./config/docker.mpd.conf:/root/.config/mpd/mpd.conf
-    command: python packages/jukebox/scripts/run_jukebox.py
+    command: python migrate_to_cli/scripts/run_jukebox.py
 
   webapp:
     build:

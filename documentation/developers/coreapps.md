@@ -1,15 +1,15 @@
 # Jukebox Apps
 
-The Jukebox's core apps are located in `packages/jukebox/scripts`. To learn more about each app and its parameters, run the following command:
+The Jukebox's core apps are located in `migrate_to_cli/scripts`. To learn more about each app and its parameters, run the following command:
 
 ``` bash
-$ cd packages/jukebox/scripts
+$ cd migrate_to_cli/scripts
 $ ./<scriptname> -h
 ```
 
 ## Jukebox Core
 
-**Scriptname:** [run_jukebox.py](../../packages/jukebox/scripts/run_jukebox.py) (run via `uv run python packages/jukebox/scripts/run_jukebox.py`)
+**Scriptname:** [run_jukebox.py](../../migrate_to_cli/scripts/run_jukebox.py) (run via `uv run python migrate_to_cli/scripts/run_jukebox.py`)
 
 This is the main app. It starts the Jukebox Core.
 
@@ -24,7 +24,7 @@ See [Best practice procedure](../builders/configuration.md#best-practice-procedu
 
 ### Audio
 
-**Scriptname:** [setup_configure_audio.sh](../../installation/components/setup_configure_audio.sh)
+**Scriptname:** [setup_configure_audio.sh](../../migrate_to_cli/installation/components/setup_configure_audio.sh)
 
 A setup tool to select the primary and secondary audio sinks used by the Jukebox.
 
@@ -34,7 +34,7 @@ selected outputs. For more information see
 
 ### RFID Reader
 
-**Scriptname:** [setup_rfid_reader.sh](../../installation/components/setup_rfid_reader.sh)
+**Scriptname:** [setup_rfid_reader.sh](../../migrate_to_cli/installation/components/setup_rfid_reader.sh)
 
 Setup tool to configure the RFID Readers.
 
@@ -58,6 +58,6 @@ JSON body.
 
 ### Publicity Sniffer
 
-**Scriptname:** [run_publicity_sniffer.sh](../../tools/run_publicity_sniffer.sh)
+**Scriptname:** [run_publicity_sniffer.sh](../../migrate_to_cli/tools/run_publicity_sniffer.sh)
 
 This command-line tool monitors all messages sent from Jukebox through the publishing interface, printing received messages in the console. It is primarily used for debugging.

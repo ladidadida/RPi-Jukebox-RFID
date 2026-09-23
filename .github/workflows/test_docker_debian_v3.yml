@@ -8,7 +8,7 @@ on:
   push:
     paths:
         - '.github/workflows/test_docker_debian*.yml'
-        - 'installation/**'
+        - 'migrate_to_cli/installation/**'
         - 'ci/**'
         - 'resources/**'
         - 'packages/jukebox/src/jukebox/version.py'
@@ -21,7 +21,7 @@ on:
         - future3/main
     paths:
         - '.github/workflows/test_docker_debian*.yml'
-        - 'installation/**'
+        - 'migrate_to_cli/installation/**'
         - 'ci/**'
         - 'resources/**'
         - 'packages/jukebox/src/jukebox/version.py'

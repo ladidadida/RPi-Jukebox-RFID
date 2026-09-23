@@ -39,9 +39,7 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 RPC_EXECUTOR_WORKERS = 4
 LIBRARY_EXECUTOR_WORKERS = 1
 
-# packages/jukebox/src/jukebox/api/fastapi_server.py -> repo root is 5 levels up (matches the
-# ../../../shared/... convention packages/jukebox/scripts/run_jukebox.py already uses for config
-# paths).
+# packages/jukebox/src/jukebox/api/fastapi_server.py -> repo root is 5 levels up.
 _REPO_ROOT = Path(__file__).resolve().parents[5]
 
 

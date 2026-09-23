@@ -15,7 +15,6 @@ dependencies = [
   "requests",
   "fastapi",
   "uvicorn",
-  "websockets",  # run_publicity_sniffer.py: a plain WebSocket client for /api/v1/events
   "gpiozero",
   # RPi.GPIO shim for kernels >= 6.6 (Trixie), where /sys/class/gpio/ is gone. Only meaningful on
   # real Pi hardware; harmless to attempt elsewhere since uv will just skip it if unresolvable.

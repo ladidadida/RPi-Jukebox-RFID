@@ -692,7 +692,6 @@ dependencies = [
     { name = "rpi-lgpio", marker = "platform_machine == 'aarch64' or platform_machine == 'armv7l'" },
     { name = "ruamel-yaml" },
     { name = "uvicorn" },
-    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -707,13 +706,24 @@ requires-dist = [
     { name = "rpi-lgpio", marker = "platform_machine == 'aarch64' or platform_machine == 'armv7l'" },
     { name = "ruamel-yaml" },
     { name = "uvicorn" },
-    { name = "websockets" },
 ]
 
 [[package]]
 name = "jukebox-cli"
 version = "0.1.0"
 source = { editable = "packages/cli" }
+dependencies = [
+    { name = "jukebox" },
+    { name = "typer" },
+    { name = "websockets" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jukebox", editable = "packages/jukebox" },
+    { name = "typer" },
+    { name = "websockets" },
+]
 
 [[package]]
 name = "lgpio"

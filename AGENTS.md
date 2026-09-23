@@ -26,7 +26,9 @@ packages/          uv workspace members
                    (shared utility code). Other former components (gpio, mqtt, volume, timers,
                    battery_monitor, controls, jingle, hostif, synchronisation) were removed and
                    will come back as new, not-yet-designed components.
-  cli/             Scaffold for a future CLI (jukebox-cli) — empty stub, not implemented yet
+  cli/             Jukebox CLI (jukebox-cli). Implemented so far: `jukebox run` (start the daemon),
+                   `jukebox debug sniff` (publishing-bus WebSocket sniffer). `jukebox setup ...`
+                   (install routines) is not implemented yet — still in migrate_to_cli/.
   webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
                    (FastAPI, `/api/v1/*`). Not a uv workspace member (npm/Vite project), but lives
                    alongside the Python packages structurally.
@@ -36,10 +38,10 @@ migrate_to_cli/    Working area for everything slated to become CLI functionalit
                    than mixed in with permanent code. Runs exactly as before, just relocated:
   installation/    Bash install routines run on a real Raspberry Pi (install-jukebox.sh +
                    routines/) — the eventual target is `jukebox setup ...` CLI subcommands
-  scripts/         Launcher scripts (jukebox core, RFID registration, audio config, publicity
-                   sniffer) — the eventual target is `jukebox run` / `jukebox setup ...` /
-                   `jukebox debug ...` CLI subcommands
-  tools/           Dev wrapper for the publicity sniffer
+  scripts/         RFID registration and audio config setup tools -- both currently broken (import
+                   jukebox.hostif, removed along with the old plugin system) and blocked on a
+                   hostif redesign; not yet ported to the CLI. run_jukebox.py/run_publicity_sniffer.py
+                   were replaced by `jukebox run`/`jukebox debug sniff` and removed from here.
 docker/            Dockerfiles + compose files for a non-Pi development environment
 resources/         Default settings, systemd services, sample audio, autohotspot configs
 shared/            Runtime data: audiofolders, playlists, settings, logs (mounted/shared at runtime)
@@ -59,14 +61,14 @@ ci/                CI helper scripts (e.g. installation testing)
   both dispatch through the *same* `(package, plugin, method)` call shape — read
   `documentation/builders/rpc-commands.md` before adding a new user-triggerable action. ZeroMQ is
   gone entirely now: the old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI
-  (`run_rpc_tool.py`), and the C CLI client (`src/cli_client/pbc.c`) were all removed. No CLI tool
-  currently exists; a replacement built on the FastAPI endpoint is planned but not designed yet
-  (see roadmap).
+  (`run_rpc_tool.py`), and the C CLI client (`src/cli_client/pbc.c`) were all removed. A first CLI
+  slice now exists (`packages/cli`, `jukebox run`/`jukebox debug sniff`), but a dedicated RPC tool
+  built on the FastAPI `/api/v1/rpc` endpoint is still not designed (see roadmap).
 - **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
   the status/event channel components publish to (`publishing.get_publisher().send(topic,
   payload)`) — thread-safe, in-process, no ZMQ involved anymore (see
   documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx"). The
-  webapp subscribes via the FastAPI WebSocket bridge (`/api/v1/events`); `run_publicity_sniffer.py`
+  webapp subscribes via the FastAPI WebSocket bridge (`/api/v1/events`); `jukebox debug sniff`
   connects there too as a plain WebSocket client.
 - **Player backend**: MPD (Music Player Daemon), driven via `python-mpd2`.
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
@@ -94,7 +96,7 @@ The old `run_*.sh` wrapper scripts are gone.
 
 ```bash
 uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
-uv run python migrate_to_cli/scripts/run_jukebox.py   # start the Jukebox core
+uv run jukebox run              # start the Jukebox core
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)
@@ -103,7 +105,8 @@ bam test                        # pytest, writes .reports/junit.xml
 bam docs                        # regenerate API docs (pydoc-markdown)
 bam markdownlint                # lint markdown docs (needs packages/webapp/node_modules)
 bam ci-checks                   # everything CI runs, in one command
-migrate_to_cli/tools/run_publicity_sniffer.sh   # print all messages on the publishing queue
+bam docker-dev                  # local mpd+jukebox+webapp stack without PulseAudio/hardware
+uv run jukebox debug sniff      # print all messages on the publishing queue
 ```
 
 Webapp (`cd packages/webapp`): standard CRA scripts — `npm start`, `npm run build`, `npm test`.

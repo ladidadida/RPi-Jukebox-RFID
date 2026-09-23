@@ -65,9 +65,9 @@ $ systemctl --user stop jukebox-daemon
 
 # Start the Jukebox in debug mode:
 # with default logger:
-$ uv run python packages/jukebox/scripts/run_jukebox.py
+$ uv run jukebox run
 # or with custom logger configuration:
-$ uv run python packages/jukebox/scripts/run_jukebox.py --logger path/to/custom/logger.yaml
+$ uv run jukebox run --logger path/to/custom/logger.yaml
 ```
 
 ### Fallback configuration
@@ -77,7 +77,7 @@ Attention: This only emits messages to the console and does not write to the log
 This is more a fallback features:
 
 ```bash
-$ uv run python packages/jukebox/scripts/run_jukebox.py -vv
+$ uv run jukebox run -vv
 ```
 
 ### Extreme cases

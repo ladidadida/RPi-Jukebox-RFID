@@ -1,15 +1,22 @@
 [project]
 name = "jukebox-cli"
 version = "0.1.0"
-description = "Jukebox CLI (placeholder -- scaffold only, no implementation yet)"
+description = "Jukebox CLI"
 requires-python = ">=3.11"
-dependencies = []
-
-[project.scripts]
-jukebox-cli = "jukebox_cli.cli:main"
+dependencies = [
+  "typer",
+  "websockets",
+  "jukebox",
+]
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+jukebox = { workspace = true }
+
+[project.scripts]
+jukebox = "jukebox_cli.cli:app"
 
 [build-system]
 requires = ["hatchling"]

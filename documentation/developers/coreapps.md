@@ -1,15 +1,17 @@
 # Jukebox Apps
 
-The Jukebox's core apps are located in `migrate_to_cli/scripts`. To learn more about each app and its parameters, run the following command:
+The Jukebox core and its developer tools are exposed through the `jukebox` CLI (`packages/cli`).
+To learn more about each command and its parameters, run:
 
 ``` bash
-$ cd migrate_to_cli/scripts
-$ ./<scriptname> -h
+$ uv run jukebox <command> --help
 ```
+
+RFID/audio setup tools are not part of the CLI yet -- see "Configuration Tools" below.
 
 ## Jukebox Core
 
-**Scriptname:** [run_jukebox.py](../../migrate_to_cli/scripts/run_jukebox.py) (run via `uv run python migrate_to_cli/scripts/run_jukebox.py`)
+**Command:** `jukebox run` (run via `uv run jukebox run`)
 
 This is the main app. It starts the Jukebox Core.
 
@@ -58,6 +60,6 @@ JSON body.
 
 ### Publicity Sniffer
 
-**Scriptname:** [run_publicity_sniffer.sh](../../migrate_to_cli/tools/run_publicity_sniffer.sh)
+**Command:** `jukebox debug sniff` (run via `uv run jukebox debug sniff`)
 
 This command-line tool monitors all messages sent from Jukebox through the publishing interface, printing received messages in the console. It is primarily used for debugging.

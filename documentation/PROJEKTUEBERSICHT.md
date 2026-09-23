@@ -30,7 +30,10 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 │   │                           frühere Komponenten (gpio, mqtt, volume, timers, battery_monitor,
 │   │                           controls, jingle, hostif, synchronisation) wurden entfernt, kommen
 │   │                           später neu gestaltet zurück. Kein ZeroMQ mehr im ganzen Projekt.
-│   ├── cli/                    Scaffold für eine künftige CLI (jukebox-cli) — leerer Platzhalter
+│   ├── cli/                    Jukebox-CLI (jukebox-cli). Bisher implementiert: `jukebox run`
+│   │                           (Core starten), `jukebox debug sniff` (Publishing-Bus-Sniffer).
+│   │                           `jukebox setup ...` (Installationsroutinen) noch nicht umgesetzt —
+│   │                           liegt weiterhin in migrate_to_cli/.
 │   └── webapp/                 React-Frontend (Touch-/Web-UI), kommuniziert per HTTP/WebSocket mit
 │                                der FastAPI-Bridge (`/api/v1/*`). Kein uv-Workspace-Member
 │                                (npm/Vite-Projekt), liegt aber strukturell neben den Python-Packages.
@@ -40,9 +43,11 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 │   │                           aber unverändert weiter, nur der Pfad hat sich geändert:
 │   ├── installation/           Bash-Installationsroutinen (install-jukebox.sh, routines/, …) —
 │   │                           Ziel: `jukebox setup ...`-Subcommands
-│   ├── scripts/                 Einstiegspunkte (Core, RFID-Registrierung, Audio-Config,
-│   │                            Publicity-Sniffer) — Ziel: `jukebox run`/`setup`/`debug`-Subcommands
-│   └── tools/                    Dev-Wrapper für den Publicity-Sniffer
+│   └── scripts/                 RFID-Registrierung und Audio-Config — beide aktuell kaputt
+│                                  (importieren jukebox.hostif, mit dem alten Plugin-System entfernt),
+│                                  blockiert auf einem hostif-Redesign, noch nicht in die CLI portiert.
+│                                  run_jukebox.py/run_publicity_sniffer.py wurden durch
+│                                  `jukebox run`/`jukebox debug sniff` ersetzt und hier entfernt.
 ├── docker/                     Dockerfiles + docker-compose für eine Nicht-Pi-Entwicklungsumgebung
 ├── resources/                  Default-Settings, systemd-Services, Beispiel-Audio, Autohotspot-Configs
 ├── shared/                     Laufzeitdaten: audiofolders, playlists, settings, logs
@@ -69,10 +74,11 @@ Punkte. Kurzfassung:
    (`/api/v1/events`), und seit Kurzem auch das Webapp-Static-Build + `/logs` direkt (kein nginx
    mehr davor). RFID-Kartenaktionen laufen direkt in-process über die Registry. ZeroMQ ist komplett
    raus: sowohl das Python-RPC-CLI (`run_rpc_tool.py`) als auch der C-Client
-   (`src/cli_client/pbc.c`) und der ZMQ-REP-Server wurden entfernt. Aktuell gibt es kein
-   CLI-Tool mehr; ein Ersatz auf Basis des FastAPI-Endpoints ist geplant, aber noch nicht entworfen.
+   (`src/cli_client/pbc.c`) und der ZMQ-REP-Server wurden entfernt. Es gibt inzwischen eine erste
+   CLI-Iteration (`packages/cli`, `jukebox run`/`jukebox debug sniff`), aber ein dediziertes
+   RPC-Tool auf Basis des FastAPI-Endpoints ist noch nicht entworfen.
 3. **In-Process Pub/Sub-Bus** (`jukebox.publishing`, `EventBus`) — Status/Events, thread-sicher,
-   kein ZeroMQ mehr. Die Webapp und `run_publicity_sniffer.py` abonnieren über die
+   kein ZeroMQ mehr. Die Webapp und `jukebox debug sniff` abonnieren über die
    FastAPI-WebSocket-Bridge.
 
 Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per `python-mpd2`.
@@ -160,7 +166,7 @@ Docker, Compose und (host-seitig) PulseAudio müssen vorher installiert sein; je
 ```bash
 uv sync --group dev
 # ggf. vorher: sudo apt install libasound2-dev
-uv run python migrate_to_cli/scripts/run_jukebox.py
+uv run jukebox run
 ```
 
 Die Webapp wird separat mit npm gebaut/gestartet (`cd packages/webapp && npm start`).
@@ -172,7 +178,7 @@ Task-Runner mit Caching). Die alten `run_*.sh`-Wrapper-Skripte gibt es nicht meh
 
 ```bash
 uv sync --group dev              # .venv anlegen/aktualisieren (Runtime + Dev-Dependencies)
-uv run python migrate_to_cli/scripts/run_jukebox.py   # Jukebox Core starten
+uv run jukebox run   # Jukebox Core starten
 bam lint                         # ruff check (gecached)
 bam format                       # ruff format (Auto-Fix)
 bam test                         # pytest, schreibt .reports/junit.xml
@@ -180,7 +186,7 @@ bam typecheck                    # pyright (aktuell nur informativ, siehe Roadma
 bam docs                         # API-Doku neu generieren (pydoc-markdown)
 bam markdownlint                 # Markdown-Doku linten
 bam ci-checks                    # alles, was auch CI prüft, in einem Kommando
-migrate_to_cli/tools/run_publicity_sniffer.sh   # alle Publish-Nachrichten mitlesen
+uv run jukebox debug sniff       # alle Publish-Nachrichten mitlesen
 ```
 
 ## Sonstiges Erwähnenswertes

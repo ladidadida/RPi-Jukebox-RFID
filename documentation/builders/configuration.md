@@ -21,7 +21,7 @@ $ systemctl --user stop jukebox-daemon
 $ nano ./shared/settings/jukebox.yaml
 
 # Start Jukebox in console and check the log output (optional)
-$ uv run python packages/jukebox/scripts/run_jukebox.py
+$ uv run jukebox run
 # and if OK, press Ctrl-C and restart the service
 
 # Restart the service
@@ -35,5 +35,5 @@ The path to the custom config file must be either absolute or relative to the re
 (the Jukebox daemon's working directory).
 
 ```bash
-$ uv run python packages/jukebox/scripts/run_jukebox.py --conf /absolute/path/to/custom/config.yaml
+$ uv run jukebox run --conf /absolute/path/to/custom/config.yaml
 ```

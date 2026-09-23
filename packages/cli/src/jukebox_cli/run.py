@@ -1,0 +1,52 @@
+import logging
+from pathlib import Path
+
+import typer
+
+import jukebox.daemon
+from jukebox.misc import loggingext
+
+
+def run(
+    conf: Path = typer.Option(
+        Path("shared/settings/jukebox.yaml"), "-c", "--conf",
+        exists=True, file_okay=True, dir_okay=False,
+        help="Jukebox configuration file",
+    ),
+    logger_conf: Path = typer.Option(
+        Path("shared/settings/logger.yaml"), "-l", "--logger",
+        exists=True, file_okay=True, dir_okay=False,
+        help="Logger configuration file",
+    ),
+    verbose: int = typer.Option(
+        0, "-v", "--verbose", count=True,
+        help="Increase logger verbosity from warning to info (-v) to debug (-vv) to see all "
+             "plugin calls and not only errors (-vvv)",
+    ),
+    quiet: int = typer.Option(
+        0, "-q", "--quiet", count=True,
+        help="Decrease logger verbosity from warning to error (-q) to critical (-qq)",
+    ),
+    artifacts: bool = typer.Option(
+        False, "-a", "--artifacts",
+        help="Write out all artifacts and auto-generated help files",
+    ),
+) -> None:
+    """Start the Jukebox Daemon."""
+    if verbose and quiet:
+        raise typer.BadParameter("--verbose and --quiet are mutually exclusive")
+
+    if verbose:
+        logger = loggingext.configure_default({1: logging.INFO, 2: logging.DEBUG}[min(verbose, 2)],
+                                               with_publisher=True)
+        if verbose < 3:
+            loggingext.configure_default(logging.ERROR, name='jb.plugin.call', with_publisher=True)
+    elif quiet:
+        logger = loggingext.configure_default({1: logging.ERROR, 2: logging.CRITICAL}[min(quiet, 2)],
+                                               with_publisher=True)
+    else:
+        logger = loggingext.configure_from_file(str(logger_conf))
+
+    logger.info(f"Using jukebox configuration file '{conf}'")
+    myjukebox = jukebox.daemon.get_jukebox_daemon(str(conf), artifacts)
+    myjukebox.run()

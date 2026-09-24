@@ -87,6 +87,39 @@ def test_ordereddict_mutable():
     assert 'anew2' == cfg.getn('l1', 'key2')
 
 
+def test_ensure_default_config_copies_template_when_missing(tmp_path):
+    template = tmp_path / 'template.yaml'
+    template.write_text(ref_yaml)
+    target = tmp_path / 'nested' / 'config.yaml'
+
+    cfghandler.ensure_default_config(str(target), str(template))
+
+    assert target.read_text() == ref_yaml
+
+
+def test_ensure_default_config_missing_template_raises_clear_error(tmp_path):
+    target = tmp_path / 'config.yaml'
+    missing_template = tmp_path / 'no_such_template.yaml'
+
+    try:
+        cfghandler.ensure_default_config(str(target), str(missing_template))
+        assert False, "expected FileNotFoundError"
+    except FileNotFoundError as e:
+        assert str(missing_template) in str(e)
+        assert not target.exists()
+
+
+def test_ensure_default_config_leaves_existing_file_untouched(tmp_path):
+    template = tmp_path / 'template.yaml'
+    template.write_text(ref_yaml)
+    target = tmp_path / 'config.yaml'
+    target.write_text('custom: unchanged\n')
+
+    cfghandler.ensure_default_config(str(target), str(template))
+
+    assert target.read_text() == 'custom: unchanged\n'
+
+
 if __name__ == '__main__':
     test_ordereddict_getn()
     test_ordereddict_setndefault()

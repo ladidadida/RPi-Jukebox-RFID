@@ -16,6 +16,8 @@ Handlers are identified by their name (in the above example *global*)
 The function :func:`get_handler` is the main entry point to obtain a new or existing handler.
 """
 import copy
+import os
+import shutil
 import sys
 import threading
 import logging
@@ -320,6 +322,30 @@ def load_yaml(cfg: ConfigHandler, filename: str) -> None:
         cfg.loaded_from = filename
         with open(filename) as stream:
             cfg.config_dict(yaml.load(stream))
+
+
+def ensure_default_config(filename: str, template: str) -> None:
+    """
+    Create `filename` from `template` if it doesn't exist yet (creating parent directories as
+    needed). Lets a fresh checkout/install start with sensible defaults instead of requiring a
+    separate install step to have copied the template first.
+
+    :param filename: path the config file is expected/wanted at
+    :param template: path to the default template to copy from if `filename` is missing
+    :return: None
+    """
+    if os.path.exists(filename):
+        return
+    if not os.path.exists(template):
+        raise FileNotFoundError(
+            f"Cannot create default config '{filename}': template '{template}' not found. "
+            f"jukebox currently must be run with the repository root as the working directory "
+            f"(template paths are relative to it) -- current working directory is "
+            f"'{os.getcwd()}'."
+        )
+    logger.info(f"Config file '{filename}' not found, creating it from default template '{template}'")
+    os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
+    shutil.copyfile(template, filename)
 
 
 def write_yaml(cfg: ConfigHandler, filename: str, only_if_changed: bool = False, *args, **kwargs) -> None:

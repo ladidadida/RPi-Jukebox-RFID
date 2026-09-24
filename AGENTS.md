@@ -111,7 +111,10 @@ uv sync --group dev             # install/update the .venv (runtime + dev depend
                                  # non-default player/RFID backends (see "Player/RFID backends
                                  # are pluggable" above) -- not needed for the default local_audio
                                  # backend or the generic_usb/fake_reader_gui readers
-uv run jukebox run              # start the Jukebox core
+uv run jukebox run              # start the Jukebox core -- creates shared/settings/jukebox.yaml
+                                 # and logger.yaml from the default templates on first run if
+                                 # missing. Override the paths with -c/-l or $JUKEBOX_CONF/
+                                 # $JUKEBOX_LOGGER_CONF.
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)

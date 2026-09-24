@@ -21,6 +21,10 @@ import jukebox.cfghandler
 logger = logging.getLogger('jb.daemon')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
+#: Template a missing configuration_file is created from on first run (see JukeBox.__init__).
+#: Repository-root-relative, same convention as every other path in this codebase.
+DEFAULT_CONFIG_TEMPLATE = 'resources/default-settings/jukebox.default.yaml'
+
 
 @atexit.register
 def log_active_threads():
@@ -46,6 +50,7 @@ class JukeBox:
         self.nvm = nv_manager()
         self._signal_cnt = 0
         self.api_server = None
+        jukebox.cfghandler.ensure_default_config(configuration_file, DEFAULT_CONFIG_TEMPLATE)
         jukebox.cfghandler.load_yaml(cfg, configuration_file)
 
         self.write_artifacts = write_artifacts

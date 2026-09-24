@@ -24,10 +24,12 @@ from urllib.parse import urlsplit
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from starlette.requests import Request
 
 import jukebox.cfghandler
 import jukebox.publishing
+import jukebox.registry
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
 from jukebox.api.webapp_static import register_webapp_routes
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
@@ -279,6 +281,119 @@ async def _handle_library_refresh(library, executor):
     return {'update_id': update_id}
 
 
+class PauseRequest(BaseModel):
+    state: int = 1
+
+
+class SeekRequest(BaseModel):
+    position: float
+
+
+class ShuffleRequest(BaseModel):
+    option: str = 'toggle'
+
+
+class RepeatRequest(BaseModel):
+    option: str = 'toggle'
+
+
+class PlayFolderRequest(BaseModel):
+    folder: str
+    recursive: bool = False
+
+
+class PlaySongRequest(BaseModel):
+    song_url: str
+
+
+class VolumeRequest(BaseModel):
+    volume: int
+
+
+def _player_ctrl():
+    """The registered PlayerCoordinator, fetched directly -- these routes call straight into it
+    (per the roadmap's "in-process calls skip serialization" principle) rather than through
+    jukebox.registry.call()/the @plugs.tag machinery that exists for the generic RPC dispatcher."""
+    return jukebox.registry.get('player', 'ctrl')
+
+
+async def _run_on_executor(executor, func, *args):
+    """Run a (possibly lock-acquiring) player_ctrl call off the asyncio event loop, same as the
+    RPC/library handlers already do for anything that isn't guaranteed-instant."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(executor, func, *args)
+
+
+def _register_player_transport_routes(app: FastAPI, executor) -> None:
+    """Playback transport: play/pause/toggle/next/prev/seek/shuffle/repeat."""
+
+    @app.post('/api/v1/player/play', status_code=204)
+    async def player_play():
+        await _run_on_executor(executor, _player_ctrl().play)
+
+    @app.post('/api/v1/player/pause', status_code=204)
+    async def player_pause(body: PauseRequest):
+        await _run_on_executor(executor, _player_ctrl().pause, body.state)
+
+    @app.post('/api/v1/player/toggle', status_code=204)
+    async def player_toggle():
+        await _run_on_executor(executor, _player_ctrl().toggle)
+
+    @app.post('/api/v1/player/next', status_code=204)
+    async def player_next():
+        await _run_on_executor(executor, _player_ctrl().next)
+
+    @app.post('/api/v1/player/prev', status_code=204)
+    async def player_prev():
+        await _run_on_executor(executor, _player_ctrl().prev)
+
+    @app.post('/api/v1/player/seek', status_code=204)
+    async def player_seek(body: SeekRequest):
+        await _run_on_executor(executor, _player_ctrl().seek, body.position)
+
+    @app.post('/api/v1/player/shuffle', status_code=204)
+    async def player_shuffle(body: ShuffleRequest):
+        await _run_on_executor(executor, _player_ctrl().shuffle, body.option)
+
+    @app.post('/api/v1/player/repeat', status_code=204)
+    async def player_repeat(body: RepeatRequest):
+        await _run_on_executor(executor, _player_ctrl().repeat, body.option)
+
+
+def _register_player_content_and_status_routes(app: FastAPI, executor) -> None:
+    """Content selection (folder/song) + status/volume."""
+
+    @app.post('/api/v1/player/folder', status_code=204)
+    async def player_play_folder(body: PlayFolderRequest):
+        await _run_on_executor(executor, _player_ctrl().play_folder, body.folder, body.recursive)
+
+    @app.post('/api/v1/player/song', status_code=204)
+    async def player_play_song(body: PlaySongRequest):
+        await _run_on_executor(executor, _player_ctrl().play_single, body.song_url)
+
+    @app.get('/api/v1/player/status')
+    async def player_status():
+        return await _run_on_executor(executor, _player_ctrl().playerstatus)
+
+    @app.get('/api/v1/player/volume')
+    async def player_get_volume():
+        volume = await _run_on_executor(executor, _player_ctrl().get_volume)
+        return {'volume': volume}
+
+    @app.put('/api/v1/player/volume')
+    async def player_set_volume(body: VolumeRequest):
+        volume = await _run_on_executor(executor, _player_ctrl().set_volume, body.volume)
+        return {'volume': volume}
+
+
+def register_player_routes(app: FastAPI, executor) -> None:
+    """Typed REST routes for player transport + volume -- see roadmap-core-architecture.md,
+    "Advanced plugin system": replaces the generic (package, plugin, method) RPC addressing for
+    this surface with real, OpenAPI-documented endpoints."""
+    _register_player_transport_routes(app, executor)
+    _register_player_content_and_status_routes(app, executor)
+
+
 def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None,
                 webapp_build_dir=None, logs_dir=None):
     if library is None:
@@ -319,6 +434,8 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
     @app.post('/api/v1/library/refresh')
     async def library_refresh():
         return await _handle_library_refresh(library, library_executor)
+
+    register_player_routes(app, executor)
 
     # Registered last so it never shadows the /api/v1/* routes above: FastAPI/Starlette tries
     # routes in registration order, and this includes a catch-all.

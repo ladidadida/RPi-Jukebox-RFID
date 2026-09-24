@@ -23,7 +23,7 @@ from typing import Optional
 from urllib.parse import urlsplit
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -311,6 +311,21 @@ class VolumeRequest(BaseModel):
     volume: int
 
 
+class SelectBackendRequest(BaseModel):
+    name: str
+
+
+class QueueLoadRequest(BaseModel):
+    folder: str
+
+
+class PlayAlbumRequest(BaseModel):
+    albumartist: str
+    album: str
+    content_uri: Optional[str] = None
+    provider: Optional[str] = None
+
+
 class AppSettingsRequest(BaseModel):
     settings: dict
 
@@ -338,9 +353,18 @@ def _player_ctrl():
 
 async def _run_on_executor(executor, func, *args):
     """Run a (possibly lock-acquiring) player_ctrl call off the asyncio event loop, same as the
-    RPC/library handlers already do for anything that isn't guaranteed-instant."""
+    RPC/library handlers already do for anything that isn't guaranteed-instant.
+
+    Some PlayerCoordinator methods are backend-specific (e.g. cover art, tag-based browsing) and
+    raise NotImplementedError when the active backend doesn't support them -- local_audio
+    deliberately only implements folder-triggered playback, not MPD's tag/coverart surface (see
+    player/backends/local_audio.py). Turn that into a clean 501 instead of a raw 500/traceback.
+    """
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(executor, func, *args)
+    try:
+        return await loop.run_in_executor(executor, func, *args)
+    except NotImplementedError as error:
+        raise HTTPException(status_code=501, detail=str(error)) from error
 
 
 def _register_player_transport_routes(app: FastAPI, executor) -> None:
@@ -405,12 +429,153 @@ def _register_player_content_and_status_routes(app: FastAPI, executor) -> None:
         return {'volume': volume}
 
 
+def _register_player_library_routes(app: FastAPI, executor) -> None:
+    """Library browsing + cover art. list_all_dirs/get_folder_content/list_albums are currently
+    unused by the webapp (superseded by list_library_items' content_types filtering) but kept
+    for API completeness/Swagger -- they're real, working PlayerCoordinator methods."""
+
+    @app.get('/api/v1/player/coverart/song')
+    async def player_song_coverart(song_url: str, provider: Optional[str] = None):
+        cover_url = await _run_on_executor(
+            executor, _player_ctrl().get_single_coverart, song_url, provider)
+        return {'cover_url': cover_url}
+
+    @app.get('/api/v1/player/coverart/album')
+    async def player_album_coverart(
+            albumartist: str, album: str,
+            content_uri: Optional[str] = None, provider: Optional[str] = None):
+        cover_url = await _run_on_executor(
+            executor, _player_ctrl().get_album_coverart, albumartist, album, content_uri, provider)
+        return {'cover_url': cover_url}
+
+    @app.get('/api/v1/player/dirs')
+    async def player_list_all_dirs():
+        return await _run_on_executor(executor, _player_ctrl().list_all_dirs)
+
+    @app.get('/api/v1/player/folder-content')
+    async def player_folder_content(folder: str):
+        return await _run_on_executor(executor, _player_ctrl().get_folder_content, folder)
+
+    @app.get('/api/v1/player/albums')
+    async def player_list_albums(provider: Optional[str] = None):
+        return await _run_on_executor(executor, _player_ctrl().list_albums, provider)
+
+    @app.get('/api/v1/player/library/sources')
+    async def player_library_sources():
+        return await _run_on_executor(executor, _player_ctrl().list_library_sources)
+
+    @app.get('/api/v1/player/library/items')
+    async def player_library_items(
+            provider: Optional[str] = None, content_types: Optional[list[str]] = Query(None)):
+        return await _run_on_executor(
+            executor, _player_ctrl().list_library_items, provider, content_types)
+
+    @app.get('/api/v1/player/songs')
+    async def player_songs_by_artist_and_album(
+            albumartist: str, album: str,
+            content_uri: Optional[str] = None, provider: Optional[str] = None):
+        return await _run_on_executor(
+            executor, _player_ctrl().list_songs_by_artist_and_album,
+            albumartist, album, content_uri, provider)
+
+    @app.get('/api/v1/player/song-lookup')
+    async def player_song_by_url(song_url: str, provider: Optional[str] = None):
+        return await _run_on_executor(executor, _player_ctrl().get_song_by_url, song_url, provider)
+
+    @app.post('/api/v1/player/album', status_code=204)
+    async def player_play_album(body: PlayAlbumRequest):
+        await _run_on_executor(
+            executor, _player_ctrl().play_album,
+            body.albumartist, body.album, body.content_uri, body.provider)
+
+
+def _register_player_playback_extra_routes(app: FastAPI, executor) -> None:
+    """Playback-adjacent methods from PlayerCoordinator's tagged surface not used by the webapp
+    today (no call sites to migrate), but real, working methods; wrapped for completeness so
+    nothing on player.ctrl is REST-unreachable. Not wrapped: map_filename_to_playlist_pos/
+    remove/move (both backends unconditionally raise NotImplementedError -- nothing to expose),
+    and play_card (RFID-reader-internal: physical-scan/second-swipe semantics that don't map to
+    a stateless call; play_folder already covers "start this folder" for API purposes)."""
+
+    @app.get('/api/v1/player/type')
+    async def player_type_and_version():
+        return await _run_on_executor(executor, _player_ctrl().get_player_type_and_version)
+
+    @app.post('/api/v1/player/update')
+    async def player_update():
+        return await _run_on_executor(executor, _player_ctrl().update)
+
+    @app.post('/api/v1/player/update-wait')
+    async def player_update_wait():
+        return await _run_on_executor(executor, _player_ctrl().update_wait)
+
+    @app.post('/api/v1/player/stop', status_code=204)
+    async def player_stop():
+        await _run_on_executor(executor, _player_ctrl().stop)
+
+    @app.post('/api/v1/player/rewind', status_code=204)
+    async def player_rewind():
+        await _run_on_executor(executor, _player_ctrl().rewind)
+
+    @app.post('/api/v1/player/replay', status_code=204)
+    async def player_replay():
+        await _run_on_executor(executor, _player_ctrl().replay)
+
+    @app.post('/api/v1/player/replay-if-stopped', status_code=204)
+    async def player_replay_if_stopped():
+        await _run_on_executor(executor, _player_ctrl().replay_if_stopped)
+
+    @app.post('/api/v1/player/resume', status_code=204)
+    async def player_resume():
+        await _run_on_executor(executor, _player_ctrl().resume)
+
+    @app.get('/api/v1/player/current-song')
+    async def player_current_song(param: Optional[str] = None):
+        return await _run_on_executor(executor, _player_ctrl().get_current_song, param)
+
+    @app.get('/api/v1/player/playlist')
+    async def player_playlist():
+        return await _run_on_executor(executor, _player_ctrl().playlistinfo)
+
+    @app.post('/api/v1/player/coverart/flush', status_code=204)
+    async def player_flush_coverart_cache():
+        await _run_on_executor(executor, _player_ctrl().flush_coverart_cache)
+
+
+def _register_player_backend_management_routes(app: FastAPI, executor) -> None:
+    """Which registered backend (mpd/local_audio/...) is active -- administrative, not used by
+    the webapp today, wrapped for the same completeness reason as the routes above."""
+
+    @app.get('/api/v1/player/backends')
+    async def player_list_backends():
+        return await _run_on_executor(executor, _player_ctrl().list_backends)
+
+    @app.get('/api/v1/player/backends/active')
+    async def player_get_active_backend():
+        return {'name': await _run_on_executor(executor, _player_ctrl().get_active_backend)}
+
+    @app.get('/api/v1/player/backends/default')
+    async def player_get_default_backend():
+        return {'name': await _run_on_executor(executor, _player_ctrl().get_default_backend)}
+
+    @app.put('/api/v1/player/backends/active')
+    async def player_select_backend(body: SelectBackendRequest):
+        return {'name': await _run_on_executor(executor, _player_ctrl().select_backend, body.name)}
+
+    @app.post('/api/v1/player/queue', status_code=204)
+    async def player_queue_load(body: QueueLoadRequest):
+        await _run_on_executor(executor, _player_ctrl().queue_load, body.folder)
+
+
 def register_player_routes(app: FastAPI, executor) -> None:
     """Typed REST routes for player transport + volume -- see roadmap-core-architecture.md,
     "Advanced plugin system": replaces the generic (package, plugin, method) RPC addressing for
     this surface with real, OpenAPI-documented endpoints."""
     _register_player_transport_routes(app, executor)
     _register_player_content_and_status_routes(app, executor)
+    _register_player_library_routes(app, executor)
+    _register_player_playback_extra_routes(app, executor)
+    _register_player_backend_management_routes(app, executor)
 
 
 def register_settings_routes(app: FastAPI, executor) -> None:

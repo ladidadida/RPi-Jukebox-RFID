@@ -38,7 +38,7 @@ const SeekBar = () => {
   // Only send commend to backend when user committed to new position
   // We don't send it while seeking (too many useless requests)
   const playFromNewTime = () => {
-    request('seek', { new_time: timeElapsed.toFixed(3) });
+    request('seek', { position: timeElapsed.toFixed(3) });
     setIsSeeking(false);
   };
 

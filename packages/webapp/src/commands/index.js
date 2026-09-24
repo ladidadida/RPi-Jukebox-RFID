@@ -57,28 +57,24 @@ const commands = {
     _package: 'cards',
     plugin: 'delete_card',
   },
+  // Migrated to real REST endpoints (see api/fastapi_server.py, register_player_routes) -- the
+  // first slice of replacing the generic (package, plugin, method) RPC addressing, per
+  // documentation/developers/roadmap-core-architecture.md. `request()` in utils/request.js
+  // dispatches on the presence of `rest` instead of `_package`/`plugin`/`method`.
   playerstatus: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'playerstatus'
+    rest: { method: 'GET', path: '/api/v1/player/status' },
   },
 
   // Player Actions
   play: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'play',
+    rest: { method: 'POST', path: '/api/v1/player/play' },
   },
   play_single: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'play_single',
+    rest: { method: 'POST', path: '/api/v1/player/song' },
     argKeys: ['song_url', 'provider']
   },
   play_folder: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'play_folder',
+    rest: { method: 'POST', path: '/api/v1/player/folder' },
     argKeys: ['folder']
   },
   play_album: {
@@ -88,54 +84,41 @@ const commands = {
     argKeys: ['albumartist', 'album', 'content_uri', 'provider']
   },
   pause: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'pause',
+    rest: { method: 'POST', path: '/api/v1/player/pause' },
   },
   prev_song: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'prev',
+    rest: { method: 'POST', path: '/api/v1/player/prev' },
   },
   next_song: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'next',
+    rest: { method: 'POST', path: '/api/v1/player/next' },
   },
   toggle: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'toggle',
+    rest: { method: 'POST', path: '/api/v1/player/toggle' },
   },
   shuffle: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'shuffle',
+    rest: { method: 'POST', path: '/api/v1/player/shuffle' },
     argKeys: ['option'],
   },
   repeat: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'repeat',
+    rest: { method: 'POST', path: '/api/v1/player/repeat' },
     argKeys: ['option'],
   },
   seek: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'seek',
+    // Renamed kwarg new_time -> position to match the REST body; only caller is seekbar.jsx.
+    rest: { method: 'POST', path: '/api/v1/player/seek' },
+    argKeys: ['position'],
   },
 
   // Volume
   setVolume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'set_volume',
+    // Was _package: 'volume' -- that namespace doesn't exist server-side at all (removed with
+    // the old plugin system, never reintroduced), so this was a dead call. Now points at
+    // player.ctrl's own volume methods, which do exist and always did.
+    rest: { method: 'PUT', path: '/api/v1/player/volume' },
     argKeys: ['volume'],
   },
   getVolume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'get_volume',
+    rest: { method: 'GET', path: '/api/v1/player/volume' },
   },
   getMaxVolume: {
     _package: 'volume',

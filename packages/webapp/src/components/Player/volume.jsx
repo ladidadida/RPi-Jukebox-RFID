@@ -54,7 +54,7 @@ const Volume = () => {
   useEffect(() => {
     const fetchVolume = async () =>  {
       const { result } = await request('getVolume');
-      setVolume(result);
+      setVolume(result?.volume);
     }
 
     const fetchMaxVolume = async () =>  {

@@ -19,6 +19,7 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -310,6 +311,24 @@ class VolumeRequest(BaseModel):
     volume: int
 
 
+class AppSettingsRequest(BaseModel):
+    settings: dict
+
+
+class RegisterCardRequest(BaseModel):
+    card_id: str
+    cmd_alias: str
+    args: Optional[list] = None
+    kwargs: Optional[dict] = None
+    ignore_card_removal_action: Optional[bool] = None
+    ignore_same_id_delay: Optional[bool] = None
+    overwrite: bool = False
+
+
+class DeleteCardRequest(BaseModel):
+    card_id: str
+
+
 def _player_ctrl():
     """The registered PlayerCoordinator, fetched directly -- these routes call straight into it
     (per the roadmap's "in-process calls skip serialization" principle) rather than through
@@ -394,6 +413,47 @@ def register_player_routes(app: FastAPI, executor) -> None:
     _register_player_content_and_status_routes(app, executor)
 
 
+def register_settings_routes(app: FastAPI, executor) -> None:
+    """misc.get_app_settings/set_app_settings -- webapp UI settings stored in jukebox.yaml."""
+
+    @app.get('/api/v1/settings')
+    async def get_settings():
+        return await _run_on_executor(executor, jukebox.registry.get('misc', 'get_app_settings'))
+
+    @app.put('/api/v1/settings')
+    async def set_settings(body: AppSettingsRequest):
+        await _run_on_executor(
+            executor, jukebox.registry.get('misc', 'set_app_settings'), body.settings)
+
+
+def _cards_error_response(error: KeyError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={'error': {
+        'code': 'invalid_card_request', 'message': str(error).strip("'\""),
+    }})
+
+
+def register_cards_routes(app: FastAPI, executor) -> None:
+    """RFID card database CRUD (cards.list_cards/register_card/delete_card)."""
+
+    @app.get('/api/v1/cards')
+    async def cards_list():
+        return await _run_on_executor(executor, jukebox.registry.get('cards', 'list_cards'))
+
+    @app.post('/api/v1/cards', status_code=201)
+    async def cards_register(body: RegisterCardRequest):
+        try:
+            await _run_on_executor(
+                executor, jukebox.registry.get('cards', 'register_card'),
+                body.card_id, body.cmd_alias, body.args, body.kwargs,
+                body.ignore_card_removal_action, body.ignore_same_id_delay, body.overwrite)
+        except KeyError as error:
+            return _cards_error_response(error)
+
+    @app.delete('/api/v1/cards', status_code=204)
+    async def cards_delete(body: DeleteCardRequest):
+        await _run_on_executor(executor, jukebox.registry.get('cards', 'delete_card'), body.card_id)
+
+
 def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None,
                 webapp_build_dir=None, logs_dir=None):
     if library is None:
@@ -436,6 +496,8 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
         return await _handle_library_refresh(library, library_executor)
 
     register_player_routes(app, executor)
+    register_settings_routes(app, executor)
+    register_cards_routes(app, executor)
 
     # Registered last so it never shadows the /api/v1/* routes above: FastAPI/Starlette tries
     # routes in registration order, and this includes a catch-all.

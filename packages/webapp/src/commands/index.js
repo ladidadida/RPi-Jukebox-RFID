@@ -1,49 +1,34 @@
 const commands = {
   getSingleCoverArt: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'get_single_coverart',
+    rest: { method: 'GET', path: '/api/v1/player/coverart/song' },
   },
   getAlbumCoverArt: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'get_album_coverart',
+    rest: { method: 'GET', path: '/api/v1/player/coverart/album' },
   },
+  // Unused by any current call site (superseded by libraryItems' content_types filtering) --
+  // kept defined, now pointing at the equivalent REST route, for parity/future use.
   directoryTreeOfAudiofolder: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_all_dirs',
+    rest: { method: 'GET', path: '/api/v1/player/dirs' },
   },
   albumList: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_albums',
+    rest: { method: 'GET', path: '/api/v1/player/albums' },
   },
   librarySources: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_library_sources',
+    rest: { method: 'GET', path: '/api/v1/player/library/sources' },
   },
   libraryItems: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_library_items',
+    rest: { method: 'GET', path: '/api/v1/player/library/items' },
   },
   songList: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'list_songs_by_artist_and_album',
+    rest: { method: 'GET', path: '/api/v1/player/songs' },
   },
   getSongByUrl: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'get_song_by_url',
+    rest: { method: 'GET', path: '/api/v1/player/song-lookup' },
     argKeys: ['song_url', 'provider']
   },
+  // Unused by any current call site -- see directoryTreeOfAudiofolder above.
   folderList: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'get_folder_content',
+    rest: { method: 'GET', path: '/api/v1/player/folder-content' },
   },
   cardsList: {
     rest: { method: 'GET', path: '/api/v1/cards' },
@@ -75,9 +60,7 @@ const commands = {
     argKeys: ['folder']
   },
   play_album: {
-    _package: 'player',
-    plugin: 'ctrl',
-    method: 'play_album',
+    rest: { method: 'POST', path: '/api/v1/player/album' },
     argKeys: ['albumartist', 'album', 'content_uri', 'provider']
   },
   pause: {

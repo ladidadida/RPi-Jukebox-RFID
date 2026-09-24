@@ -47,9 +47,10 @@ const AlbumListItem = ({
         content_uri,
         provider,
       });
-      if (result) {
-        if(result !== 'CACHE_PENDING') {
-          setCoverImage(result.startsWith('http') ? result : `/cover-cache/${result}`);
+      const coverUrl = result?.cover_url;
+      if (coverUrl) {
+        if(coverUrl !== 'CACHE_PENDING') {
+          setCoverImage(coverUrl.startsWith('http') ? coverUrl : `/cover-cache/${coverUrl}`);
         }
       };
     }

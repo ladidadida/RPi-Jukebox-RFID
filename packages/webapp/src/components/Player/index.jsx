@@ -31,8 +31,9 @@ const Player = () => {
         song_url: file,
         provider,
       });
-      if (result) {
-        const cover = result.startsWith('http') ? result : `/cover-cache/${result}`;
+      const coverUrl = result?.cover_url;
+      if (coverUrl) {
+        const cover = coverUrl.startsWith('http') ? coverUrl : `/cover-cache/${coverUrl}`;
         setCoverImage(cover);
         setBackgroundImage([
           'linear-gradient(to bottom, rgba(18, 18, 18, 0.5), rgba(18, 18, 18, 1))',

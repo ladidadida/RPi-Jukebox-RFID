@@ -46,16 +46,13 @@ const commands = {
     method: 'get_folder_content',
   },
   cardsList: {
-    _package: 'cards',
-    plugin: 'list_cards',
+    rest: { method: 'GET', path: '/api/v1/cards' },
   },
   registerCard: {
-    _package: 'cards',
-    plugin: 'register_card',
+    rest: { method: 'POST', path: '/api/v1/cards' },
   },
   deleteCard: {
-    _package: 'cards',
-    plugin: 'delete_card',
+    rest: { method: 'DELETE', path: '/api/v1/cards' },
   },
   // Migrated to real REST endpoints (see api/fastapi_server.py, register_player_routes) -- the
   // first slice of replacing the generic (package, plugin, method) RPC addressing, per
@@ -269,13 +266,11 @@ const commands = {
 
   // Misc
   getAppSettings: {
-    _package: 'misc',
-    plugin: 'get_app_settings'
+    rest: { method: 'GET', path: '/api/v1/settings' },
   },
 
   setAppSettings: {
-    _package: 'misc',
-    plugin: 'set_app_settings',
+    rest: { method: 'PUT', path: '/api/v1/settings' },
     argKeys: ['settings'],
   },
 

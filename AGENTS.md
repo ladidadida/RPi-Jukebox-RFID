@@ -123,6 +123,10 @@ bam test                        # pytest, writes .reports/junit.xml
 bam docs                        # regenerate API docs (pydoc-markdown)
 bam markdownlint                # lint markdown docs (needs packages/webapp/node_modules)
 bam ci-checks                   # everything CI runs, in one command
+bam build                       # build the webapp into packages/webapp/build/, so `jukebox run`
+                                 # alone serves both the API and the UI on :5556 -- no npm start
+                                 # needed just to use the app (no hot-reload though; for active
+                                 # frontend dev use `cd packages/webapp && npm run dev` instead)
 bam docker-dev                  # local mpd+jukebox+webapp stack without PulseAudio/hardware
 uv run jukebox debug sniff      # print all messages on the publishing queue
 ```

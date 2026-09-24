@@ -82,6 +82,25 @@ tasks:
 
   # ── Local dev ─────────────────────────────────────────────────────────────────
 
+  build:
+    # Builds the webapp's production bundle into packages/webapp/build/, which
+    # jukebox.api.webapp_static serves directly on :5556 (see fastapi_server.py) -- so after
+    # this, `uv run jukebox run` alone (no separate `npm start`) gives you the full app, API +
+    # UI, on one port. No hot-reload though: re-run this after webapp changes; for active
+    # frontend development, `cd packages/webapp && npm run dev` is still the right tool.
+    # Needs `cd packages/webapp && npm install` once first.
+    command: npm --prefix packages/webapp run build
+    stage: build
+    inputs:
+      - "packages/webapp/src/**"
+      - "packages/webapp/public/**"
+      - "packages/webapp/index.html"
+      - "packages/webapp/package.json"
+      - "packages/webapp/package-lock.json"
+      - "packages/webapp/vite.config.js"
+    outputs:
+      - packages/webapp/build/
+
   docker-dev:
     # Brings up mpd+jukebox+webapp locally without PulseAudio/hardware (MPD gets a null audio
     # output) -- for checking frontend/backend integration and library browsing. Foreground

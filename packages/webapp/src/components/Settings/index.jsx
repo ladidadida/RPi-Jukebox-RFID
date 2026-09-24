@@ -1,13 +1,9 @@
 
 import { Grid } from '@mui/material';
 
-import SettingsAudio from './audio/index';
-import SettingsAutoHotspot from './autohotspot';
 import SettingsGeneral from './general';
 import SettingsSecondSwipe from './secondswipe';
 import SettingsStatus from './status/index';
-import SettingsTimers from './timers/index';
-import SystemControls from './systemcontrols';
 
 import { useTheme } from '@mui/material/styles';
 
@@ -32,19 +28,7 @@ const Settings = () => {
         <SettingsGeneral />
       </Grid>
       <Grid>
-        <SettingsTimers />
-      </Grid>
-      <Grid>
-        <SettingsAudio />
-      </Grid>
-      <Grid>
-        <SystemControls />
-      </Grid>
-      <Grid>
         <SettingsSecondSwipe />
-      </Grid>
-      <Grid>
-        <SettingsAutoHotspot />
       </Grid>
     </Grid>
   );

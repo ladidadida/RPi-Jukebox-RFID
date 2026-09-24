@@ -10,11 +10,6 @@ const SUBSCRIPTIONS = [
   'host.temperature.cpu',
   'playerstatus',
   'rfid.card_id',
-  'timers.timer_fade_volume',
-  'timers.timer_idle_shutdown',
-  'timers.timer_shutdown',
-  'timers.timer_stop_player',
-  'volume.level',
 ];
 
 const ROOT_DIR = './';
@@ -37,10 +32,11 @@ const JUKEBOX_ACTIONS_MAP = {
   },
 
   // Audio & Volume
+  // Note: no volume control here -- change_volume/toggle_output need the removed pulse-output
+  // component back (see roadmap-core-architecture.md, "Old plugin system removed"), not
+  // currently a Jukebox capability.
   audio: {
     commands: {
-      change_volume: {},
-      toggle_output: {},
       play: {},
       pause: {},
       toggle: {},
@@ -51,31 +47,9 @@ const JUKEBOX_ACTIONS_MAP = {
     },
   },
 
-  // Host
-  host: {
-    commands: {
-      shutdown: {},
-      reboot: {},
-      say_my_ip: {},
-    }
-  },
-
-  // Timers
-  timers: {
-    commands: {
-      timer_shutdown: {},
-      timer_stop_player: {},
-      timer_fade_volume: {},
-    }
-  },
-
-  // Synchronisation
-  synchronisation: {
-    commands: {
-      sync_rfidcards_all: {},
-      sync_rfidcards_change_on_rfid_scan: {},
-    }
-  },
+  // host/timers/synchronisation categories removed: they addressed the host/timers/
+  // sync_rfidcards RPC packages, none of which exist server-side (removed with the old plugin
+  // system, never reintroduced) -- restoring these needs those components back first.
 }
 
 const TIMER_STEPS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 120, 180, 240];

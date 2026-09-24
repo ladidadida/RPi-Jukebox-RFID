@@ -7,31 +7,6 @@ import {
 } from './utils';
 
 
-test('timer commands map and default the restart argument', () => {
-  for (const command of [
-    'timer_fade_volume',
-    'timer_idle_shutdown',
-    'timer_shutdown',
-    'timer_stop_player',
-  ]) {
-    expect(commands[command].argKeys).toEqual(['wait_seconds', 'restart']);
-  }
-
-  const legacy = buildActionData(
-    'timers',
-    'timer_shutdown',
-    [300],
-  );
-  expect(getArgsValues(legacy)).toEqual([300, true]);
-
-  const explicit = buildActionData(
-    'timers',
-    'timer_shutdown',
-    [300, false],
-  );
-  expect(getArgsValues(explicit)).toEqual([300, false]);
-});
-
 test('player card contracts preserve provider-qualified content', () => {
   expect(commands.play_single.argKeys).toEqual(['song_url', 'provider']);
   expect(commands.play_album.argKeys).toEqual([

@@ -42,18 +42,10 @@
         "placeholder": "Select an action",
         "actions": {
           "play_music": "Play music",
-          "audio": "Audio & Volume",
-          "host": "System",
-          "timers": "Timers",
-          "synchronisation": "Synchronisation"
+          "audio": "Audio & Volume"
         }
       },
       "actions": {
-        "host": {
-          "description": "Do you want to hear the full IP address or just the last quadrant?",
-          "label-full": "Full address (e.g. 192.168.1.53)",
-          "label-short": "Last quadrant (e.g. 53)"
-        },
         "play-music": {
           "commands": {
             "play_album": "Selected album",
@@ -75,21 +67,6 @@
             "label-disable": "Disable"
           },
           "shuffle": {
-            "description": "Choose the state to set.",
-            "label-toggle": "Toggle",
-            "label-enable": "Enable",
-            "label-disable": "Disable"
-          },
-          "volume": {
-            "title": "Volume steps"
-          }
-        },
-        "timers": {
-          "description": "Choose the amount of minutes you want the action to be performed.",
-          "restart": "Restart existing timer"
-        },
-        "synchronisation": {
-          "rfidcards": {
             "description": "Choose the state to set.",
             "label-toggle": "Toggle",
             "label-enable": "Enable",
@@ -258,72 +235,15 @@
       "song-position": "Current position"
     },
     "volume": {
-      "slider": "Volume Slider",
-      "mute": "Mute volume",
-      "unmute": "Unmute volume"
+      "slider": "Volume Slider"
     }
   },
   "settings": {
     "feature-not-enabled": "🚧 This feature is not yet enabled.",
-    "dialogs": {
-      "reboot": {
-        "title": "Reboot",
-        "rebooting": "Rebooting",
-        "button-title": "Reboot",
-        "description-confirm": "Are you sure you want to reboot now?",
-        "failed": "Reboot failed",
-        "bye": "👋 Good bye"
-      },
-      "shutdown": {
-        "title": "Shut Down",
-        "bye": "👋 Good bye",
-        "button-title": "Shut Down",
-        "description-confirm": "Are you sure you want to shut down now?",
-        "description-success": "Successfully shut down",
-        "failed": "Shut Down failed"
-      }
-    },
-    "autohotspot": {
-      "title": "Auto Hotspot",
-      "not-installed": "This feature is not installed.",
-      "why": "Why?",
-      "control-label": "Auto Hotspot"
-    },
     "general": {
       "title": "General Settings",
       "show_covers": {
         "title": "Show Cover Art"
-      }
-    },
-    "timers": {
-      "option-label-timeslot": "{{value}} min",
-      "option-label-off": "Off",
-      "title": "Timers",
-      "stop-player": {
-        "title": "Stop player",
-        "label": "Stops playback after the timer has ended."
-      },
-      "shutdown": {
-        "title": "Shut Down",
-        "label": "Forces the Phoniebox to shut down after the timer has ended."
-      },
-      "fade-volume": {
-        "title": "Fade volume and Shut Down",
-        "label": "Slowly fades out volume towards the end of the timer and then shuts down the Phoniebox."
-      },
-      "idle-shutdown": {
-        "title": "Idle Shut Down",
-        "label": "Shuts down the Phoniebox after the Phoniebox was idle for a given time."
-      },
-      "ended": "Done",
-      "set": "Set timer",
-      "cancel": "Cancel",
-      "paused": "Paused",
-      "dialog": {
-        "title": "Set {{value}} timer",
-        "description": "Choose the amount of minutes you want the action to be performed.",
-        "start": "Start timer",
-        "cancel": "Cancel"
       }
     },
     "secondswipe": {
@@ -359,20 +279,6 @@
       "version": {
         "label": "Jukebox Core Version"
       }
-    },
-    "audio": {
-      "title": "Audio",
-      "outputs": {
-        "title": "Outputs",
-        "settings.audio.outputs.radio-primary": "Speaker (Primary)",
-        "settings.audio.outputs.radio-secondary": "Bluetooth (Secondary)"
-      },
-      "volume": {
-        "max-volume": "Maximum Volume"
-      }
-    },
-    "systemcontrols": {
-      "title": "System Controls"
     }
   }
 }

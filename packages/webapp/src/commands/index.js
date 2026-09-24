@@ -100,152 +100,13 @@ const commands = {
   getVolume: {
     rest: { method: 'GET', path: '/api/v1/player/volume' },
   },
-  getMaxVolume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'get_soft_max_volume',
-  },
-  setMaxVolume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'set_soft_max_volume',
-  },
-  change_volume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'change_volume',
-    argKeys: ['step'],
-  },
-  toggleMuteVolume: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'mute',
-  },
-  getAudioOutputs: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'get_outputs',
-  },
-  setAudioOutput: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'set_output',
-    argKeys: ['sink_index'],
-  },
-  toggle_output: {
-    _package: 'volume',
-    plugin: 'ctrl',
-    method: 'toggle_output',
-  },
 
-  // Timers
-  'timer_fade_volume.cancel': {
-    _package: 'timers',
-    plugin: 'timer_fade_volume',
-    method: 'cancel',
-  },
-  'timer_fade_volume.get_state': {
-    _package: 'timers',
-    plugin: 'timer_fade_volume',
-    method: 'get_state',
-  },
-  'timer_fade_volume': {
-    _package: 'timers',
-    plugin: 'timer_fade_volume',
-    method: 'start',
-    argKeys: ['wait_seconds', 'restart'],
-    argDefaults: { restart: true },
-  },
-  'timer_shutdown.cancel': {
-    _package: 'timers',
-    plugin: 'timer_shutdown',
-    method: 'cancel',
-  },
-  'timer_shutdown.get_state': {
-    _package: 'timers',
-    plugin: 'timer_shutdown',
-    method: 'get_state',
-  },
-  'timer_shutdown': {
-    _package: 'timers',
-    plugin: 'timer_shutdown',
-    method: 'start',
-    argKeys: ['wait_seconds', 'restart'],
-    argDefaults: { restart: true },
-  },
-  'timer_stop_player.cancel': {
-    _package: 'timers',
-    plugin: 'timer_stop_player',
-    method: 'cancel',
-  },
-  'timer_stop_player.get_state': {
-    _package: 'timers',
-    plugin: 'timer_stop_player',
-    method: 'get_state',
-  },
-  'timer_stop_player': {
-    _package: 'timers',
-    plugin: 'timer_stop_player',
-    method: 'start',
-    argKeys: ['wait_seconds', 'restart'],
-    argDefaults: { restart: true },
-  },
-
-
-  'timer_idle_shutdown.cancel': {
-    _package: 'timers',
-    plugin: 'timer_idle_shutdown',
-    method: 'cancel',
-  },
-  'timer_idle_shutdown.get_state': {
-    _package: 'timers',
-    plugin: 'timer_idle_shutdown',
-    method: 'get_state',
-  },
-  'timer_idle_shutdown': {
-    _package: 'timers',
-    plugin: 'timer_idle_shutdown',
-    method: 'start',
-    argKeys: ['wait_seconds', 'restart'],
-    argDefaults: { restart: true },
-  },
-
-
-
-  // Host
-  getAutohotspotStatus: {
-    _package: 'host',
-    plugin: 'get_autohotspot_status',
-  },
-  startAutohotspot: {
-    _package: 'host',
-    plugin: 'start_autohotspot',
-  },
-  stopAutohotspot: {
-    _package: 'host',
-    plugin: 'stop_autohotspot',
-  },
-  getIpAddress: {
-    _package: 'host',
-    plugin: 'get_ip_address',
-  },
-  getDiskUsage: {
-    _package: 'host',
-    plugin: 'get_disk_usage',
-  },
-  reboot: {
-    _package: 'host',
-    plugin: 'reboot',
-  },
-  shutdown: {
-    _package: 'host',
-    plugin: 'shutdown',
-  },
-  say_my_ip: {
-    _package: 'host',
-    plugin: 'say_my_ip',
-    argKeys: ['option'],
-  },
+  // Removed: getMaxVolume/setMaxVolume/change_volume/toggleMuteVolume/getAudioOutputs/
+  // setAudioOutput/toggle_output (volume.ctrl), the whole timers.* family, getAutohotspotStatus/
+  // startAutohotspot/stopAutohotspot/getIpAddress/getDiskUsage/reboot/shutdown/say_my_ip (host),
+  // and sync_rfidcards_all/sync_rfidcards_change_on_rfid_scan (sync_rfidcards.ctrl) -- all
+  // addressed RPC packages that don't exist server-side (removed with the old plugin system,
+  // never reintroduced). Coming back once those are reintroduced as components/plugins.
 
   // Misc
   getAppSettings: {
@@ -255,19 +116,6 @@ const commands = {
   setAppSettings: {
     rest: { method: 'PUT', path: '/api/v1/settings' },
     argKeys: ['settings'],
-  },
-
-  // Synchronisation
-  'sync_rfidcards_all': {
-    _package: 'sync_rfidcards',
-    plugin: 'ctrl',
-    method: 'sync_all'
-  },
-  'sync_rfidcards_change_on_rfid_scan': {
-    _package: 'sync_rfidcards',
-    plugin: 'ctrl',
-    method: 'sync_change_on_rfid_scan',
-    argKeys: ['option']
   },
 };
 

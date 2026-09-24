@@ -1,4 +1,0 @@
-# RDM6300 related requirements
-# You need to install these with `python -m pip install --upgrade --force-reinstall -q -r requirements.txt`
-
-pyserial

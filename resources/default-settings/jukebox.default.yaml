@@ -61,23 +61,36 @@ jinglemp3:
 alsawave:
   # Config of the Wave through ALSA Jingle Service
   device: default
-playermpd:
-  host: localhost
-  status_file: shared/settings/music_player_status.json
+player:
+  # Which playback backend to use. 'local_audio' (default) plays files directly via PyAV/sounddevice,
+  # no external player/daemon needed -- works on any Linux box with the normal audio output.
+  # 'mpd' delegates to an external mpd server instead (requires `uv sync --extra mpd` and a running
+  # mpd instance, see playermpd: below).
+  backend: local_audio
+  # Root of the music library. Relative to the repository root (the Jukebox daemon's working
+  # directory), same convention as everywhere else in this file.
+  music_library_path: shared/audiofolders
   second_swipe_action:
     # Note: Does not follow the RPC alias convention (yet)
     # Must be one of: 'toggle', 'play', 'skip', 'rewind', 'replay', 'none'
     alias: toggle
-  library:
-    update_on_startup: true
-    check_user_rights: true
-  mpd_conf: ~/.config/mpd/mpd.conf
   # Must be one of: 'none', 'stop', 'rewind':
   end_of_playlist_next_action: none
   # Must be one of: 'none', 'prev', 'rewind':
   stopped_prev_action: prev
   # Must be one of: 'none', 'next', 'rewind':
   stopped_next_action: next
+  # Playback volume in percent (0-100). Only used by the local_audio backend -- mpd keeps its
+  # own volume (see mpd_client.setvol), unrelated to this.
+  volume: 80
+playermpd:
+  # Only consulted when player.backend is 'mpd'.
+  host: localhost
+  status_file: shared/settings/music_player_status.json
+  library:
+    update_on_startup: true
+    check_user_rights: true
+  mpd_conf: ~/.config/mpd/mpd.conf
 api:
   # 0.0.0.0 (all interfaces): nginx used to be the only thing reachable from the LAN, reverse
   # proxying to a loopback-only API server. There is no separate reverse proxy anymore -- this

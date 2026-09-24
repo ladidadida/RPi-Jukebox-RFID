@@ -31,9 +31,18 @@ def _get_music_library_path(conf_file):
 
 
 class MusicLibPath:
-    """Extract the music directory from the mpd.conf file"""
+    """Determine the music library directory.
+
+    Primarily from `player.music_library_path` config (backend-agnostic). Falls back to parsing
+    `music_directory` out of mpd.conf only when the mpd backend is active and no explicit path was
+    configured -- keeps existing mpd installs working without a migration step.
+    """
     def __init__(self):
-        self._music_library_path = None
+        self._music_library_path = cfg.getn('player', 'music_library_path', default=None)
+        if self._music_library_path is not None:
+            return
+        if cfg.getn('player', 'backend', default='local_audio') != 'mpd':
+            return
         mpd_conf_file = cfg.setndefault('playermpd', 'mpd_conf', value='~/.config/mpd/mpd.conf')
         try:
             self._music_library_path = _get_music_library_path(os.path.expanduser(mpd_conf_file))

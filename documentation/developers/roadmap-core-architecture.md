@@ -7,20 +7,39 @@
 Fork goals, roughly in the order we're tackling them:
 
 1. **Core architecture** (this doc) — first, because everything else sits on top of it.
-2. **Advanced plugin system** — being rethought from scratch, not adopted from upstream's
-   `future3/draft-entrypoint-plugins` draft. Goal is *powerful* plugins, which likely means hooking
-   deeper into the architecture than a config-toggled entry-point list — worth deciding once the core
-   architecture (this doc) has taken shape, since what a plugin can hook into depends on what the
-   core looks like. See "Relationship to the other tracks" below.
+2. **Advanced plugin system** — first slice landed (backend-swap only, see below); the deeper
+   "hook into playback/library/API layer" redesign is still being rethought from scratch, not
+   adopted from upstream's `future3/draft-entrypoint-plugins` draft. See "Relationship to the
+   other tracks" below.
 
-   **Guiding principle (agreed, not yet implemented):** FastAPI becomes the *one* contract for
-   everything, including plugins (backend and frontend) -- not just the browser-facing bridge. A
-   plugin registers a FastAPI router; that's the uniform way anything (webapp, CLI, another plugin)
-   calls into it, replacing today's `(package, plugin, method)` string addressing with a typed,
-   documented (OpenAPI) surface. Compromise to keep this compatible with the "high performance" goal:
-   in-process calls (e.g. an RFID card action reaching the player) invoke the router's handler
-   function directly, skipping HTTP/ASGI serialization -- only genuinely external or out-of-process
-   callers (browser, external/out-of-process plugins) pay for the full HTTP round trip.
+   **Status: first slice done.** Goal was to decouple the jukebox from the Raspberry Pi: the
+   default system is now a player + web UI that runs on any Linux box using its normal audio
+   output, with everything Pi/mpd-specific opt-in. `player.backend` config (default:
+   `local_audio`, decodes via PyAV + outputs via sounddevice/PortAudio -- no mpd, no external
+   process) picks the active player backend; `jukebox.player.plugin` dispatches to it via
+   `importlib.import_module`, mirroring how `jukebox.rfid.reader` already loaded a hardware
+   reader module by name. The `mpd` backend, `rpi-gpio` (GPIO-attached RFID readers), and each
+   bundled RFID reader module now live behind `pyproject.toml` extras instead of being
+   unconditional core dependencies -- `uv sync --extra <name>` to add one. See
+   `packages/jukebox/src/jukebox/player/backends/local_audio.py` and `player/plugin.py`.
+   `PlayerCoordinator` (`player/coordinator.py`) already supported multiple named backends before
+   this (`register_backend()`), so no coordinator changes were needed -- this slice is entirely
+   about *selecting and installing* a backend, not the dispatch mechanism itself.
+
+   **Not done, deliberately deferred:** the FastAPI-router-per-plugin guiding principle below,
+   third-party/out-of-tree plugins, and a VLC backend (dispatch table is extensible, just not
+   built). `local_audio` also doesn't implement MPD-style tag/album browsing (`list_albums` etc.)
+   -- folder-triggered playback (the actual RFID use case) only.
+
+   **Guiding principle for the deeper redesign (agreed, not yet implemented):** FastAPI becomes
+   the *one* contract for everything, including plugins (backend and frontend) -- not just the
+   browser-facing bridge. A plugin registers a FastAPI router; that's the uniform way anything
+   (webapp, CLI, another plugin) calls into it, replacing today's `(package, plugin, method)`
+   string addressing with a typed, documented (OpenAPI) surface. Compromise to keep this
+   compatible with the "high performance" goal: in-process calls (e.g. an RFID card action
+   reaching the player) invoke the router's handler function directly, skipping HTTP/ASGI
+   serialization -- only genuinely external or out-of-process callers (browser, external/
+   out-of-process plugins) pay for the full HTTP round trip.
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
    drives system setup instead of ~20 bash scripts. Upstream already scoped this in
    `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not
@@ -333,10 +352,12 @@ in this doc: there is no old plugin system left to extend at this point.
 
 ## Relationship to the other fork tracks
 
-- **Plugin system**: deliberately *not* pulling in upstream's `future3/draft-entrypoint-plugins` draft
-  (two-tier core/user-plugin loading, config-toggled entry points). The goal here is more powerful
-  plugins than that model supports — how deep a plugin can reach into playback, library, and the API
-  layer is a question to design once this core architecture work has settled, not before. Revisit step 5
+- **Plugin system**: first slice (backend-swap for player/RFID hardware, config + optional-
+  dependency selection) is done, see "Advanced plugin system" above. Deliberately *not* pulling in
+  upstream's `future3/draft-entrypoint-plugins` draft (two-tier core/user-plugin loading,
+  config-toggled entry points) for anything deeper — the goal there is more powerful plugins than
+  that model supports — how deep a plugin can reach into playback, library, and the API layer is a
+  question to design once this core architecture work has settled, not before. Revisit step 5
   above (plugin dispatch call sites) with that redesign in mind rather than migrating the old model.
 - **Packaging/installer**: mostly orthogonal, but step 6 above (nginx/service file changes) overlaps with
   the "ship resources as package data" work already scoped in

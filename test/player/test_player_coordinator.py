@@ -4,7 +4,6 @@ from unittest.mock import Mock, call, sentinel
 
 import pytest
 
-from jukebox.player.backends.mpd import PlayerMPD
 from jukebox.player.coordinator import PlayerCoordinator
 from jukebox.player.playcontentcallback import PlayCardState, PlayContentCallbacks
 from jukebox.command_aliases import cmd_alias_definitions
@@ -259,8 +258,14 @@ def test_play_card_callbacks_run_before_backend_action(
         backend.play_second_swipe.assert_not_called()
 
 
-def test_play_card_preserves_empty_mpd_return_value():
-    backend = PlayerMPD.__new__(PlayerMPD)
+def test_play_second_swipe_ignores_action_return_value():
+    # play_second_swipe() is shared shape across backends (see e.g. PlayerMPD/PlayerLocalAudio):
+    # it always returns None, regardless of what the configured second_swipe_action returns.
+    class FakeBackend:
+        def play_second_swipe(self):
+            self.second_swipe_action()
+
+    backend = FakeBackend()
     backend.second_swipe_action = Mock(return_value=sentinel.result)
 
     assert backend.play_second_swipe() is None

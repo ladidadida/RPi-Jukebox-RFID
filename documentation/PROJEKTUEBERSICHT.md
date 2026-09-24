@@ -81,7 +81,13 @@ Punkte. Kurzfassung:
    kein ZeroMQ mehr. Die Webapp und `jukebox debug sniff` abonnieren über die
    FastAPI-WebSocket-Bridge.
 
-Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per `python-mpd2`.
+**Player-Backend austauschbar** (erste Stufe des "Advanced plugin system"-Tracks, siehe
+`documentation/developers/roadmap-core-architecture.md`): `player.backend`-Config wählt das
+Backend, Standard ist `local_audio` (dekodiert direkt per PyAV, Ausgabe über sounddevice/
+PortAudio -- kein MPD, kein externer Prozess, läuft auf jeder Linux-Kiste ohne Zusatzinstallation).
+`mpd` (externer MPD-Server, per `python-mpd2`) ist optional (`uv sync --extra mpd`). Genauso sind
+GPIO-angebundene RFID-Reader jetzt hinter `pyproject.toml`-Extras (`rpi-gpio`, je ein Extra pro
+gebündeltem Reader-Modul) statt fest eingebauter Abhängigkeiten.
 
 ## Eingesetzte Tools und Libraries
 
@@ -92,12 +98,14 @@ Die Musikwiedergabe läuft über **MPD (Music Player Daemon)**, angesteuert per 
 | RFID/USB/Bluetooth-Eingabe | `evdev` |
 | Audio-Tags lesen | `mutagen` |
 | PulseAudio-Steuerung | `pulsectl` |
-| MPD-Client | `python-mpd2` |
+| Audio-Decodierung (Standard-Player-Backend) | `av` (PyAV, ffmpeg gebündelt) |
+| Audio-Ausgabe (Standard-Player-Backend) | `sounddevice` (PortAudio) |
+| MPD-Client (optionales Backend, Extra `mpd`) | `python-mpd2` |
 | Konfigurationsdateien (YAML) | `ruamel.yaml` |
 | HTTP-Requests (Playlist-Generator) | `requests` |
 | HTTP/WebSocket-API | `fastapi`, `uvicorn` |
 | Publicity-Sniffer (WebSocket-Client) | `websockets` |
-| GPIO (Raspberry Pi) | `rpi-lgpio` (lgpio-Shim für Bookworm-Kompatibilität), `gpiozero` |
+| GPIO (Raspberry Pi, Extra `rpi-gpio`) | `rpi-lgpio` (lgpio-Shim für Bookworm-Kompatibilität), `gpiozero` |
 | Code-Qualität | `ruff`, `pyright`, `pytest`, `pytest-cov`, `mock` |
 | API-Doku-Generierung | `pydoc-markdown` |
 
@@ -119,7 +127,8 @@ Python-Version: **3.11**.
 
 ### Infrastruktur / Sonstiges
 
-- **MPD** als Wiedergabe-Backend, **PulseAudio/ALSA** für Audio-Routing.
+- **local_audio** (Standard) oder optional **MPD** als Wiedergabe-Backend, **PulseAudio/ALSA** für
+  Audio-Routing.
 - **Docker & Docker Compose** für eine Pi-unabhängige Entwicklungsumgebung (separate Container für
   Core, MPD, Webapp).
 - **systemd** für die Diensteinrichtung auf dem Pi (`resources/default-services`).

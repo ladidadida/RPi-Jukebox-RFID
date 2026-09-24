@@ -22,8 +22,8 @@ packages/          uv workspace members
                    (api/), in-process pub/sub event bus (publishing/), config handling, and the
                    components explicitly wired by jukebox.daemon at start-up (no plugin/
                    config-driven loading — see documentation/developers/roadmap-core-architecture.md):
-                   player (MPD), rfid, publishing, system (formerly "misc" RPC calls), misc
-                   (shared utility code). Other former components (gpio, mqtt, volume, timers,
+                   player, rfid, publishing, system (formerly "misc" RPC calls), misc (shared
+                   utility code). Other former components (gpio, mqtt, volume, timers,
                    battery_monitor, controls, jingle, hostif, synchronisation) were removed and
                    will come back as new, not-yet-designed components.
   cli/             Jukebox CLI (jukebox-cli). Implemented so far: `jukebox run` (start the daemon),
@@ -70,9 +70,20 @@ ci/                CI helper scripts (e.g. installation testing)
   documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx"). The
   webapp subscribes via the FastAPI WebSocket bridge (`/api/v1/events`); `jukebox debug sniff`
   connects there too as a plain WebSocket client.
-- **Player backend**: MPD (Music Player Daemon), driven via `python-mpd2`.
+- **Player backend**: pluggable, selected via `player.backend` config -- see "Player/RFID backends
+  are pluggable" below. Default is `local_audio` (decodes via PyAV, outputs via sounddevice/
+  PortAudio, no external process); `mpd` (an external mpd server, via `python-mpd2`) is an opt-in
+  alternative. Both implement the same duck-typed surface `player.coordinator.PlayerCoordinator`
+  calls on the active backend.
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.
+- **Player/RFID backends are pluggable** (first slice of the "Advanced plugin system" track, see
+  `documentation/developers/roadmap-core-architecture.md`): `player.backend` config picks the
+  player backend (`jukebox.player.plugin` dispatches to it by `importlib.import_module`, mirroring
+  how `jukebox.rfid.reader` already loads a hardware reader module by name); non-default backends'
+  dependencies are `pyproject.toml` extras (`mpd`, `rpi-gpio`, and one per bundled RFID reader
+  module), not installed by default -- run `uv sync --extra <name>` to add one. This is what makes
+  the Pi/mpd/GPIO-specific pieces optional rather than a hard dependency of the core app.
 
 ## Languages, tools, conventions
 
@@ -96,6 +107,10 @@ The old `run_*.sh` wrapper scripts are gone.
 
 ```bash
 uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
+                                 # add --extra mpd / --extra rpi-gpio / --extra <reader-name> for
+                                 # non-default player/RFID backends (see "Player/RFID backends
+                                 # are pluggable" above) -- not needed for the default local_audio
+                                 # backend or the generic_usb/fake_reader_gui readers
 uv run jukebox run              # start the Jukebox core
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
@@ -124,9 +139,12 @@ Webapp (`cd packages/webapp`): standard CRA scripts — `npm start`, `npm run bu
 
 ## Testing without Raspberry Pi hardware
 
-Prefer the Docker dev environment (`documentation/developers/docker.md`) over assuming real GPIO/
-RFID hardware is present — it isolates MPD, the core, and the webapp into separate containers and
-is the documented way to develop non-hardware-dependent parts of the app.
+The default `player.backend: local_audio` + `generic_usb`/`fake_reader_gui` RFID readers need no
+Pi-specific hardware or extra system packages at all -- `uv run jukebox run` plays through this
+machine's normal audio output directly. The Docker dev environment
+(`documentation/developers/docker.md`) is still useful for testing the full stack (core + webapp
++ nginx-free FastAPI static serving) in isolation, but is no longer required just to avoid GPIO/
+mpd/RFID hardware.
 
 ## Key docs to read before larger changes
 

@@ -12,6 +12,17 @@ logger = logging.getLogger()
 
 NO_RFID_READER = 'No RFID Reader'
 
+#: Reader (sub)package name -> pyproject.toml extra providing its dependencies. Formalizes what
+#: used to be a per-reader requirements.txt, installed with `pip install -r requirements.txt`.
+BUNDLED_READER_EXTRAS = {
+    'fake_reader_gui': 'fake-reader-gui',
+    'rdm6300_serial': 'rdm6300-serial',
+    'mfrc522_i2c': 'mfrc522-i2c',
+    'rc522_spi': 'rc522-spi',
+    'pn532_i2c_py532': 'pn532-i2c-py532',
+    'generic_nfcpy': 'generic-nfcpy',
+}
+
 
 def reader_install_dependencies(reader_path: str, dependency_install: str) -> None:
     """
@@ -25,8 +36,18 @@ def reader_install_dependencies(reader_path: str, dependency_install: str) -> No
 
     """
     if dependency_install != 'no':
-        if os.path.exists(reader_path + '/requirements.txt'):
-            # The python dependencies (if any)
+        reader_name = os.path.basename(reader_path.rstrip('/'))
+        extra = BUNDLED_READER_EXTRAS.get(reader_name)
+        if extra is not None:
+            print(f"\nInstalling/Checking Python dependencies (`uv sync --extra {extra}`) ...\n")
+            if dependency_install == 'auto' or pyil.input_yesno("Install Python dependencies?", blank=True,
+                                                                prompt_color=Colors.lightgreen, prompt_hint=True):
+                print(f"{'=' * 80}")
+                subprocess.run(['uv', 'sync', '--extra', extra], check=False)
+                print(f"\n{'=' * 80}\nInstalling dependencies ... done!")
+        elif os.path.exists(reader_path + '/requirements.txt'):
+            # Third-party reader dropped in locally with its own requirements.txt (not one of the
+            # bundled readers above, which get their deps from a pyproject.toml extra instead).
             print("\nInstalling/Checking Python dependencies  ...\n")
             if dependency_install == 'auto' or pyil.input_yesno("Install Python dependencies?", blank=True,
                                                                 prompt_color=Colors.lightgreen, prompt_hint=True):
@@ -73,7 +94,9 @@ def reader_load_module(reader_name):
                             "If this script is called with -d a, an attempt will be made to install the dependencies "
                             "automatically\n"
                             "You may install the dependencies manually before re-executing this script by:\n"
-                            "'$ pip install -r requirements.txt' in the reader's submodule directory and \n"
+                            f"'$ uv sync --extra {BUNDLED_READER_EXTRAS.get(reader_name, '<extra-name>')}' "
+                            "(or '$ pip install -r requirements.txt' in the reader's submodule directory, for a "
+                            "custom reader that isn't one of the bundled ones) and \n"
                             "'$ ./setup.inc.sh'\n"
                             "In case of doubt reboot!\n\n"
                             f"{'=' * 80}\n")

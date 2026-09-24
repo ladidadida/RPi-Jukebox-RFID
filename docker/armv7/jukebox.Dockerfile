@@ -6,6 +6,7 @@ FROM arm32v7/debian:buster-slim
 # Raspberry Pi environment as possible.
 RUN apt-get update && apt-get install -y \
     libasound2-dev \
+    libportaudio2 \
     pulseaudio \
     pulseaudio-utils \
     --no-install-recommends \

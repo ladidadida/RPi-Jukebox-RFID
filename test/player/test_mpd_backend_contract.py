@@ -2,6 +2,10 @@ from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, sentinel
 
+import pytest
+
+pytest.importorskip('mpd', reason="python-mpd2 is an optional extra (`uv sync --extra mpd`)")
+
 import jukebox.publishing as publishing
 
 from jukebox.player.backends.mpd import PlayerMPD

@@ -19,6 +19,11 @@ This runs as a service, which starts automatically after boot-up. At times, it m
 
 For debugging, it's best to run Jukebox directly from the console rather than as a service, as this provides direct logging information in the console and allows for changing command line parameters. See [Troubleshooting](../builders/troubleshooting.md).
 
+The player backend is selected via `player.backend` in the Jukebox configuration (default:
+`local_audio`, no extra install needed). Non-default backends (`mpd`) and GPIO-attached RFID
+readers need their dependencies installed first: `uv sync --extra mpd`, `uv sync --extra
+rpi-gpio`, or the extra matching a specific bundled reader module (see AGENTS.md).
+
 ## Configuration Tools
 
 Before running the configuration tools, stop the Jukebox Core service.

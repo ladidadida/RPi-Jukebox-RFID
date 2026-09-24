@@ -10,11 +10,23 @@ dependencies = [
   "evdev",
   "mutagen",
   "pulsectl",
-  "python-mpd2",
   "ruamel.yaml",
   "requests",
   "fastapi",
   "uvicorn",
+  # Default player backend (player.backend: local_audio): decode via ffmpeg-bundled wheels (no
+  # system ffmpeg needed, wheels exist for x86_64/aarch64/armv7l), output via PortAudio.
+  "av",
+  "sounddevice",
+]
+
+[project.optional-dependencies]
+# Alternative player backend (player.backend: mpd): delegates to an external mpd server instead
+# of decoding locally.
+mpd = ["python-mpd2"]
+# RFID readers wired via GPIO (SPI/I2C chip-select, or gpiozero's mock-pin GUI addon). Not needed
+# for USB (generic_usb) or the GUI fake reader's own playback, only for GPIO-attached hardware.
+rpi-gpio = [
   "gpiozero",
   # RPi.GPIO shim for kernels >= 6.6 (Trixie), where /sys/class/gpio/ is gone. Only meaningful on
   # real Pi hardware; harmless to attempt elsewhere since uv will just skip it if unresolvable.
@@ -23,6 +35,18 @@ dependencies = [
   # against real Pi hardware -- flagged as a known gap, not solved here.
   "rpi-lgpio; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
 ]
+# One extra per rfid/hardware/*/requirements.txt (formalized here instead of separate,
+# never-uv-migrated requirements.txt files).
+rc522-spi = [
+  "gpiozero",
+  "rpi-lgpio; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
+  "pi-rc522-gpiozero @ git+https://github.com/hoffie/pi-rc522-gpiozero@1dc878c",
+]
+mfrc522-i2c = ["mfrc522_i2c"]
+pn532-i2c-py532 = ["py532lib"]
+rdm6300-serial = ["pyserial"]
+generic-nfcpy = ["nfcpy"]
+fake-reader-gui = ["ttkthemes"]
 
 [tool.uv]
 package = true
@@ -33,3 +57,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/jukebox"]
+
+[tool.hatch.metadata]
+# Needed for the rc522-spi extra's git dependency (pi-rc522-gpiozero has no PyPI release).
+allow-direct-references = true

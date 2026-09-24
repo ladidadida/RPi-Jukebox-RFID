@@ -7,6 +7,7 @@ espeak
 ffmpeg
 libasound2-dev
 liblgpio-dev
+libportaudio2
 mpg123
 pipewire
 pipewire-pulse

@@ -155,7 +155,7 @@ class PlayerMPD:
         self.decode_2nd_swipe_option()
 
         self.end_of_playlist_next_action = utils.get_config_action(cfg,
-                                                                   'playermpd',
+                                                                   'player',
                                                                    'end_of_playlist_next_action',
                                                                    'none',
                                                                    {'rewind': self.rewind,
@@ -163,7 +163,7 @@ class PlayerMPD:
                                                                     'none': lambda: None},
                                                                    logger)
         self.stopped_prev_action = utils.get_config_action(cfg,
-                                                           'playermpd',
+                                                           'player',
                                                            'stopped_prev_action',
                                                            'prev',
                                                            {'rewind': self.rewind,
@@ -171,7 +171,7 @@ class PlayerMPD:
                                                             'none': lambda: None},
                                                            logger)
         self.stopped_next_action = utils.get_config_action(cfg,
-                                                          'playermpd',
+                                                          'player',
                                                           'stopped_next_action',
                                                           'next',
                                                           {'rewind': self.rewind,
@@ -246,14 +246,14 @@ class PlayerMPD:
             publishing.get_publisher().send('playerstatus', self.mpd_status)
 
     def decode_2nd_swipe_option(self):
-        cfg_2nd_swipe_action = cfg.setndefault('playermpd', 'second_swipe_action', 'alias', value='none').lower()
+        cfg_2nd_swipe_action = cfg.setndefault('player', 'second_swipe_action', 'alias', value='none').lower()
         if cfg_2nd_swipe_action not in [*self.second_swipe_action_dict.keys(), 'none', 'custom']:
-            logger.error(f"Config mpd.second_swipe_action must be one of "
+            logger.error(f"Config player.second_swipe_action must be one of "
                          f"{[*self.second_swipe_action_dict.keys(), 'none', 'custom']}. Ignore setting.")
         if cfg_2nd_swipe_action in self.second_swipe_action_dict.keys():
             self.second_swipe_action = self.second_swipe_action_dict[cfg_2nd_swipe_action]
         if cfg_2nd_swipe_action == 'custom':
-            custom_action = utils.decode_rpc_call(cfg.getn('playermpd', 'second_swipe_action', default=None))
+            custom_action = utils.decode_rpc_call(cfg.getn('player', 'second_swipe_action', default=None))
             self.second_swipe_action = functools.partial(plugs.call_ignore_errors,
                                                          custom_action['package'],
                                                          custom_action['plugin'],

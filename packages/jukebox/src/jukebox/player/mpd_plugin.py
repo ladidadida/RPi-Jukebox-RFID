@@ -32,3 +32,7 @@ def initialize_mpd_player() -> PlayerCoordinator:
             misc.recursive_chmod(music_library_path, mode_files=0o666, mode_dirs=0o777)
 
     return player_ctrl
+
+
+#: Satisfies the `initialize() -> PlayerCoordinator` contract `player.plugin` dispatches to.
+initialize = initialize_mpd_player

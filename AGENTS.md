@@ -57,13 +57,19 @@ ci/                CI helper scripts (e.g. installation testing)
   (currently: publishing, system, player, rfid) directly by calling its `register()`/`start()`
   functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
   `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
-- **RPC**: the Web App (via `POST /api/v1/rpc`) and RFID card swipes (direct in-process calls)
-  both dispatch through the *same* `(package, plugin, method)` call shape — read
-  `documentation/builders/rpc-commands.md` before adding a new user-triggerable action. ZeroMQ is
-  gone entirely now: the old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI
-  (`run_rpc_tool.py`), and the C CLI client (`src/cli_client/pbc.c`) were all removed. A first CLI
-  slice now exists (`packages/cli`, `jukebox run`/`jukebox debug sniff`), but a dedicated RPC tool
-  built on the FastAPI `/api/v1/rpc` endpoint is still not designed (see roadmap).
+- **API**: the webapp talks to `player`/`settings`/`cards` through typed REST endpoints
+  (`/api/v1/player/*`, `/api/v1/settings`, `/api/v1/cards` — see `/docs` on the running daemon,
+  and roadmap-core-architecture.md "Advanced plugin system"). RFID card swipes still dispatch
+  in-process through the older `(package, plugin, method)` call shape
+  (`jukebox.registry.call()`/`command_aliases.py` — read `documentation/builders/rpc-commands.md`
+  before adding a new card-triggerable action) — that mechanism is unrelated to the HTTP API and
+  wasn't touched by the REST migration. `POST /api/v1/rpc` still exists for anything not (yet)
+  wrapped as a typed endpoint (currently: the `volume`/`host`/`timers`/`sync_rfidcards` packages,
+  none of which exist server-side — broken regardless of transport). ZeroMQ is gone entirely: the
+  old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI (`run_rpc_tool.py`), and the C CLI
+  client (`src/cli_client/pbc.c`) were all removed. A first CLI slice exists (`packages/cli`,
+  `jukebox run`/`jukebox debug sniff`), but a dedicated CLI for the API itself is still not
+  designed.
 - **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
   the status/event channel components publish to (`publishing.get_publisher().send(topic,
   payload)`) — thread-safe, in-process, no ZMQ involved anymore (see

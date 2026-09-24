@@ -40,6 +40,27 @@ Fork goals, roughly in the order we're tackling them:
    reaching the player) invoke the router's handler function directly, skipping HTTP/ASGI
    serialization -- only genuinely external or out-of-process callers (browser, external/
    out-of-process plugins) pay for the full HTTP round trip.
+
+   **Status: the webapp-facing half is done.** Every `player.ctrl`/`misc`/`cards` method with a
+   real implementation now has a typed REST route under `/api/v1/{player,settings,cards}/*` (see
+   `jukebox.api.fastapi_server`'s `register_player_routes`/`register_settings_routes`/
+   `register_cards_routes`) -- handlers call straight into the registered object via
+   `jukebox.registry.get()`, matching the "skip serialization" compromise above without needing
+   the FastAPI-router-*per-plugin* machinery this principle originally envisioned (there's no
+   plugin system generating these yet, they're hand-written per method). `commands/index.js`'s
+   webapp call sites are switched over; the only entries still pointing at RPC are the
+   `volume`/`host`/`timers`/`sync_rfidcards` packages, none of which exist server-side (removed
+   with the old plugin system, never reintroduced -- already non-functional regardless of
+   transport, see "Old plugin system removed" below). `POST /api/v1/rpc` itself is deliberately
+   **not removed**: `jukebox.utils.bind_rpc_command`/`decode_and_call_rpc_command` (the RFID
+   card-action / `card_removal_action` config mechanism, see
+   `documentation/builders/rpc-commands.md`) reuses the exact same `@plugs.tag`/`registry.call()`
+   machinery for something unrelated to the HTTP bridge -- untagging methods to "finish" the
+   migration was tried and reverted once (see git history) after it broke that. Removing the
+   `/api/v1/rpc` *route* itself (as opposed to untagging methods) would be safe on that front, but
+   wasn't done -- it's still the documented general-purpose escape hatch for anything not (yet)
+   wrapped, and deleting a whole public API surface felt like a decision worth a human sign-off
+   rather than an autonomous one, unlike wrapping existing methods.
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
    drives system setup instead of ~20 bash scripts. Upstream already scoped this in
    `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not

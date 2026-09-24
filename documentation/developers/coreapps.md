@@ -52,16 +52,21 @@ Run this once to register and configure the RFID readers with Jukebox. It can be
 
 ## Developer Tools
 
-### RPC
+### API
 
-There is no dedicated RPC CLI tool right now. Both previous ones were removed -- the interactive
-Python tool (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) and the C client
+Most of the player/settings/cards surface is now typed, documented REST -- see `/docs` (Swagger
+UI) on the running daemon for the full, current list. `GET /api/v1/player/status`,
+`POST /api/v1/player/play`, `PUT /api/v1/player/volume`, etc. -- see `jukebox.api.fastapi_server`
+and `documentation/developers/roadmap-core-architecture.md`, "Advanced plugin system" for how this
+came together.
+
+There is no dedicated CLI tool for this yet (both previous RPC CLIs were removed -- the
+interactive Python tool (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) and the C client
 (`src/cli_client/pbc.c`), along with the ZeroMQ REP server they talked to
-(`jukebox.rpc.server.RpcServer`). A replacement, built against the FastAPI `/api/v1/rpc` HTTP
-endpoint, is planned but not designed yet -- see
-`documentation/developers/roadmap-core-architecture.md`. In the meantime, `curl` or any HTTP
-client can call `POST /api/v1/rpc` directly with a `{"package": ..., "plugin": ..., "method": ...}`
-JSON body.
+(`jukebox.rpc.server.RpcServer`)) -- for now, `curl` or any HTTP client against the REST endpoints
+above, or `POST /api/v1/rpc` with a `{"package": ..., "plugin": ..., "method": ...}` JSON body for
+anything not (yet) wrapped as a typed endpoint (`volume`/`host`/`timers`/`sync_rfidcards` -- none
+of which currently work regardless of transport, see the roadmap doc).
 
 ### Publicity Sniffer
 

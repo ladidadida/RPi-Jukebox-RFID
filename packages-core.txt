@@ -3,9 +3,11 @@
 
 at
 alsa-utils
+build-essential # evdev has no wheels; cffi none for armv7l
 espeak
 ffmpeg
 libasound2-dev
+libffi-dev # cffi source build (armv7l)
 liblgpio-dev
 libportaudio2
 mpg123

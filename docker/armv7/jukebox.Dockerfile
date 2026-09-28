@@ -1,55 +1,42 @@
-FROM arm32v7/debian:buster-slim
+# 32-bit Raspberry Pi OS equivalent (armhf userland on an armv7 CPU). Build on a non-ARM host via
+# QEMU binfmt: docker build --platform linux/arm/v7 -f docker/armv7/jukebox.Dockerfile .
+FROM --platform=linux/arm/v7 debian:trixie-slim
 
-# Prepare Raspberry Pi like environment
-
-# These are only dependencies that are required to get as close to the
-# Raspberry Pi environment as possible.
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2-dev \
     libportaudio2 \
     pulseaudio \
     pulseaudio-utils \
-    --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-ARG UID
-ARG USER
-ARG HOME
-ENV INSTALLATION_PATH ${HOME}/RPi-Jukebox-RFID
+ARG UID=1000
+ARG USER=pi
+ARG HOME=/home/${USER}
+ENV INSTALLATION_PATH=${HOME}/RPi-Jukebox-RFID
 
-RUN test ${UID} -gt 0 && useradd -m -u ${UID} ${USER} || continue
-RUN usermod -aG pulse ${USER}
+RUN useradd -m -u "${UID}" "${USER}" && usermod -aG pulse "${USER}"
 
-# Jukebox
-# Install all Jukebox dependencies
-RUN apt-get update && apt-get install -qq -y \
-    --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-    at wget gcc \
-    mpc mpg123 git ffmpeg spi-tools netcat alsa-tools \
-    python3 python3-venv python3-dev python3-mutagen
-#samba samba-common-bin
-#raspberrypi-kernel-headers
-#resolvconf
+# No wheels on PyPI for armv7l: cffi (via sounddevice) and evdev are built from source.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates curl \
+    libffi-dev \
+    python3 python3-venv python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN UV_INSTALL_DIR=/usr/local/bin sh /uv-installer.sh && rm /uv-installer.sh
+
+COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
+
+USER ${USER}
+WORKDIR ${INSTALLATION_PATH}
 
 ENV VIRTUAL_ENV=${INSTALLATION_PATH}/.venv
 RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# uv (package manager), used below to install Python dependencies as $USER
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
-RUN UV_INSTALL_DIR=/usr/local/bin sh /uv-installer.sh && rm /uv-installer.sh
-
-USER ${USER}
-WORKDIR ${HOME}
-COPY --chown=${USER}:${USER} . ${INSTALLATION_PATH}/
-
-# Install runtime Python dependencies via uv (see pyproject.toml)
-RUN cd ${INSTALLATION_PATH} && uv sync --no-dev
+RUN uv sync --no-dev --frozen
 
 EXPOSE 5556
 
-WORKDIR ${INSTALLATION_PATH}
-
-# Run Jukebox
-# CMD bash
-CMD python ${INSTALLATION_PATH}/packages/jukebox/scripts/run_jukebox.py
+CMD ["jukebox", "run"]

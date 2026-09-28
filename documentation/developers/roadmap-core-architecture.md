@@ -331,16 +331,26 @@ codebase has never been run through either -- same "no formatting baseline commi
 upstream already flagged in `roadmap-plugins-and-packaging.md` for their own (not-merged-here) work.
 
 **Update:** `requirements.txt` / `requirements-excluded.txt` are gone too now. The real Pi installer
-(`installation/routines/setup_jukebox_core.sh`) and both Dockerfiles were migrated to `uv sync`
+(`migrate_to_cli/installation/routines/setup_jukebox_core.sh`) and both Dockerfiles were migrated to `uv sync`
 against `pyproject.toml` directly (bootstrapping `uv` itself via the official install script if not
 already present). One gotcha caught by actually building `docker/Dockerfile.jukebox` and importing
 `zmq` inside the built image: PyZMQ must keep coming from the `python3-zmq` apt package (via
 `--system-site-packages`, using the system libzmq) rather than a PyPI wheel -- `uv sync
 --no-install-package pyzmq` on all three call sites keeps that true, otherwise every install would
 silently reintroduce the exact "draft-enabled PyZMQ shadowing the system package" problem the
-installer already has one-time cleanup logic for. The armv7 Dockerfile's `uv sync` step and the real
-Pi installer's `uv sync` step are unverified beyond syntax review -- no armv7 QEMU build or real Pi
-hardware available here; worth a smoke test before relying on them. This closes out the last piece
+installer already has one-time cleanup logic for. (PyZMQ has since been removed entirely.)
+
+**armv7 verified under QEMU** (no real Pi hardware yet): `docker/armv7/jukebox.Dockerfile` (rebased
+from buster -- Python 3.7, below `requires-python` -- to trixie) builds and `jukebox run` serves
+the API on armv7l. The installer's `_jukebox_core_install_python_requirements` was run in the
+`ci/ci-debian.Dockerfile` base (Raspbian trixie repos, `packages-core.txt`) on armv7l as user `pi`,
+followed by the service's `ExecStart` in a minimal systemd-like environment. That caught three
+real bugs, now fixed: `cffi` (via `sounddevice`) has no armv7l wheel and failed to build without
+`libffi-dev` (added, plus `build-essential` since `evdev` never has wheels); a failed `uv sync` did
+not abort the installer (now `exit_on_error`); and the service ran `uv run`, but `uv` lives in
+`~/.local/bin`, which isn't on the systemd user manager's PATH (now calls `.venv/bin/jukebox`
+directly). Source builds under QEMU take ~1-2 min. Still open: the service `Requires=mpd.service`
+and the installer always sets up mpd, although `local_audio` is the default backend. This closes out the last piece
 of Track B (packaging/install) that isn't a full install/update rewrite -- runtime dependency
 installation is uv-based everywhere now, the rest of Track B (bundling the webapp as package data,
 resolving checkout-relative paths, etc.) is still open.

@@ -82,7 +82,7 @@ RUN echo "--- install internal packages ---" \
 ENV INSTALL_SCRIPT_PATH=/code
 
 WORKDIR ${INSTALL_SCRIPT_PATH}
-COPY --chown=root:$TEST_USER_GROUP --chmod=770 installation/install-jukebox.sh ./
+COPY --chown=root:$TEST_USER_GROUP --chmod=770 migrate_to_cli/installation/install-jukebox.sh ./
 
 WORKDIR ${INSTALL_SCRIPT_PATH}/tests
 COPY --chown=root:$TEST_USER_GROUP --chmod=770 ci/installation/*.sh ./

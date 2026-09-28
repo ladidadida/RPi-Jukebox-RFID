@@ -7,7 +7,7 @@ Requires=mpd.service pipewire-pulse.service
 
 [Service]
 WorkingDirectory=%%INSTALLATION_PATH%%
-ExecStart=/bin/bash -c 'uv run jukebox run'
+ExecStart=%%INSTALLATION_PATH%%/.venv/bin/jukebox run
 StandardOutput=inherit
 StandardError=inherit
 Restart=always

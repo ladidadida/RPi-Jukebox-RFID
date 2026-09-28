@@ -41,7 +41,7 @@ _jukebox_core_install_python_requirements() {
   # leave, but nothing installs or needs it anymore, so clean it up if present.
   uv pip uninstall pyzmq
 
-  uv sync --no-dev
+  uv sync --no-dev --frozen || exit_on_error "ERROR: Failed to install Python requirements"
 }
 
 _jukebox_core_install_settings() {
@@ -74,7 +74,7 @@ import re
 import tomllib
 with open('${INSTALLATION_PATH}/packages/jukebox/pyproject.toml', 'rb') as f:
     deps = tomllib.load(f)['project']['dependencies']
-print(' '.join(re.split(r'[<>=!; ]', dep, 1)[0] for dep in deps))
+print(' '.join(re.split(r'[<>=!; ]', dep, maxsplit=1)[0] for dep in deps))
 ")
     verify_pip_modules $pip_modules
 

@@ -39,10 +39,6 @@ const commands = {
   deleteCard: {
     rest: { method: 'DELETE', path: '/api/v1/cards' },
   },
-  // Migrated to real REST endpoints (see api/fastapi_server.py, register_player_routes) -- the
-  // first slice of replacing the generic (package, plugin, method) RPC addressing, per
-  // documentation/developers/roadmap-core-architecture.md. `request()` in utils/request.js
-  // dispatches on the presence of `rest` instead of `_package`/`plugin`/`method`.
   playerstatus: {
     rest: { method: 'GET', path: '/api/v1/player/status' },
   },

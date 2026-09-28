@@ -63,9 +63,8 @@ ci/                CI helper scripts (e.g. installation testing)
   in-process through the older `(package, plugin, method)` call shape
   (`jukebox.registry.call()`/`command_aliases.py` — read `documentation/builders/rpc-commands.md`
   before adding a new card-triggerable action) — that mechanism is unrelated to the HTTP API and
-  wasn't touched by the REST migration. `POST /api/v1/rpc` still exists for anything not (yet)
-  wrapped as a typed endpoint (currently: the `volume`/`host`/`timers`/`sync_rfidcards` packages,
-  none of which exist server-side — broken regardless of transport). ZeroMQ is gone entirely: the
+  wasn't touched by the REST migration. The generic HTTP RPC endpoint (`POST /api/v1/rpc`) is
+  gone — new functionality gets a typed REST route, not a generic call. ZeroMQ is gone entirely: the
   old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI (`run_rpc_tool.py`), and the C CLI
   client (`src/cli_client/pbc.c`) were all removed. A first CLI slice exists (`packages/cli`,
   `jukebox run`/`jukebox debug sniff`), but a dedicated CLI for the API itself is still not

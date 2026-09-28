@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 """FastAPI + uvicorn HTTP and WebSocket API server.
 
-The sole browser-facing HTTP/WebSocket bridge -- replaced the Tornado-based `jukebox.api.server`
-(see documentation/developers/roadmap-core-architecture.md, steps 2-6). Serves health, RPC
-passthrough, events-over-websocket, the library upload/folder/entries/refresh endpoints, and (see
-jukebox.api.webapp_static) the webapp's static build + /logs -- nginx is gone, this is now the one
-thing reachable from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
+The sole browser-facing HTTP/WebSocket bridge. Serves health, the typed REST routes for player,
+settings and cards, events-over-websocket, the library upload/folder/entries/refresh endpoints, and
+(see jukebox.api.webapp_static) the webapp's static build + /logs -- this is the one thing reachable
+from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
 
-The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
-version was: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no
-shared global lock, so multiple executor workers actually buy real concurrency now -- each component
-is responsible for its own thread-safety.
+Handlers run on a multi-worker executor: components are responsible for their own thread-safety,
+so a slow call doesn't serialize the rest of the API.
 """
 
 import asyncio
@@ -34,12 +31,11 @@ import jukebox.registry
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
 from jukebox.api.webapp_static import register_webapp_routes
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
-from jukebox.api.dispatch import process_request
 
 logger = logging.getLogger('jb.api.fastapi_server')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
-RPC_EXECUTOR_WORKERS = 4
+API_EXECUTOR_WORKERS = 4
 LIBRARY_EXECUTOR_WORKERS = 1
 
 # packages/jukebox/src/jukebox/api/fastapi_server.py -> repo root is 5 levels up.
@@ -84,28 +80,6 @@ async def _read_limited_body(request: Request, limit: int) -> bytes:
     return bytes(body)
 
 
-async def _handle_rpc_request(request: Request, executor, rpc_processor):
-    content_type = request.headers.get('content-type', '')
-    media_type = content_type.split(';', 1)[0].strip().lower()
-    if media_type != 'application/json':
-        return JSONResponse(status_code=400, content={'error': 'Content-Type must be application/json.'})
-
-    try:
-        body = await _read_limited_body(request, MAX_MESSAGE_SIZE)
-    except _BodyTooLarge:
-        return JSONResponse(status_code=413, content={'error': 'Request body exceeds 1 MiB.'})
-    try:
-        client_request = json.loads(body)
-    except (ValueError, UnicodeDecodeError) as error:
-        return JSONResponse(status_code=400, content={'error': f'Malformed JSON: {error}'})
-
-    if not isinstance(client_request, dict):
-        return JSONResponse(status_code=400, content={'error': 'RPC request must be an object.'})
-
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(executor, rpc_processor, client_request)
-
-
 def _is_same_origin(websocket: WebSocket) -> bool:
     """Reject cross-origin WebSocket handshakes, matching Tornado's default `check_origin`.
 
@@ -115,7 +89,7 @@ def _is_same_origin(websocket: WebSocket) -> bool:
     """
     origin = websocket.headers.get('origin')
     if origin is None:
-        # Non-browser clients (e.g. the RPC CLI talking WS directly) don't send Origin at all.
+        # Non-browser clients (e.g. `jukebox debug sniff`) don't send Origin at all.
         return True
     origin_host = urlsplit(origin).netloc.lower()
     request_host = (websocket.headers.get('host') or '').lower()
@@ -345,15 +319,14 @@ class DeleteCardRequest(BaseModel):
 
 
 def _player_ctrl():
-    """The registered PlayerCoordinator, fetched directly -- these routes call straight into it
-    (per the roadmap's "in-process calls skip serialization" principle) rather than through
-    jukebox.registry.call()/the @plugs.tag machinery that exists for the generic RPC dispatcher."""
+    """The registered PlayerCoordinator, fetched directly -- routes call straight into it rather than
+    through jukebox.registry.call()."""
     return jukebox.registry.get('player', 'ctrl')
 
 
 async def _run_on_executor(executor, func, *args):
-    """Run a (possibly lock-acquiring) player_ctrl call off the asyncio event loop, same as the
-    RPC/library handlers already do for anything that isn't guaranteed-instant.
+    """Run a (possibly lock-acquiring) component call off the asyncio event loop, same as the
+    library handlers do for anything that isn't guaranteed-instant.
 
     Some PlayerCoordinator methods are backend-specific (e.g. cover art, tag-based browsing) and
     raise NotImplementedError when the active backend doesn't support them -- local_audio
@@ -568,9 +541,8 @@ def _register_player_backend_management_routes(app: FastAPI, executor) -> None:
 
 
 def register_player_routes(app: FastAPI, executor) -> None:
-    """Typed REST routes for player transport + volume -- see roadmap-core-architecture.md,
-    "Advanced plugin system": replaces the generic (package, plugin, method) RPC addressing for
-    this surface with real, OpenAPI-documented endpoints."""
+    """Typed REST routes for the PlayerCoordinator -- see roadmap-core-architecture.md,
+    "Advanced plugin system"."""
     _register_player_transport_routes(app, executor)
     _register_player_content_and_status_routes(app, executor)
     _register_player_library_routes(app, executor)
@@ -619,8 +591,7 @@ def register_cards_routes(app: FastAPI, executor) -> None:
         await _run_on_executor(executor, jukebox.registry.get('cards', 'delete_card'), body.card_id)
 
 
-def create_app(broker, executor, rpc_processor=process_request, library=None, library_executor=None,
-                webapp_build_dir=None, logs_dir=None):
+def create_app(broker, executor, library=None, library_executor=None, webapp_build_dir=None, logs_dir=None):
     if library is None:
         library = create_music_library()
     if library_executor is None:
@@ -631,10 +602,6 @@ def create_app(broker, executor, rpc_processor=process_request, library=None, li
     @app.get('/api/v1/health')
     async def health():
         return {'status': 'ok'}
-
-    @app.post('/api/v1/rpc')
-    async def rpc(request: Request):
-        return await _handle_rpc_request(request, executor, rpc_processor)
 
     @app.websocket('/api/v1/events')
     async def events(websocket: WebSocket):
@@ -711,7 +678,7 @@ class FastApiServer(threading.Thread):
             self._loop.close()
 
     async def _run_async(self):
-        self._executor = ThreadPoolExecutor(max_workers=RPC_EXECUTOR_WORKERS, thread_name_prefix='FastApiRpc')
+        self._executor = ThreadPoolExecutor(max_workers=API_EXECUTOR_WORKERS, thread_name_prefix='FastApi')
         self._library_executor = ThreadPoolExecutor(
             max_workers=LIBRARY_EXECUTOR_WORKERS, thread_name_prefix='FastApiLibrary')
         app = create_app(self.broker, self._executor, library_executor=self._library_executor)

@@ -70,7 +70,7 @@ Punkte. Kurzfassung:
 1. **Component-Registry** (`jukebox.registry`) — ersetzt das alte, config-getriebene
    Plugin-System. `jukebox.daemon.run()` verdrahtet jede Komponente explizit
    (`register()`/`start()`), nichts wird mehr dynamisch aus der Config geladen.
-2. **FastAPI als Browser-Bridge** — HTTP (`/api/v1/rpc`, Library-Endpoints), WebSocket
+2. **FastAPI als Browser-Bridge** — HTTP (typisierte REST-Endpoints unter `/api/v1/{player,settings,cards,library}`), WebSocket
    (`/api/v1/events`), und seit Kurzem auch das Webapp-Static-Build + `/logs` direkt (kein nginx
    mehr davor). RFID-Kartenaktionen laufen direkt in-process über die Registry. ZeroMQ ist komplett
    raus: sowohl das Python-RPC-CLI (`run_rpc_tool.py`) als auch der C-Client

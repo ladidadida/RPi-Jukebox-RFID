@@ -28,7 +28,7 @@ const SongListHeader = ({ provider, view }) => {
         </IconButton>
       </Grid>
       <Grid size={8} sx={{ marginTop: '18px' }}>
-        {/* TODO: Simultaneous requests to RPC seem to be a problem */}
+        {/* TODO: Simultaneous requests seem to be a problem */}
         {/* At least in this situation. Solution might be to queue requests */}
         {/* <Cover song={song} /> */}
       </Grid>

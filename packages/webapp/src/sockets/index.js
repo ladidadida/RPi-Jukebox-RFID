@@ -1,17 +1,9 @@
-import { v4 as uuidv4 } from 'uuid';
-
+import { PUBSUB_ENDPOINT } from '../config';
 import {
-  PUBSUB_ENDPOINT,
-  REQRES_ENDPOINT,
-} from '../config';
-import {
-  decodeMessage,
   decodePubSubMessage,
   encodeMessage,
-  preparePayload
 } from './utils';
 
-const REQUEST_TIMEOUT_MS = 15000;
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 
@@ -145,54 +137,6 @@ const initSockets = ({ setState, events = [] }) => {
   };
 };
 
-const socketRequest = async (_package, plugin, method, kwargs) => {
-  const requestId = uuidv4();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const payload = preparePayload(
-    requestId,
-    _package,
-    plugin,
-    method,
-    kwargs,
-  );
-
-  try {
-    const response = await fetch(REQRES_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: encodeMessage(payload),
-      signal: controller.signal,
-    });
-    const body = await response.text();
-
-    if (!response.ok) {
-      return Promise.reject(`RPC request failed with HTTP ${response.status}.`);
-    }
-
-    const { id, error, result } = decodeMessage(body);
-    if (error && error.message) {
-      return Promise.reject(error.message);
-    }
-    if (id !== requestId) {
-      return Promise.reject('Received RPC response ID does not match sender ID.');
-    }
-    return result;
-  }
-  catch (error) {
-    if (error && error.name === 'AbortError') {
-      return Promise.reject('Request timed out');
-    }
-    throw error;
-  }
-  finally {
-    clearTimeout(timeout);
-  }
-};
-
 export {
   initSockets,
-  socketRequest,
 };

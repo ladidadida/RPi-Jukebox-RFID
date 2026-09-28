@@ -1,4 +1,3 @@
-const REQRES_ENDPOINT = '/api/v1/rpc';
 const PUBSUB_ENDPOINT = '/api/v1/events';
 
 const SUBSCRIPTIONS = [
@@ -57,7 +56,6 @@ const TIMER_STEPS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 120, 180, 240];
 export {
   JUKEBOX_ACTIONS_MAP,
   PUBSUB_ENDPOINT,
-  REQRES_ENDPOINT,
   ROOT_DIR,
   SUBSCRIPTIONS,
   TIMER_STEPS,

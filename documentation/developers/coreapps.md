@@ -63,10 +63,8 @@ came together.
 There is no dedicated CLI tool for this yet (both previous RPC CLIs were removed -- the
 interactive Python tool (`run_rpc_tool.py` / `tools/run_rpc_tool.sh`) and the C client
 (`src/cli_client/pbc.c`), along with the ZeroMQ REP server they talked to
-(`jukebox.rpc.server.RpcServer`)) -- for now, `curl` or any HTTP client against the REST endpoints
-above, or `POST /api/v1/rpc` with a `{"package": ..., "plugin": ..., "method": ...}` JSON body for
-anything not (yet) wrapped as a typed endpoint (`volume`/`host`/`timers`/`sync_rfidcards` -- none
-of which currently work regardless of transport, see the roadmap doc).
+(`jukebox.rpc.server.RpcServer`)) -- for now, use `curl` or any HTTP client against the REST
+endpoints above. The generic `POST /api/v1/rpc` endpoint was removed as well.
 
 ### Publicity Sniffer
 

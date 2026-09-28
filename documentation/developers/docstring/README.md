@@ -29,6 +29,7 @@
     * [\_\_init\_\_](#jukebox.rfid.reader.CardRemovalTimerClass.__init__)
   * [start\_readers](#jukebox.rfid.reader.start_readers)
 * [jukebox.rfid.configure](#jukebox.rfid.configure)
+  * [BUNDLED\_READER\_EXTRAS](#jukebox.rfid.configure.BUNDLED_READER_EXTRAS)
   * [reader\_install\_dependencies](#jukebox.rfid.configure.reader_install_dependencies)
   * [reader\_load\_module](#jukebox.rfid.configure.reader_load_module)
   * [query\_user\_for\_reader](#jukebox.rfid.configure.query_user_for_reader)
@@ -109,9 +110,10 @@
     * [publish](#jukebox.api.events.EventBroker.publish)
   * [parse\_subscription\_command](#jukebox.api.events.parse_subscription_command)
 * [jukebox.api](#jukebox.api)
-* [jukebox.api.dispatch](#jukebox.api.dispatch)
-  * [process\_request](#jukebox.api.dispatch.process_request)
 * [jukebox.api.fastapi\_server](#jukebox.api.fastapi_server)
+  * [register\_player\_routes](#jukebox.api.fastapi_server.register_player_routes)
+  * [register\_settings\_routes](#jukebox.api.fastapi_server.register_settings_routes)
+  * [register\_cards\_routes](#jukebox.api.fastapi_server.register_cards_routes)
   * [FastApiServer](#jukebox.api.fastapi_server.FastApiServer)
 * [jukebox.api.webapp\_static](#jukebox.api.webapp_static)
   * [register\_webapp\_routes](#jukebox.api.webapp_static.register_webapp_routes)
@@ -133,6 +135,7 @@
     * [load](#jukebox.cfghandler.ConfigHandler.load)
   * [get\_handler](#jukebox.cfghandler.get_handler)
   * [load\_yaml](#jukebox.cfghandler.load_yaml)
+  * [ensure\_default\_config](#jukebox.cfghandler.ensure_default_config)
   * [write\_yaml](#jukebox.cfghandler.write_yaml)
 * [jukebox.callingback](#jukebox.callingback)
   * [CallbackHandler](#jukebox.callingback.CallbackHandler)
@@ -165,6 +168,7 @@
   * [GenericEndlessTimerClass](#jukebox.multitimer.GenericEndlessTimerClass)
     * [get\_state](#jukebox.multitimer.GenericEndlessTimerClass.get_state)
 * [jukebox.daemon](#jukebox.daemon)
+  * [DEFAULT\_CONFIG\_TEMPLATE](#jukebox.daemon.DEFAULT_CONFIG_TEMPLATE)
   * [log\_active\_threads](#jukebox.daemon.log_active_threads)
   * [JukeBox](#jukebox.daemon.JukeBox)
     * [signal\_handler](#jukebox.daemon.JukeBox.signal_handler)
@@ -195,6 +199,7 @@
   * [set\_app\_settings](#jukebox.system.set_app_settings)
 * [jukebox.player.mpd\_plugin](#jukebox.player.mpd_plugin)
   * [initialize\_mpd\_player](#jukebox.player.mpd_plugin.initialize_mpd_player)
+  * [initialize](#jukebox.player.mpd_plugin.initialize)
 * [jukebox.player.coordinator](#jukebox.player.coordinator)
   * [PlayerCoordinator](#jukebox.player.coordinator.PlayerCoordinator)
     * [register\_backend](#jukebox.player.coordinator.PlayerCoordinator.register_backend)
@@ -208,6 +213,13 @@
   * [play\_card\_callbacks](#jukebox.player.play_card_callbacks)
   * [MusicLibPath](#jukebox.player.MusicLibPath)
   * [get\_music\_library\_path](#jukebox.player.get_music_library_path)
+* [jukebox.player.backends.local\_audio](#jukebox.player.backends.local_audio)
+  * [AudioSink](#jukebox.player.backends.local_audio.AudioSink)
+  * [PortAudioSink](#jukebox.player.backends.local_audio.PortAudioSink)
+  * [PlayerLocalAudio](#jukebox.player.backends.local_audio.PlayerLocalAudio)
+    * [rewind](#jukebox.player.backends.local_audio.PlayerLocalAudio.rewind)
+    * [replay](#jukebox.player.backends.local_audio.PlayerLocalAudio.replay)
+  * [initialize](#jukebox.player.backends.local_audio.initialize)
 * [jukebox.player.backends.coverart\_cache\_manager](#jukebox.player.backends.coverart_cache_manager)
 * [jukebox.player.backends.mpd](#jukebox.player.backends.mpd)
   * [PlayerMPD](#jukebox.player.backends.mpd.PlayerMPD)
@@ -569,6 +581,15 @@ documentation/developers/roadmap-core-architecture.md).
 <a id="jukebox.rfid.configure"></a>
 
 # jukebox.rfid.configure
+
+<a id="jukebox.rfid.configure.BUNDLED_READER_EXTRAS"></a>
+
+#### BUNDLED\_READER\_EXTRAS
+
+Reader (sub)package name -> pyproject.toml extra providing its dependencies. Formalizes what
+
+used to be a per-reader requirements.txt, installed with `pip install -r requirements.txt`.
+
 
 <a id="jukebox.rfid.configure.reader_install_dependencies"></a>
 
@@ -1544,43 +1565,54 @@ Validate a decoded events-websocket command.
 HTTP and WebSocket API for browser clients.
 
 
-<a id="jukebox.api.dispatch"></a>
-
-# jukebox.api.dispatch
-
-Transport-neutral processing for Jukebox RPC requests.
-
-
-<a id="jukebox.api.dispatch.process_request"></a>
-
-#### process\_request
-
-```python
-def process_request(client_request, received_at_ns=None)
-```
-
-Execute an RPC request and return its response envelope.
-
-The request is copied before any values are passed to plugin code so the
-caller's dictionary, including nested ``args`` and ``kwargs``, is retained.
-
-
 <a id="jukebox.api.fastapi_server"></a>
 
 # jukebox.api.fastapi\_server
 
 FastAPI + uvicorn HTTP and WebSocket API server.
 
-The sole browser-facing HTTP/WebSocket bridge -- replaced the Tornado-based `jukebox.api.server`
-(see documentation/developers/roadmap-core-architecture.md, steps 2-6). Serves health, RPC
-passthrough, events-over-websocket, the library upload/folder/entries/refresh endpoints, and (see
-jukebox.api.webapp_static) the webapp's static build + /logs -- nginx is gone, this is now the one
-thing reachable from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
+The sole browser-facing HTTP/WebSocket bridge. Serves health, the typed REST routes for player,
+settings and cards, events-over-websocket, the library upload/folder/entries/refresh endpoints, and
+(see jukebox.api.webapp_static) the webapp's static build + /logs -- this is the one thing reachable
+from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
 
-The RPC executor here is sized for concurrency rather than serialized to one worker like the Tornado
-version was: unlike the old `jukebox.plugs` system this replaced, `jukebox.registry.call()` has no
-shared global lock, so multiple executor workers actually buy real concurrency now -- each component
-is responsible for its own thread-safety.
+Handlers run on a multi-worker executor: components are responsible for their own thread-safety,
+so a slow call doesn't serialize the rest of the API.
+
+
+<a id="jukebox.api.fastapi_server.register_player_routes"></a>
+
+#### register\_player\_routes
+
+```python
+def register_player_routes(app: FastAPI, executor) -> None
+```
+
+Typed REST routes for the PlayerCoordinator -- see roadmap-core-architecture.md,
+
+"Advanced plugin system".
+
+
+<a id="jukebox.api.fastapi_server.register_settings_routes"></a>
+
+#### register\_settings\_routes
+
+```python
+def register_settings_routes(app: FastAPI, executor) -> None
+```
+
+misc.get_app_settings/set_app_settings -- webapp UI settings stored in jukebox.yaml.
+
+
+<a id="jukebox.api.fastapi_server.register_cards_routes"></a>
+
+#### register\_cards\_routes
+
+```python
+def register_cards_routes(app: FastAPI, executor) -> None
+```
+
+RFID card database CRUD (cards.list_cards/register_card/delete_card).
 
 
 <a id="jukebox.api.fastapi_server.FastApiServer"></a>
@@ -1894,6 +1926,28 @@ Load a yaml file into a ConfigHandler
 
 - `cfg`: ConfigHandler instance
 - `filename`: filename to yaml file
+
+**Returns**:
+
+None
+
+<a id="jukebox.cfghandler.ensure_default_config"></a>
+
+#### ensure\_default\_config
+
+```python
+def ensure_default_config(filename: str, template: str) -> None
+```
+
+Create `filename` from `template` if it doesn't exist yet (creating parent directories as
+
+needed). Lets a fresh checkout/install start with sensible defaults instead of requiring a
+separate install step to have copied the template first.
+
+**Arguments**:
+
+- `filename`: path the config file is expected/wanted at
+- `template`: path to the default template to copy from if `filename` is missing
 
 **Returns**:
 
@@ -2303,6 +2357,15 @@ Return the RPC-compatible periodic timer state.
 <a id="jukebox.daemon"></a>
 
 # jukebox.daemon
+
+<a id="jukebox.daemon.DEFAULT_CONFIG_TEMPLATE"></a>
+
+#### DEFAULT\_CONFIG\_TEMPLATE
+
+Template a missing configuration_file is created from on first run (see JukeBox.__init__).
+
+Repository-root-relative, same convention as every other path in this codebase.
+
 
 <a id="jukebox.daemon.log_active_threads"></a>
 
@@ -2734,6 +2797,13 @@ def initialize_mpd_player() -> PlayerCoordinator
 Create the coordinator with MPD as its sole backend and register it as 'player.ctrl'.
 
 
+<a id="jukebox.player.mpd_plugin.initialize"></a>
+
+#### initialize
+
+Satisfies the `initialize() -> PlayerCoordinator` contract `player.plugin` dispatches to.
+
+
 <a id="jukebox.player.coordinator"></a>
 
 # jukebox.player.coordinator
@@ -2819,6 +2889,9 @@ def run_callbacks(content: str, state: STATE)
 
 Player start-up/shutdown, called explicitly by jukebox.daemon (no plugin system).
 
+Selects a playback backend module by `player.backend` config, mirroring how
+`jukebox.rfid.reader` dynamically loads a hardware module by name.
+
 
 <a id="jukebox.player"></a>
 
@@ -2841,7 +2914,11 @@ facade rather than to a specific playback backend.
 class MusicLibPath()
 ```
 
-Extract the music directory from the mpd.conf file
+Determine the music library directory.
+
+Primarily from `player.music_library_path` config (backend-agnostic). Falls back to parsing
+`music_directory` out of mpd.conf only when the mpd backend is active and no explicit path was
+configured -- keeps existing mpd installs working without a migration step.
 
 
 <a id="jukebox.player.get_music_library_path"></a>
@@ -2853,6 +2930,97 @@ def get_music_library_path()
 ```
 
 Get the music library path
+
+
+<a id="jukebox.player.backends.local_audio"></a>
+
+# jukebox.player.backends.local\_audio
+
+Default player backend: decodes audio directly (PyAV) and writes PCM to the machine's normal
+
+audio output (sounddevice/PortAudio) -- no mpd, no external player process, works on any Linux
+box. See documentation/developers/roadmap-core-architecture.md, "Advanced plugin system".
+
+Folder scanning reuses `jukebox.playlistgenerator.PlaylistCollector` (already backend-agnostic --
+`backends/mpd.py` uses the exact same class, just pushes the resulting paths into MPD's queue
+instead of this backend's own in-process one).
+
+Playback runs on one dedicated worker thread. Every control method (play/pause/stop/next/prev/
+seek/play_folder/...) updates `_state`/`_index`/`_position` under `_cv` and sets `_abort` to
+interrupt whatever the worker is currently doing; the worker reopens/seeks the current track
+whenever it's told to (re)start one. This keeps the state machine in one place instead of trying
+to signal a live decode loop with finer-grained commands.
+
+
+<a id="jukebox.player.backends.local_audio.AudioSink"></a>
+
+## AudioSink Objects
+
+```python
+class AudioSink()
+```
+
+What a decoded track is written to. Exists so tests don't need a real audio device.
+
+
+<a id="jukebox.player.backends.local_audio.PortAudioSink"></a>
+
+## PortAudioSink Objects
+
+```python
+class PortAudioSink(AudioSink)
+```
+
+Real output via sounddevice/PortAudio. Falls back to silent (no-op) if no device is
+
+available -- e.g. the no-audio docker dev stack, or a CI box -- rather than raising and
+killing the daemon.
+
+
+<a id="jukebox.player.backends.local_audio.PlayerLocalAudio"></a>
+
+## PlayerLocalAudio Objects
+
+```python
+class PlayerLocalAudio()
+```
+
+Decode-and-output player backend. See module docstring for the state machine.
+
+
+<a id="jukebox.player.backends.local_audio.PlayerLocalAudio.rewind"></a>
+
+#### rewind
+
+```python
+@plugs.tag
+def rewind()
+```
+
+Re-start current playlist from the first track.
+
+
+<a id="jukebox.player.backends.local_audio.PlayerLocalAudio.replay"></a>
+
+#### replay
+
+```python
+@plugs.tag
+def replay()
+```
+
+Re-start playing the last-played folder.
+
+
+<a id="jukebox.player.backends.local_audio.initialize"></a>
+
+#### initialize
+
+```python
+def initialize()
+```
+
+Create the coordinator with local_audio as its sole backend and register it as 'player.ctrl'.
 
 
 <a id="jukebox.player.backends.coverart_cache_manager"></a>

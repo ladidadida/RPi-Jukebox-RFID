@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+import jukebox.registry as registry
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE
 from jukebox.api.fastapi_server import FastApiServer, create_app
 from jukebox.library import MusicLibrary
@@ -25,9 +26,9 @@ class FakeClient:
         return None
 
 
-def _make_client(rpc_processor):
+def _make_client():
     executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(EventBroker(), executor, rpc_processor)
+    app = create_app(EventBroker(), executor)
     client = TestClient(app)
     return client, executor
 
@@ -88,7 +89,7 @@ def library_client():
         lambda: library_directory.name,
         lambda: library_updates.append('update') or 'update-1',
     )
-    app = create_app(EventBroker(), executor, lambda request: {'result': None}, library=library)
+    app = create_app(EventBroker(), executor, library=library)
     client = TestClient(app)
     try:
         yield client, Path(library_directory.name), library_updates
@@ -98,60 +99,11 @@ def library_client():
 
 
 def test_health():
-    client, executor = _make_client(lambda request: {'result': None})
+    client, executor = _make_client()
     try:
         response = client.get('/api/v1/health')
         assert response.status_code == 200
         assert response.json() == {'status': 'ok'}
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-
-
-def test_http_rpc():
-    rpc_processor = lambda request: {  # noqa: E731
-        'result': request['kwargs']['value'],
-        'id': request.get('id'),
-    }
-    client, executor = _make_client(rpc_processor)
-    try:
-        response = client.post(
-            '/api/v1/rpc',
-            headers={'Content-Type': 'application/json; charset=utf-8'},
-            content=json.dumps({'kwargs': {'value': 7}, 'id': 'request'}),
-        )
-        assert response.status_code == 200
-        assert response.json() == {'result': 7, 'id': 'request'}
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-
-
-def test_http_rpc_rejects_invalid_content():
-    client, executor = _make_client(lambda request: {'result': None})
-    try:
-        for body, content_type, status in [
-            ('{', 'application/json', 400),
-            ('[]', 'application/json', 400),
-            ('{}', 'text/plain', 400),
-        ]:
-            response = client.post(
-                '/api/v1/rpc',
-                headers={'Content-Type': content_type},
-                content=body,
-            )
-            assert response.status_code == status
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-
-
-def test_http_rpc_rejects_oversized_body():
-    client, executor = _make_client(lambda request: {'result': None})
-    try:
-        response = client.post(
-            '/api/v1/rpc',
-            headers={'Content-Type': 'application/json'},
-            content=b' ' * (MAX_MESSAGE_SIZE + 1),
-        )
-        assert response.status_code == 413
     finally:
         executor.shutdown(wait=True, cancel_futures=True)
 
@@ -161,7 +113,7 @@ def test_events_subscribe_receives_snapshot_and_rejects_bad_command():
     bus.publish('core.version', 'test-version')
     broker = EventBroker(bus=bus)
     executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(broker, executor, lambda request: {'result': None})
+    app = create_app(broker, executor)
     client = TestClient(app)
     try:
         with client.websocket_connect('/api/v1/events') as websocket:
@@ -178,7 +130,7 @@ def test_events_subscribe_receives_snapshot_and_rejects_bad_command():
 
 def test_events_websocket_rejects_cross_origin_handshake():
     executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(EventBroker(), executor, lambda request: {'result': None})
+    app = create_app(EventBroker(), executor)
     client = TestClient(app)
     try:
         with pytest.raises(Exception):  # noqa: B017 -- starlette.testclient raises WebSocketDisconnect
@@ -193,7 +145,7 @@ def test_events_websocket_rejects_cross_origin_handshake():
 
 def test_events_websocket_allows_same_origin_and_no_origin_header():
     executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(EventBroker(), executor, lambda request: {'result': None})
+    app = create_app(EventBroker(), executor)
     client = TestClient(app)
     try:
         with client.websocket_connect('/api/v1/events', headers={'Origin': 'http://testserver'}):
@@ -296,40 +248,32 @@ def test_library_folder_create_rejects_oversized_body(library_client):
     assert response.json()['error']['code'] == 'request_too_large'
 
 
-def test_blocking_rpc_does_not_block_health():
+def test_blocking_route_does_not_block_health():
     started = threading.Event()
     release = threading.Event()
 
-    def blocking_processor(request):
+    def blocking_list_cards():
         started.set()
         release.wait(1)
-        return {'result': 'done', 'id': request.get('id')}
+        return {'0001': {}}
 
+    registry.register(blocking_list_cards, name='list_cards', package='cards')
     executor = ThreadPoolExecutor(max_workers=4)
-    app = create_app(EventBroker(), executor, blocking_processor)
-    client = TestClient(app)
+    client = TestClient(create_app(EventBroker(), executor))
     try:
         results = {}
-
-        def do_rpc():
-            response = client.post(
-                '/api/v1/rpc',
-                headers={'Content-Type': 'application/json'},
-                content=json.dumps({'id': 'request'}),
-            )
-            results['rpc'] = response
-
-        rpc_thread = threading.Thread(target=do_rpc)
-        rpc_thread.start()
+        cards_thread = threading.Thread(target=lambda: results.update(cards=client.get('/api/v1/cards')))
+        cards_thread.start()
         assert started.wait(1)
 
         health = client.get('/api/v1/health')
         assert health.status_code == 200
 
         release.set()
-        rpc_thread.join(1)
-        assert results['rpc'].json()['result'] == 'done'
+        cards_thread.join(1)
+        assert results['cards'].json() == {'0001': {}}
     finally:
+        registry.unregister('cards')
         executor.shutdown(wait=True, cancel_futures=True)
 
 

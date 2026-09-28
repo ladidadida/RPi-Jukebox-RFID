@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-const rpcResults = {
+const backendData = {
   get_app_settings: { show_covers: false },
-  get_autohotspot_status: 'inactive',
-  get_disk_usage: { used: 8_000, total: 32_000 },
   get_folder_content: [
     {
       name: 'Albums',
@@ -16,20 +14,6 @@ const rpcResults = {
       type: 'file',
     },
   ],
-  get_ip_address: '192.168.1.42',
-  get_outputs: {
-    active_sink: 'speaker',
-    sink_list: [
-      { alias: 'Built-in speaker', pulse_sink_name: 'speaker' },
-      { alias: 'USB audio', pulse_sink_name: 'usb' },
-    ],
-  },
-  get_soft_max_volume: 80,
-  get_state: {
-    enabled: false,
-    remaining_seconds: 0,
-    running: false,
-  },
   get_volume: 42,
   get_single_coverart: 'test-cover.png',
   list_albums: [
@@ -81,124 +65,132 @@ const socketEvents = {
 async function mockBackend(
   page,
   {
-    failRpc = false,
-    rpcGate,
+    failApi = false,
+    apiGate,
     showCovers = false,
     streamingLibrary = false,
-    timerEvents = {},
   } = {},
 ) {
   const eventSockets = new Set();
   const libraryCalls = [];
-  const rpcCalls = [];
+  const apiCalls = [];
   const subscribedTopics = new Set();
 
   await page.addInitScript(() => {
     window.localStorage.setItem('i18nextLng', 'en');
   });
 
-  await page.route('**/api/v1/library/entries**', async route => {
-    const requestUrl = new URL(route.request().url());
-    libraryCalls.push(requestUrl.searchParams.get('folder'));
-    await route.fulfill({
-      body: JSON.stringify({
-        entries: rpcResults.get_folder_content,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/api/v1/rpc', async route => {
-    const request = route.request();
-    const payload = request.postDataJSON();
-    rpcCalls.push(payload);
-
-    if (rpcGate) {
-      await rpcGate;
-    }
-
-    if (failRpc) {
-      await route.fulfill({
-        body: JSON.stringify({ error: 'Backend unavailable' }),
-        contentType: 'application/json',
-        status: 503,
-      });
-      return;
-    }
-
-    const key = payload.method || payload.plugin;
-    let result = rpcResults[key] ?? null;
-    if (key === 'get_app_settings') {
-      result = { show_covers: showCovers };
-    }
-    if (key === 'list_library_sources') {
-      result = [
+  const librarySources = () => [
+    {
+      id: 'mpd',
+      label: 'Local',
+      views: [
         {
-          id: 'mpd',
-          label: 'Local',
-          views: [
-            {
-              id: 'albums',
-              label: 'Albums',
-              kind: 'items',
-              content_types: ['album'],
-            },
-            {
-              id: 'folders',
-              label: 'Folders',
-              kind: 'folders',
-              content_types: [],
-            },
-          ],
+          id: 'albums',
+          label: 'Albums',
+          kind: 'items',
+          content_types: ['album'],
         },
-        ...(streamingLibrary ? [{
-          id: 'streaming',
-          label: 'Streaming',
-          views: [
-            {
-              id: 'playlists',
-              label: 'Playlists',
-              kind: 'items',
-              content_types: ['playlist'],
-            },
-          ],
-        }] : []),
-      ];
-    }
-    if (key === 'list_library_items') {
-      const localItems = rpcResults.list_albums.flatMap(entry => (
-        (Array.isArray(entry.album) ? entry.album : [entry.album]).map(album => ({
-          ...entry,
-          album,
-          content_type: 'album',
-          provider: 'mpd',
-        }))
-      ));
-      const streamingItems = streamingLibrary ? [{
-        albumartist: 'Family',
-        album: 'Bedtime Stories',
-        content_type: 'playlist',
-        content_uri: 'service:playlist:bedtime',
-        provider: 'streaming',
-      }] : [];
-      result = [...localItems, ...streamingItems].filter(item => (
-        (!payload.kwargs.provider || item.provider === payload.kwargs.provider) &&
-        (
-          !payload.kwargs.content_types ||
-          payload.kwargs.content_types.includes(item.content_type)
-        )
-      ));
-    }
-    await route.fulfill({
-      body: JSON.stringify({
-        id: payload.id,
-        result,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+        {
+          id: 'folders',
+          label: 'Folders',
+          kind: 'folders',
+          content_types: [],
+        },
+      ],
+    },
+    ...(streamingLibrary ? [{
+      id: 'streaming',
+      label: 'Streaming',
+      views: [
+        {
+          id: 'playlists',
+          label: 'Playlists',
+          kind: 'items',
+          content_types: ['playlist'],
+        },
+      ],
+    }] : []),
+  ];
+
+  const libraryItems = (query) => {
+    const localItems = backendData.list_albums.flatMap(entry => (
+      (Array.isArray(entry.album) ? entry.album : [entry.album]).map(album => ({
+        ...entry,
+        album,
+        content_type: 'album',
+        provider: 'mpd',
+      }))
+    ));
+    const streamingItems = streamingLibrary ? [{
+      albumartist: 'Family',
+      album: 'Bedtime Stories',
+      content_type: 'playlist',
+      content_uri: 'service:playlist:bedtime',
+      provider: 'streaming',
+    }] : [];
+    const provider = query.get('provider');
+    const contentTypes = query.getAll('content_types');
+    return [...localItems, ...streamingItems].filter(item => (
+      (!provider || item.provider === provider) &&
+      (contentTypes.length === 0 || contentTypes.includes(item.content_type))
+    ));
+  };
+
+  const getResponses = {
+    '/api/v1/cards': () => backendData.list_cards,
+    '/api/v1/player/albums': () => backendData.list_albums,
+    '/api/v1/library/entries': (query) => {
+      libraryCalls.push(query.get('folder'));
+      return { entries: backendData.get_folder_content };
+    },
+    '/api/v1/player/coverart/album': () => ({ cover_url: backendData.get_single_coverart }),
+    '/api/v1/player/coverart/song': () => ({ cover_url: backendData.get_single_coverart }),
+    '/api/v1/player/library/items': libraryItems,
+    '/api/v1/player/library/sources': librarySources,
+    '/api/v1/player/songs': () => backendData.list_songs_by_artist_and_album,
+    '/api/v1/player/status': () => socketEvents.playerstatus,
+    '/api/v1/player/volume': () => backendData.get_volume,
+    '/api/v1/settings': () => ({ show_covers: showCovers }),
+  };
+
+  await page.route(
+    url => url.pathname.startsWith('/api/v1/'),
+    async route => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const method = request.method();
+      apiCalls.push({
+        method,
+        path: url.pathname,
+        body: method === 'GET' ? undefined : request.postDataJSON(),
+      });
+
+      if (apiGate) {
+        await apiGate;
+      }
+
+      if (failApi) {
+        await route.fulfill({
+          body: JSON.stringify({ error: 'Backend unavailable' }),
+          contentType: 'application/json',
+          status: 503,
+        });
+        return;
+      }
+
+      const respond = method === 'GET' ? getResponses[url.pathname] : undefined;
+      if (!respond) {
+        await route.fulfill({ status: 204 });
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify(respond(url.searchParams) ?? null),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
 
   await page.route('**/cover-cache/test-cover.png', route => route.fulfill({
     contentType: 'image/png',
@@ -216,7 +208,7 @@ async function mockBackend(
 
       payload.topics.forEach(topic => {
         subscribedTopics.add(topic);
-        const events = { ...socketEvents, ...timerEvents };
+        const events = socketEvents;
         if (topic in events) {
           socket.send(JSON.stringify({
             type: 'event',
@@ -241,7 +233,7 @@ async function mockBackend(
   return {
     libraryCalls,
     publishEvent,
-    rpcCalls,
+    apiCalls,
     subscribedTopics,
   };
 }
@@ -341,7 +333,7 @@ const routes = [
     name: 'settings',
     path: '/#/settings',
     ready: '#settings',
-    text: '192.168.1.42',
+    text: '3.7.0-alpha',
   },
 ];
 
@@ -438,7 +430,7 @@ test('local library tabs replace the current nested route', async ({ page }) => 
 
 test('library playback preserves provider and content URI', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
-  const { rpcCalls } = await mockBackend(page, { streamingLibrary: true });
+  const { apiCalls } = await mockBackend(page, { streamingLibrary: true });
   await page.goto('/#/library');
 
   await expect(
@@ -452,7 +444,7 @@ test('library playback preserves provider and content URI', async ({ page }) => 
   await page.getByRole('button', { name: 'Play' }).click();
 
   await expect.poll(() => (
-    rpcCalls.find(call => call.method === 'play_album')?.kwargs
+    apiCalls.find(call => call.path === '/api/v1/player/album')?.body
   )).toEqual({
     album: 'Bedtime Stories',
     albumartist: 'Family',
@@ -462,87 +454,27 @@ test('library playback preserves provider and content URI', async ({ page }) => 
   expect(consoleErrors).toEqual([]);
 });
 
-test('cards route shows its loading state while RPC is pending', async ({ page }) => {
+test('cards route shows its loading state while the API is pending', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
-  let releaseRpc;
-  const rpcGate = new Promise(resolve => {
-    releaseRpc = resolve;
+  let releaseApi;
+  const apiGate = new Promise(resolve => {
+    releaseApi = resolve;
   });
 
-  await mockBackend(page, { rpcGate });
+  await mockBackend(page, { apiGate });
   await page.goto('/#/cards');
 
   await expect(page.getByRole('progressbar')).toBeVisible();
-  releaseRpc();
+  releaseApi();
   await expect(page.getByText('0001234567')).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
 
-test('RPC failures leave navigation and an error state available', async ({ page }) => {
-  await mockBackend(page, { failRpc: true });
+test('API failures leave navigation and an error state available', async ({ page }) => {
+  await mockBackend(page, { failApi: true });
   await page.goto('/#/cards');
 
   await expect(page.getByText('An error occurred while loading cards list.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expectStableLayout(page);
-});
-
-test('timer settings follow authoritative backend state', async ({ page }) => {
-  const timerTopic = 'timers.timer_shutdown';
-  const {
-    publishEvent,
-    rpcCalls,
-    subscribedTopics,
-  } = await mockBackend(page);
-  await page.goto('/#/settings');
-
-  const shutdownTimer = page.getByRole('listitem').filter({
-    has: page.getByText('Shut Down', { exact: true }),
-  });
-  await expect.poll(() => Array.from(subscribedTopics)).toContain(timerTopic);
-  publishEvent(timerTopic, {
-    enabled: true,
-    remaining_seconds: 3600,
-  });
-  await expect(page.getByText('1:00:00')).toBeVisible();
-  await shutdownTimer.getByRole('button', { name: 'Cancel' }).click();
-  await expect(
-    shutdownTimer.getByRole('button', { name: 'Set timer' }),
-  ).toBeVisible();
-  await expect.poll(() => (
-    rpcCalls.filter(call => (
-      call.plugin === 'timer_shutdown' && call.method === 'cancel'
-    )).length
-  )).toBe(1);
-
-  publishEvent(timerTopic, {
-    enabled: true,
-    remaining_seconds: 7200,
-  });
-  await expect(page.getByText('2:00:00')).toBeVisible();
-
-  publishEvent(timerTopic, {
-    enabled: false,
-    remaining_seconds: 0,
-  });
-  const setTimer = shutdownTimer.getByRole('button', { name: 'Set timer' });
-  await expect(setTimer).toBeVisible();
-  await setTimer.click();
-  const slider = page.getByRole('slider');
-  await slider.press('ArrowRight');
-  await slider.press('ArrowRight');
-  await page.getByRole('button', { name: 'Start timer' }).click();
-
-  await expect.poll(() => (
-    rpcCalls.filter(call => (
-      call.plugin === 'timer_shutdown' && call.method === 'start'
-    ))
-  )).toHaveLength(1);
-  const [startCall] = rpcCalls.filter(call => (
-    call.plugin === 'timer_shutdown' && call.method === 'start'
-  ));
-  expect(startCall.kwargs).toEqual({ wait_seconds: 300 });
-  expect(rpcCalls.filter(call => (
-    call.plugin === 'timer_shutdown' && call.method === 'cancel'
-  ))).toHaveLength(1);
 });

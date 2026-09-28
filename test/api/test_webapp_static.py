@@ -13,7 +13,6 @@ def _make_client(build_dir=None, logs_dir=None):
     app = create_app(
         EventBroker(),
         executor,
-        lambda request: {'result': None},
         webapp_build_dir=build_dir,
         logs_dir=logs_dir,
     )

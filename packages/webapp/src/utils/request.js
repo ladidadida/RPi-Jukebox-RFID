@@ -1,5 +1,6 @@
-import { socketRequest } from "../sockets";
 import commands from "../commands";
+
+const REQUEST_TIMEOUT_MS = 15000;
 
 // GET requests carry kwargs as query params (repeated for array values, matching FastAPI's
 // convention for List[...] Query params); undefined/null values are omitted rather than sent
@@ -20,12 +21,10 @@ const toQueryString = (kwargs) => {
   return params.toString();
 };
 
-// Migrated commands carry a `rest: {method, path}` definition instead of the RPC
-// `_package`/`plugin`/`method` shape (see commands/index.js) -- this is the one place that
-// needs to know about it, so the ~10 call sites across the app keep calling
-// request('someCommand', kwargs) exactly as before regardless of which transport backs it.
 const restRequest = async ({ method, path }, kwargs) => {
-  const options = { method };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const options = { method, signal: controller.signal };
   let requestPath = path;
   if (method === 'GET') {
     const query = toQueryString(kwargs);
@@ -38,15 +37,26 @@ const restRequest = async ({ method, path }, kwargs) => {
     options.body = JSON.stringify(kwargs);
   }
 
-  const response = await fetch(requestPath, options);
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Request failed with HTTP ${response.status}${body ? `: ${body}` : ''}`);
+  try {
+    const response = await fetch(requestPath, options);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Request failed with HTTP ${response.status}${body ? `: ${body}` : ''}`);
+    }
+    if (response.status === 204) {
+      return null;
+    }
+    return await response.json();
   }
-  if (response.status === 204) {
-    return null;
+  catch (error) {
+    if (error && error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
   }
-  return response.json();
+  finally {
+    clearTimeout(timeout);
+  }
 };
 
 const request = async (command, kwargs = {}) => {
@@ -55,10 +65,7 @@ const request = async (command, kwargs = {}) => {
       throw new Error(`'${command}' does not exist in command object`);
     }
 
-    const definition = commands[command];
-    const result = definition.rest
-      ? await restRequest(definition.rest, kwargs)
-      : await socketRequest(definition._package, definition.plugin, definition.method ?? null, kwargs);
+    const result = await restRequest(commands[command].rest, kwargs);
     return { result };
   }
   catch (error) {

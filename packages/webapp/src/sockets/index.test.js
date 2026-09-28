@@ -1,4 +1,4 @@
-import { initSockets, socketRequest } from './index';
+import { initSockets } from './index';
 import {
   afterEach,
   beforeEach,
@@ -7,10 +7,6 @@ import {
   test,
   vi,
 } from 'vitest';
-
-vi.mock('uuid', () => ({
-  v4: () => 'request-id',
-}));
 
 class FakeWebSocket {
   static instances = [];
@@ -42,90 +38,6 @@ class FakeWebSocket {
     }
   }
 }
-
-const rpcResponse = (body, options = {}) => ({
-  ok: options.ok ?? true,
-  status: options.status ?? 200,
-  text: vi.fn().mockResolvedValue(JSON.stringify(body)),
-});
-
-describe('socketRequest', () => {
-  beforeEach(() => {
-    global.fetch = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    delete global.fetch;
-  });
-
-  test('posts RPC requests and returns the result', async () => {
-    fetch.mockResolvedValue(rpcResponse({
-      id: 'request-id',
-      result: 12,
-    }));
-
-    await expect(
-      socketRequest('volume', 'ctrl', 'get_volume', { channel: 1 })
-    ).resolves.toBe(12);
-
-    expect(fetch).toHaveBeenCalledWith('/api/v1/rpc', expect.objectContaining({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }));
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
-      id: 'request-id',
-      package: 'volume',
-      plugin: 'ctrl',
-      method: 'get_volume',
-      kwargs: { channel: 1 },
-    });
-  });
-
-  test('returns RPC and HTTP errors', async () => {
-    fetch.mockResolvedValueOnce(rpcResponse({
-      id: 'request-id',
-      error: { message: 'plugin failed' },
-    }));
-    await expect(socketRequest('p', 'f', null, {})).rejects.toBe('plugin failed');
-
-    fetch.mockResolvedValueOnce(rpcResponse(
-      { error: 'bad request' },
-      { ok: false, status: 400 },
-    ));
-    await expect(socketRequest('p', 'f', null, {}))
-      .rejects.toBe('RPC request failed with HTTP 400.');
-  });
-
-  test('rejects mismatched response IDs', async () => {
-    fetch.mockResolvedValue(rpcResponse({
-      id: 'different-id',
-      result: null,
-    }));
-
-    await expect(socketRequest('p', 'f', null, {}))
-      .rejects.toBe('Received RPC response ID does not match sender ID.');
-  });
-
-  test('aborts requests after 15 seconds', async () => {
-    vi.useFakeTimers();
-    fetch.mockImplementation((url, { signal }) => (
-      new Promise((resolve, reject) => {
-        signal.addEventListener('abort', () => {
-          const error = new Error('aborted');
-          error.name = 'AbortError';
-          reject(error);
-        });
-      })
-    ));
-
-    const request = socketRequest('p', 'f', null, {});
-    const rejection = expect(request).rejects.toBe('Request timed out');
-    await vi.advanceTimersByTimeAsync(15000);
-
-    await rejection;
-  });
-});
 
 describe('initSockets', () => {
   beforeEach(() => {

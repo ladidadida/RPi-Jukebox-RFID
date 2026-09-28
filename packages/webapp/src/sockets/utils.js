@@ -2,19 +2,6 @@ const encodeMessage = (obj) => {
   return JSON.stringify(obj);
 }
 
-const decodeMessage = (msg) => {
-  const decoded = (typeof msg === 'string') ?
-    JSON.parse(msg) :
-    msg;
-  const {
-    id = undefined,
-    error = undefined,
-    result = undefined,
-  } = decoded;
-
-  return { id, result, error };
-}
-
 const decodePubSubMessage = (message) => {
   try {
     const decoded = (typeof message === 'string') ?
@@ -36,25 +23,7 @@ const decodePubSubMessage = (message) => {
   }
 }
 
-const preparePayload = (
-  requestId,
-  _package,
-  plugin,
-  method,
-  kwargs = {},
-) => {
-  return {
-    id: requestId,
-    package: _package,
-    plugin,
-    method,
-    kwargs,
-  };
-}
-
 export {
-  decodeMessage,
   decodePubSubMessage,
   encodeMessage,
-  preparePayload,
 }

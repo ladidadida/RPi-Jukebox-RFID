@@ -68,8 +68,10 @@ server.
 
 ## Backend API
 
-The Web App uses `POST /api/v1/rpc` for commands and `WS /api/v1/events` for
-state updates. Both are served by FastAPI on the configured API port, `5556`
+The Web App uses typed REST endpoints (`/api/v1/player/*`, `/api/v1/settings`,
+`/api/v1/cards`, see `/docs` on the running server) for commands and
+`WS /api/v1/events` for state updates. Both are served by FastAPI on the
+configured API port, `5556`
 by default -- the same server also serves the Web App's static build and
 `/logs`, so everything is on one origin without a separate reverse proxy.
 `GET /api/v1/health` reports API availability.

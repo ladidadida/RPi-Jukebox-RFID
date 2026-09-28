@@ -42,25 +42,20 @@ Fork goals, roughly in the order we're tackling them:
    out-of-process plugins) pay for the full HTTP round trip.
 
    **Status: the webapp-facing half is done.** Every `player.ctrl`/`misc`/`cards` method with a
-   real implementation now has a typed REST route under `/api/v1/{player,settings,cards}/*` (see
+   real implementation has a typed REST route under `/api/v1/{player,settings,cards}/*` (see
    `jukebox.api.fastapi_server`'s `register_player_routes`/`register_settings_routes`/
    `register_cards_routes`) -- handlers call straight into the registered object via
    `jukebox.registry.get()`, matching the "skip serialization" compromise above without needing
    the FastAPI-router-*per-plugin* machinery this principle originally envisioned (there's no
-   plugin system generating these yet, they're hand-written per method). `commands/index.js`'s
-   webapp call sites are switched over; the only entries still pointing at RPC are the
-   `volume`/`host`/`timers`/`sync_rfidcards` packages, none of which exist server-side (removed
-   with the old plugin system, never reintroduced -- already non-functional regardless of
-   transport, see "Old plugin system removed" below). `POST /api/v1/rpc` itself is deliberately
-   **not removed**: `jukebox.utils.bind_rpc_command`/`decode_and_call_rpc_command` (the RFID
-   card-action / `card_removal_action` config mechanism, see
-   `documentation/builders/rpc-commands.md`) reuses the exact same `@plugs.tag`/`registry.call()`
-   machinery for something unrelated to the HTTP bridge -- untagging methods to "finish" the
-   migration was tried and reverted once (see git history) after it broke that. Removing the
-   `/api/v1/rpc` *route* itself (as opposed to untagging methods) would be safe on that front, but
-   wasn't done -- it's still the documented general-purpose escape hatch for anything not (yet)
-   wrapped, and deleting a whole public API surface felt like a decision worth a human sign-off
-   rather than an autonomous one, unlike wrapping existing methods.
+   plugin system generating these yet, they're hand-written per method). The webapp talks REST
+   only, and the generic `POST /api/v1/rpc` endpoint (plus `jukebox.api.dispatch`, which existed
+   only to serve it) is **removed**. New functionality gets a typed route, not a generic call.
+
+   Not affected: RFID card actions / `card_removal_action` (`jukebox.utils.bind_rpc_command`/
+   `decode_and_call_rpc_command`, see `documentation/builders/rpc-commands.md`) still resolve
+   `(package, plugin, method)` in-process via `@plugs.tag`/`registry.call()`. That's a config
+   format for card actions, not an HTTP API -- replacing it belongs to the plugin-system redesign.
+   Untagging methods breaks it (tried and reverted once, see git history).
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
    drives system setup instead of ~20 bash scripts. Upstream already scoped this in
    `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not
@@ -169,8 +164,8 @@ Expect to need cleanup passes between steps rather than one clean rewrite.
    (`src/cli_client/pbc.c`) -- neither was migrated, both were removed outright ("we'll find
    another solution for that later," not designed yet). With no consumers left,
    `jukebox.rpc.server.RpcServer`, `jukebox.rpc.client.RpcClient`, and the `pyzmq` dependency were
-   deleted too. `jukebox.rpc.processor.process_request` stays -- it's transport-neutral and is
-   what the FastAPI `/api/v1/rpc` handler calls in-process. There is currently no CLI/RPC tool at
+   deleted too. (`process_request`, later moved to `jukebox.api.dispatch`, served the FastAPI
+   `/api/v1/rpc` handler until that was removed too.) There is currently no CLI/RPC tool at
    all; whatever replaces it will presumably be built against the FastAPI HTTP endpoint from the
    start, per the "everything through FastAPI" principle (see "Advanced plugin system" above).
 
@@ -310,8 +305,8 @@ zmq_smoke.py`, and the `pyzmq` dependency were deleted too (verified nothing els
 anywhere in `src/` or `test/`). Also cleaned up what existed only to support ZMQ: the
 `libzmq5`/`python3-zmq` apt packages (`packages-core.txt`, both Dockerfiles), the dedicated
 `run_raspbian_armv6_zmq` CI job that smoke-tested ZMQ on armv6, `libczmq-dev` from the main CI
-workflow's apt install, and the `rpc.tcp_port` config key. `jukebox.rpc.processor.process_request`
-stays -- transport-neutral, it's what the FastAPI `/api/v1/rpc` handler calls in-process.
+workflow's apt install, and the `rpc.tcp_port` config key. The HTTP `/api/v1/rpc` endpoint and its
+`process_request` dispatcher were removed later, once the webapp was fully on typed REST routes.
 
 There is currently **no RPC/CLI tool of any kind**. Whatever replaces it should be built against
 the FastAPI HTTP endpoint from the start, consistent with the "everything through FastAPI"

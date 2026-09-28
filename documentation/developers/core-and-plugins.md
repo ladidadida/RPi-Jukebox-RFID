@@ -1,0 +1,407 @@
+# Core and Plugin Contract (Draft)
+
+> Status: **draft for review**. First step of the "Advanced plugin system" track in
+> [roadmap-core-architecture.md](roadmap-core-architecture.md). Nothing here is implemented yet.
+
+## Terms
+
+- **Core** - always shipped as part of the `jukebox` package, always running, not switchable.
+  Everything a jukebox needs to be a jukebox.
+- **Plugin** - a separately installable package. Either *bundled* (lives in this repo, installed
+  alongside the core) or *external* (installed from elsewhere via pip/uv). Only active when listed
+  in the config (opt-in, for bundled and external plugins alike).
+- **Module** - umbrella term for a core module or a plugin: anything that declares actions,
+  queries and events through the contract below.
+
+Core modules and plugins use the same contract, so a plugin can reach as deep as a core module.
+They differ only in how they are shipped, loaded and enabled.
+
+## What belongs in the core
+
+**Core is what makes sense on every machine the jukebox runs on: a regular Linux PC, a Raspberry
+Pi, a container.** Platform- or hardware-specific functionality and integrations with external
+systems are plugins. Shutting down is the typical example: on a Pi-based box it is essential, on a
+desktop PC nobody wants the jukebox to power the machine off, so it lives in the `raspberry-pi`
+plugin.
+
+## Split
+
+| Core | Plugins |
+| --- | --- |
+| Player (with the `local_audio` backend) | `raspberry-pi` (see below) |
+| Library (index, metadata, cover art, see below) | Player backend `mpd` |
+| Card database and card action dispatch | RFID reader drivers (one plugin per driver) |
+| Settings / system | MQTT |
+| System info (IP address, disk usage, CPU temperature, restart the jukebox service) | Card synchronisation |
+| Volume (incl. output selection, e.g. speakers vs. Bluetooth) | |
+| Timers | |
+| Jingle (startup/shutdown sound) | |
+| Input devices via evdev (USB buttons, media keys, Bluetooth headset buttons) | |
+
+The **`raspberry-pi` plugin** bundles the Pi hardware control. Its parts are enabled individually in
+its config section:
+
+- power: shutdown, reboot, OnOff SHIM / power button
+- GPIO: buttons, LEDs, rotary encoders
+- battery monitor (I2C battery HATs, one driver per HAT)
+- health: throttling/undervoltage (`vcgencmd`), HDMI power-down, WLAN power saving
+
+**Autohotspot** is network configuration, not runtime functionality, and moves to `jukebox setup`.
+
+### Library
+
+With `local_audio` as the default backend there is no mpd database behind the player anymore, so
+the core **Library** module owns what mpd used to provide. Today `local_audio` reports only file
+name, position and state (no title, artist, album or duration), album/artist browsing returns 501,
+and cover art only covers embedded MP3 (ID3) images through the mpd backend. The Library module:
+
+- keeps an index of the music library in SQLite, built from tags read with `mutagen` (MP3, FLAC,
+  MP4/M4A, Ogg/Opus, ...). A scan runs on `library.update()` (the existing refresh endpoint) and
+  after uploads and deletions through the library API;
+- answers album/artist listings, songs of an album and search from that index;
+- provides cover art per song and album from embedded images or folder images
+  (`cover.jpg`/`folder.jpg`/...), cached;
+- supplies title, artist, album, track and duration for the player status, independent of the
+  active backend.
+
+Already backend-independent and staying as is: folder playlists
+(`jukebox.playlistgenerator.PlaylistCollector`, including `.m3u`, `*livestream.txt` and
+`*podcast.txt`) and file management (upload, folders, delete).
+
+Not planned for now: saved user playlists, ReplayGain, gapless playback, crossfade. Whether
+livestream and podcast URLs play through PyAV is still to be verified.
+
+The RFID *reader framework* (reader thread, same-id delay, card removal, dispatch) is core; only
+the hardware drivers are plugins. Without a reader plugin the core runs fine, cards can still be
+managed and triggered through the API.
+
+Core never special-cases a plugin. Where core behavior needs a platform-specific step, it runs an
+*action*, and plugins contribute actions:
+
+- **Timers** run an action when they expire instead of hard-wiring "shutdown". On a PC that is
+  e.g. `player.stop`; with the `raspberry-pi` plugin `raspberry_pi.shutdown` becomes available as
+  well. The same applies to cards: a "shut down" card only exists while the plugin is enabled.
+- **Webapp:** `GET /api/v1/modules` lists the active modules with their actions and queries. The
+  webapp shows e.g. the shutdown button only if `raspberry_pi.shutdown` exists, which works the
+  same way for external plugins.
+- Shutting down itself stays simple: the plugin calls `poweroff`, systemd sends SIGTERM, and the
+  core runs its normal graceful shutdown (jingle, stop playback, save state).
+
+## Why
+
+Today every piece of functionality is wired up by hand in several places:
+
+- `jukebox.daemon.run()` calls each module's `register()`/`start()`/`stop()` explicitly, and start
+  order is encoded only in comments.
+- Every REST route in `jukebox.api.fastapi_server` is hand-written per method and reaches the object
+  via `jukebox.registry.get()`.
+- RFID card actions, `card_removal_action` and `second_swipe_action` are stored as
+  `(package, plugin, method)` plus untyped `args`/`kwargs`; arguments are only checked when a card is
+  swiped. Aliases live separately in `command_aliases.py`.
+- Nothing states which threads may call a module: the API executor (4 workers), the RFID reader
+  thread and timers all call the same objects.
+- Player backends and reader drivers are selected by importing a module path from a hard-coded
+  table; their dependencies are `pyproject.toml` extras of the core package.
+
+## Goals
+
+- One declaration per operation yields the REST route (typed, OpenAPI), the card action and the
+  in-process call.
+- Plugins as real packages: own dependencies, discovered via entry points, enabled by config.
+- Start/stop order derived from declared dependencies.
+- A stated threading model with a safe default.
+- Card actions validated when they are stored, not when a card is swiped.
+- Existing `cards.yaml` files keep working (automatic migration).
+- REST paths the webapp uses today stay unchanged.
+
+## Non-goals (for now)
+
+- Webapp UI contributed by plugins.
+- Extension points beyond player backends, reader drivers and library sources (see "Extension
+  points").
+- A plugin index, versioned plugin API or sandboxing.
+
+## The contract
+
+```python
+from jukebox.contract import Plugin, Context, action, query
+
+
+class Mqtt(Plugin):
+    name = "mqtt"                 # prefix for routes, events and action ids
+    requires = ("player", "volume")
+
+    def start(self, ctx: Context) -> None:
+        self._ctx = ctx
+        self._client = connect(ctx.config["host"])
+        ctx.subscribe("player.status", self._forward)
+
+    def stop(self) -> list[threading.Thread]:
+        self._client.disconnect()
+        return []
+
+    @action()
+    def reconnect(self) -> None: ...
+
+    @query()
+    def connected(self) -> bool:
+        return self._client.is_connected()
+```
+
+Core modules subclass `CoreModule` instead of `Plugin`; everything else is identical.
+
+### `@action` and `@query`
+
+| Aspect | `@action` | `@query` |
+| --- | --- | --- |
+| Purpose | changes state | reads state |
+| HTTP method | `POST` (default), `PUT`, `DELETE` | `GET` |
+| Default path | `/api/v1/<name>/<method_name>` | `/api/v1/<name>/<method_name>` |
+| Arguments | JSON body, model built from the signature | query parameters |
+| Card action id | `<name>.<method_name>` | not card-triggerable |
+| In-process call | `ctx.modules.volume.set_volume(12)` | same |
+
+- Arguments are declared by the Python signature with type hints. The framework builds a Pydantic
+  model from it; FastAPI validates REST calls, and the same model validates card actions when a card
+  is registered and when `cards.yaml` is loaded.
+- `path` and `method` are optional. Without them the path is derived from the method name
+  (`POST /api/v1/volume/set_volume`); where the REST shape matters (webapp, readability) the module
+  declares them (`@action(method="PUT", path="/level")`). Card action ids and in-process calls are
+  unaffected by the path.
+- `path` is relative to `/api/v1/<name>`. An absolute path (starting with `/api/`) is allowed only
+  for core modules, to keep today's webapp paths stable (e.g. `/api/v1/settings`).
+- An operation a backend doesn't support raises `NotImplementedError`; the framework maps it to
+  HTTP 501 (as `_run_on_executor` does today).
+- Return values are serialized as JSON; `None` becomes `204 No Content`.
+
+### Events
+
+Every event is declared with a Pydantic model, like actions; there are no untyped events.
+
+```python
+class PlayerStatus(BaseModel):
+    state: Literal["play", "pause", "stop"]
+    elapsed: float
+    duration: float | None
+    title: str | None
+
+
+class Player(CoreModule):
+    status = event("status", PlayerStatus)
+
+    def _on_change(self):
+        self._ctx.publish(self.status, PlayerStatus(...))
+```
+
+- Declared events are listed with the module's actions and queries in `GET /api/v1/modules`, so
+  the webapp and plugin authors see the payload shape.
+- Payloads are validated when published: in tests and development mode a mismatch raises; in
+  production it is logged and the event is dropped, so a faulty plugin cannot break the event
+  stream for everyone.
+- Existing topics (`playerstatus`, `rfid.card_id`, `core.*`) get proper models in step 2, replacing
+  today's mpd-style string fields (`'elapsed': '42.000'`, `'random': '0'`), and are renamed to the
+  `<name>.<event>` scheme (`playerstatus` -> `player.status`). The webapp is updated in the same
+  step. The player status gains title, artist, album and duration once the
+  Library module provides them.
+
+### `Context`
+
+Passed to `start()`; the only way a module reaches the rest of the system:
+
+- `ctx.config` - the module's own config section (`cfg[name]` for core, `cfg['plugins'][name]` for
+  plugins), created if missing.
+- `ctx.publish(event, payload)` / `ctx.revoke(event)` - publish a declared event; the topic is
+  `<name>.<event>`.
+- `ctx.subscribe(topic_prefix, callback)` - react to events of other modules.
+- `ctx.modules.<name>` - other started modules, restricted to those listed in `requires` (accessing
+  an undeclared one raises).
+- `ctx.executor(name, workers=1)` - a dedicated thread pool for long-running work (library scans),
+  shut down by the framework.
+- `ctx.logger` - `jb.<name>`.
+
+## Loading and enabling
+
+**Core modules** are listed in code in the `jukebox` package. They always start; there is no
+switch.
+
+**Plugins** advertise themselves under the entry-point group `jukebox.plugins`:
+
+```toml
+# packages/plugins/mqtt/pyproject.toml
+[project]
+name = "jukebox-plugin-mqtt"
+dependencies = ["jukebox", "paho-mqtt"]
+
+[project.entry-points."jukebox.plugins"]
+mqtt = "jukebox_plugin_mqtt:Mqtt"
+```
+
+and are enabled by listing them in `jukebox.yaml`; their config lives under the same key:
+
+```yaml
+plugins:
+  mqtt:
+    host: 192.168.1.10
+  raspberry_pi:
+    power:
+      enabled: true
+    gpio:
+      enabled: false
+  rfid_reader_rdm6300:
+    device: /dev/ttyS0
+```
+
+- Installed but not listed: not loaded (not even imported).
+- Listed but not installed: logged as an error, everything else starts.
+- Bundled plugins live under `packages/plugins/<name>/` as uv workspace members. Their
+  dependencies move out of the core `pyproject.toml` extras into each plugin package. The installer
+  installs the bundled plugins and pre-fills `plugins:` for the ones the user selected.
+
+## Versioning and compatibility
+
+A plugin depends on two things, and both are versioned separately from the `jukebox` package
+version:
+
+- **Framework contract** - `jukebox.contract.CONTRACT_VERSION`: the `Plugin` base class,
+  `@action`/`@query`/`event`, `Context`, lifecycle and threading semantics.
+- **Module interfaces** - every module (core or plugin) declares `interface_version`, covering its
+  actions, queries, event models and extension-point protocols.
+
+```python
+class Mqtt(Plugin):
+    name = "mqtt"
+    interface_version = "1.0"
+    contract = ">=1.0,<2"
+    requires = {"player": ">=1.2,<2", "volume": ">=1.0,<2"}
+```
+
+- Rules (semantic versioning): adding something (a new action, an optional field in an event model)
+  is a minor bump; removing, renaming or changing a type is a major bump.
+- `requires` accepts a plain tuple of names (any version) or a mapping to version specifiers.
+- At startup the module manager checks `contract` and every `requires` specifier. A plugin that
+  doesn't match is skipped with a message naming the module, the required and the actual version.
+  Core modules are shipped together and always match.
+- Versions are listed in `GET /api/v1/modules`.
+- **Enforced in CI, not by discipline:** a test renders every module's interface (JSON schemas of
+  action/query arguments and results, event models, extension-point protocols) and the framework
+  contract into snapshot files in the repo. A change to a snapshot without the matching version
+  bump fails the build: breaking change without major bump, or addition without minor bump.
+- The plugin's `jukebox` package dependency stays a coarse lower bound only.
+
+## Lifecycle and ordering
+
+- Core modules and enabled plugins are sorted together by `requires` (topological sort). A cycle or
+  a missing dependency is a startup error that names the modules involved.
+- A core module may not require a plugin.
+- `start()` runs in that order, `stop()` in reverse. Threads returned by `stop()` are joined within
+  the existing shutdown timeout.
+- If a core module fails to start, the daemon fails to start. If a plugin fails, it and every
+  plugin that (transitively) requires it are skipped and logged; the rest keeps running.
+- The API server starts after all modules and mounts the generated routes.
+
+## Threading model
+
+- Actions and queries can be called concurrently from API workers, the RFID reader thread, timers
+  and other modules.
+- **Default:** each module gets its own re-entrant lock; every `@action` and `@query` runs under it.
+  Calls to *different* modules run in parallel, calls into the *same* module are serialized. This is
+  the safe default for code written without concurrency in mind, which matters most for external
+  plugins.
+- `concurrency = "threadsafe"` on the class disables the lock for modules that handle it themselves
+  (e.g. the player, whose `PlayerCoordinator` already guards its state with its own lock).
+- Per operation, `@query(exclusive=False)` lets cheap reads skip the lock so status polling never
+  waits behind a slow action.
+- Long-running work (scans, downloads) belongs on `ctx.executor(...)`, not inside the lock.
+
+## Extension points
+
+Some core modules need implementations supplied by plugins. The owning core module declares the
+extension point; plugins register against it in `start()`:
+
+```python
+# in a plugin
+def start(self, ctx):
+    ctx.modules.player.backends.register("mpd", MpdBackend(ctx.config))
+```
+
+Three extension points are needed from the start, because today's behavior depends on them:
+
+- **Player backends** (`player.backends`) - `local_audio` is registered by the core; `mpd` becomes a
+  plugin. `player.backend` config keeps selecting the active one. The duck-typed backend surface
+  `PlayerCoordinator` calls today becomes an explicit protocol.
+- **RFID reader drivers** (`rfid.readers`) - every bundled driver under `rfid/hardware/` becomes a
+  plugin that registers a reader class. The reader framework keeps owning threads, timing and
+  dispatch.
+- **Library sources** (`library.sources`) - the core index is the local source; the `mpd` plugin can
+  add its own database as a second source, streaming services later as further ones. The webapp's
+  source tabs (`list_library_sources`) already expect this shape.
+
+Further extension points ("powerful plugins": e.g. a playback filter that can veto or rewrite what
+is about to play) follow the same pattern and are added when a plugin needs them.
+
+## Card actions
+
+New storage format in `cards.yaml` (also used for `card_removal_action` and `second_swipe_action`
+in `jukebox.yaml`):
+
+```yaml
+'0001234567':
+  action: player.play_folder
+  args:
+    folder: Music/Rock
+  ignore_same_id_delay: false
+  ignore_card_removal_action: false
+```
+
+- `action` is a card action id (`<module>.<action>`), from core or an enabled plugin. The former
+  aliases (`play_card`, `toggle`, ...) map to action ids.
+- `args` is a mapping validated against the action's model. Positional `args` no longer exist.
+- Registering a card through the API validates the action and its arguments; invalid requests are
+  rejected with 422.
+- Unknown or invalid entries on load (e.g. a plugin that is not enabled) are kept in the file,
+  logged and reported by `GET /api/v1/cards` with an `error` field, never silently dropped. They
+  become valid again once the plugin is enabled.
+
+**Migration.** When `cards.yaml` contains old-format entries, it is rewritten once on load and the
+original is kept as `cards.yaml.bak-<timestamp>`:
+
+- `alias: <name>` -> the action id the alias pointed to.
+- `package/plugin/method` -> `<package>.<method>` when that action exists (e.g.
+  `player/ctrl/play_folder` -> `player.play_folder`).
+- Positional `args` -> named `args` using the action's parameter order.
+- Anything that can't be mapped stays as-is and is flagged as above.
+
+## What goes away
+
+- `jukebox.registry` (`register`, `call`, `tag`/`callable_method`), replaced by the module manager.
+- `command_aliases.py` and `jukebox.utils.{decode_rpc_command,bind_rpc_command,decode_and_call_rpc_command}`.
+- The hand-written `register_player_routes`/`register_settings_routes`/`register_cards_routes` in
+  `fastapi_server.py`.
+- The backend/driver import tables in `jukebox.player.plugin` and `jukebox.rfid.reader`, and the
+  `mpd`/`rpi-gpio`/reader extras in `packages/jukebox/pyproject.toml`.
+- `documentation/builders/rpc-commands.md`, replaced by a generated list of card actions.
+
+## Implementation plan
+
+1. **Framework** (`jukebox.contract`): `CoreModule`, `Plugin`, `Context`, `@action`/`@query`/`event`,
+   module manager (entry-point discovery, opt-in, ordering, version checks, lifecycle, locks), route
+   generation, action catalog with validation, interface snapshots and the CI check. Unit tests with dummy modules and a dummy plugin package; no
+   existing code changes yet.
+2. **Migrate the core**: settings/system, cards, player (with the backend extension point), RFID
+   reader framework (with the driver extension point). REST paths stay the same, which the webapp
+   e2e suite verifies. Existing event topics get typed models and the webapp follows. Card dispatch goes through the action catalog; `cards.yaml` migration lands
+   here.
+3. **First bundled plugins**: `mpd` backend and the RFID reader drivers move to
+   `packages/plugins/*`; extras are removed; installer and Docker files enable them via `plugins:`.
+4. **Remove the old mechanism** listed under "What goes away".
+5. **Library**: index, metadata, cover art, library-source extension point (see "Library").
+6. **Remaining core modules**: volume, timers, jingle, system info, input devices, with their
+   webapp controls restored.
+7. **`raspberry-pi` plugin**: power, GPIO, battery monitor, health. Autohotspot moves to the
+   installer/`jukebox setup` track instead.
+
+Each step leaves the daemon runnable and the test suites green.
+
+## Open questions
+
+None at the moment.

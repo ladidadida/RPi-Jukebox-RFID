@@ -56,6 +56,14 @@ Fork goals, roughly in the order we're tackling them:
    `(package, plugin, method)` in-process via `@plugs.tag`/`registry.call()`. That's a config
    format for card actions, not an HTTP API -- replacing it belongs to the plugin-system redesign.
    Untagging methods breaks it (tried and reverted once, see git history).
+
+   **Next: core and plugin contract** -- core is what makes sense on any machine (player,
+   library, cards, settings, system info, volume, timers, jingle, input devices); platform-specific
+   parts and integrations become opt-in plugins (bundled or external: `raspberry-pi` for power/GPIO/
+   battery, `mpd`, RFID reader drivers, MQTT, card sync), both built on one
+   contract: an `@action` declaration generating REST route, card action and in-process call,
+   `requires`-based start order, a stated threading model, and `cards.yaml` migration. Draft for
+   review: [core-and-plugins.md](core-and-plugins.md).
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
    drives system setup instead of ~20 bash scripts. Upstream already scoped this in
    `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not

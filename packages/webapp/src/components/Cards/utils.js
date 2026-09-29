@@ -58,8 +58,12 @@ const buildActionData = (action, command = {}, args = {}) => {
   return data;
 };
 
-const findCommandByCardAction = (cardAction) => (
-  Object.keys(commands).find(command => commands[command].cardAction === cardAction)
+// Commands sharing an action (e.g. the timers) are told apart by their fixed `cardArgs`.
+const findCommandByCardAction = (cardAction, args = {}) => (
+  Object.keys(commands).find(command => (
+    commands[command].cardAction === cardAction
+    && Object.entries(commands[command].cardArgs || {}).every(([key, value]) => args[key] === value)
+  ))
 );
 
 // The card entry to register for the selected command: `{ action, args }` with named args.
@@ -69,7 +73,7 @@ const buildCardEntry = (actionData) => {
   const values = getArgsValues(actionData);
   const args = argKeys.reduce((prev, key, pos) => (
     values[pos] === undefined ? prev : { ...prev, [key]: values[pos] }
-  ), {});
+  ), { ...commands[command]?.cardArgs });
 
   return { action: commands[command]?.cardAction, args };
 };

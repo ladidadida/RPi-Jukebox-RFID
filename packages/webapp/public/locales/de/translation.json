@@ -42,10 +42,18 @@
         "placeholder": "Wähle eine Aktion aus",
         "actions": {
           "play_music": "Musik abspielen",
-          "audio": "Audio & Lautstärke"
+          "audio": "Audio & Lautstärke",
+          "host": "System",
+          "timers": "Timer",
+          "synchronisation": "Synchronisation"
         }
       },
       "actions": {
+        "host": {
+          "description": "Möchtest du die gesamte IP Addresse vorlesen lassen oder nur den letzten Quadranten?",
+          "label-full": "Gesamte Addresse (z.B. 192.168.1.53)",
+          "label-short": "Letzter Quadrant (z.B. 53)"
+        },
         "play-music": {
           "commands": {
             "play_album": "Ausgewähltes Album",
@@ -67,6 +75,21 @@
             "label-disable": "Wiederholen deaktivieren"
           },
           "shuffle": {
+            "description": "Wähle den zu setzenden Status.",
+            "label-toggle": "Umschalten",
+            "label-enable": "Aktivieren",
+            "label-disable": "Deaktivieren"
+          },
+          "volume": {
+            "title": "Lautstärke Stufen"
+          }
+        },
+        "timers": {
+          "description": "Wähle die Anzahl der Minuten nachdem die Aktion ausgeführt werden soll.",
+          "restart": "Laufenden Timer neu starten"
+        },
+        "synchronisation": {
+          "rfidcards": {
             "description": "Wähle den zu setzenden Status.",
             "label-toggle": "Umschalten",
             "label-enable": "Aktivieren",
@@ -235,15 +258,72 @@
       "song-position": "Aktuelle Position"
     },
     "volume": {
-      "slider": "Lautstärkeregler"
+      "slider": "Lautstärkeregler",
+      "mute": "Stumm schalten",
+      "unmute": "Stumm schalten deaktivieren"
     }
   },
   "settings": {
     "feature-not-enabled": "🚧 Diese Funktion ist noch nicht aktiviert.",
+    "dialogs": {
+      "reboot": {
+        "title": "Neustart",
+        "rebooting": "Das System wird neu gestartet.",
+        "button-title": "Neustart",
+        "description-confirm": "Möchtest Du jetzt wirklich neu starten?",
+        "failed": "Neustart fehlgeschlagen",
+        "bye": "👋 Bis bald"
+      },
+      "shutdown": {
+        "title": "Herunterfahren",
+        "bye": "👋 Bis bald",
+        "button-title": "Herunterfahren",
+        "description-confirm": "Möchtest Du jetzt wirklich herunterfahren?",
+        "description-success": "Das System wurde erfolgreich heruntergefahren",
+        "failed": "Herunterfahren fehlgeschlagen"
+      }
+    },
+    "autohotspot": {
+      "title": "Auto Hotspot",
+      "not-installed": "Diese Funktion ist nicht installiert",
+      "why": "Warum?",
+      "control-label": "Auto Hotspot"
+    },
     "general": {
       "title": "Allgmeine Einstellungen",
       "show_covers": {
         "title": "Cover anzeigen"
+      }
+    },
+    "timers": {
+      "option-label-timeslot": "{{value}} min",
+      "option-label-off": "Aus",
+      "title": "Timer",
+      "stop-player": {
+        "title": "Wiedergabe stoppen",
+        "label": "Stoppt die Wiedergabe nach Ablauf des Timers."
+      },
+      "shutdown": {
+        "title": "Herunterfahren",
+        "label": "Fährt die Phoniebox nach Ablauf des Timers herunter."
+      },
+      "fade-volume": {
+        "title": "Leiser werden und stoppen",
+        "label": "Blendet die Lautstärke nach Ablauf des Timers aus und stoppt dann die Wiedergabe."
+      },
+      "idle-shutdown": {
+        "title": "Leerlaufabschaltung",
+        "label": "Fährt die Phoniebox herunter, nachdem sie für eine bestimmte Zeit im Leerlauf war."
+      },
+      "set": "Timer erstellen",
+      "cancel": "Abbrechen",
+      "paused": "Pausiert",
+      "ended": "Beendet",
+      "dialog": {
+        "title": "{{value}} Timer erstellen",
+        "description": "Wähle die Anzahl der Minuten nachdem die Aktion ausgeführt werden soll.",
+        "start": "Timer starten",
+        "cancel": "Abbrechen"
       }
     },
     "secondswipe": {
@@ -279,6 +359,18 @@
       "version": {
         "label": "Jukebox Core Version"
       }
+    },
+    "audio": {
+      "title": "Audio",
+      "outputs": {
+        "title": "Audio-Ausgänge"
+      },
+      "volume": {
+        "max-volume": "Maximale Lautstärke"
+      }
+    },
+    "systemcontrols": {
+      "title": "Systemsteuerung"
     }
   }
 }

@@ -11,6 +11,8 @@ import {
 
 import StatusBattery from './battery';
 import StatusCpuTemp from './cpu-temp';
+import StatusDiskUsage from './disk-usage';
+import StatusIpAddress from './ip-address';
 import StatusVersion from './version';
 
 const SettingsStatus = () => {
@@ -26,6 +28,8 @@ const SettingsStatus = () => {
             <List>
               <StatusVersion />
               <StatusBattery />
+              <StatusIpAddress />
+              <StatusDiskUsage />
               <StatusCpuTemp />
             </List>
           </Grid>

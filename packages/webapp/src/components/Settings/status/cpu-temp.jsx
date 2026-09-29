@@ -7,32 +7,20 @@ import {
 } from '@mui/material';
 
 import PubSubContext from '../../../context/pubsub/context';
+import { SYSTEM_HEALTH_TOPIC } from '../../../config';
 
 const StatusCpuTemp = () => {
   const { t } = useTranslation();
+  const { state: { [SYSTEM_HEALTH_TOPIC]: health } } = useContext(PubSubContext);
 
-  const { state: {
-    'host.timer.cputemp': hostTimerCputemp,
-    'host.temperature.cpu': hostTemperatureCpu
-  } } = useContext(PubSubContext);
-
-  let primaryText = t('settings.status.cpu-temp.unavailable');
-
-  if (typeof hostTimerCputemp === 'object' && hostTimerCputemp !== null) {
-    if (hostTimerCputemp?.enabled === true) {
-      if (typeof hostTemperatureCpu === 'string' || hostTemperatureCpu instanceof String) {
-        primaryText = `${hostTemperatureCpu}°C`;
-      }
-    }
-    else {
-      primaryText = t('settings.status.cpu-temp.not-enabled');
-    }
+  if (health?.cpu_temperature == null) {
+    return null;
   }
 
   return (
     <ListItem disableGutters>
       <ListItemText
-        primary={primaryText}
+        primary={`${health.cpu_temperature}°C`}
         secondary={t('settings.status.cpu-temp.label')}
       />
     </ListItem>

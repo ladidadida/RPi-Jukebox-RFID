@@ -62,3 +62,14 @@ test('card entries use action ids and named arguments', () => {
   expect(findCommandByCardAction('player.play_folder')).toBe('play_folder');
   expect(findCommandByCardAction('volume.set_volume')).toBeUndefined();
 });
+
+test('timer cards share the timers.start action and keep their timer name', () => {
+  const card = buildActionData('timers', 'timer_fade_volume', { wait_seconds: 600 });
+  expect(buildCardEntry(card)).toEqual({
+    action: 'timers.start',
+    args: { timer: 'fade_volume', wait_seconds: 600 },
+  });
+  expect(findCommandByCardAction('timers.start', { timer: 'fade_volume', wait_seconds: 600 }))
+    .toBe('timer_fade_volume');
+  expect(findCommandByCardAction('timers.start', { timer: 'stop_player' })).toBe('timer_stop_player');
+});

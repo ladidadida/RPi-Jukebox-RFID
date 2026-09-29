@@ -22,7 +22,7 @@ const CardsEdit = () => {
 
         if (result && result[cardId]) {
           const { action: cardAction, args } = result[cardId];
-          const command = findCommandByCardAction(cardAction);
+          const command = findCommandByCardAction(cardAction, args);
           const action = findActionByCommand(command);
           const actionData = buildActionData(action, command, args);
 

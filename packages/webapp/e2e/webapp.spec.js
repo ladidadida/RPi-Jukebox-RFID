@@ -46,8 +46,10 @@ const backendData = {
 const socketEvents = {
   'batt_status': { charging: false, soc: 76 },
   'system.info': { version: '3.7.0-alpha', git_state: 'test', started_at: 'today' },
-  'host.temperature.cpu': '47.2',
-  'host.timer.cputemp': { enabled: true },
+  'system.health': { cpu_temperature: 47.2, disk_total: 32_000_000_000, disk_used: 8_000_000_000,
+    disk_free: 24_000_000_000 },
+  'timers.changed': { name: 'stop_player', action: 'player.stop', args: {}, available: true,
+    enabled: false, wait_seconds: 3600, remaining_seconds: 0 },
   'player.status': {
     album: 'Discovery',
     albumartist: null,
@@ -66,7 +68,7 @@ const socketEvents = {
     title: 'One More Time',
     track: null,
   },
-  'volume.level': { mute: false, volume: 42 },
+  'volume.level': { mute: false, volume: 42, soft_max_volume: 80 },
 };
 
 async function mockBackend(
@@ -156,8 +158,18 @@ async function mockBackend(
     '/api/v1/library/sources': librarySources,
     '/api/v1/library/songs': () => backendData.list_songs_by_artist_and_album,
     '/api/v1/player/status': () => socketEvents['player.status'],
-    '/api/v1/player/volume': () => backendData.get_volume,
     '/api/v1/settings': () => ({ show_covers: showCovers }),
+    '/api/v1/system/ip-addresses': () => ({ addresses: ['192.168.1.42'] }),
+    '/api/v1/timers': () => [
+      socketEvents['timers.changed'],
+      { ...socketEvents['timers.changed'], name: 'fade_volume', action: 'volume.fade_out' },
+      { ...socketEvents['timers.changed'], name: 'shutdown', action: 'raspberry_pi.shutdown', available: false },
+    ],
+    '/api/v1/volume': () => socketEvents['volume.level'],
+    '/api/v1/volume/outputs': () => ({ active: 'primary', outputs: [
+      { name: 'primary', alias: 'Built-in speakers', active: true },
+      { name: 'secondary', alias: 'Bluetooth headset', active: false },
+    ] }),
   };
 
   await page.route(
@@ -500,5 +512,21 @@ test('saving a card sends its action id and named arguments', async ({ page }) =
     card_id: '0001234567',
     overwrite: true,
   });
+  expect(consoleErrors).toEqual([]);
+});
+
+test('settings show available timers and switch audio outputs', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  const { apiCalls } = await mockBackend(page);
+  await page.goto('/#/settings');
+
+  await expect(page.getByText('Stop player', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Fade volume', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('Shut Down', { exact: true })).toHaveCount(0);
+
+  await page.getByLabel('Bluetooth headset').check();
+  await expect.poll(() => (
+    apiCalls.find(call => call.method === 'PUT' && call.path === '/api/v1/volume/outputs/active')?.body
+  )).toEqual({ name: 'secondary' });
   expect(consoleErrors).toEqual([]);
 });

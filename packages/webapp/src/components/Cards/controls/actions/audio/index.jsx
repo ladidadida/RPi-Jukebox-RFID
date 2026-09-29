@@ -1,5 +1,6 @@
 
 import CommandSelector from '../../command-selector';
+import SliderChangeVolume from './slider-change-volume';
 import OptionsSelector from '../../options-selector';
 
 import { getActionAndCommand } from '../../../utils';
@@ -16,6 +17,12 @@ const SelectAudioVolume = ({
         actionData={actionData}
         handleActionDataChange={handleActionDataChange}
       />
+      {command === 'change_volume' &&
+        <SliderChangeVolume
+          actionData={actionData}
+          handleActionDataChange={handleActionDataChange}
+        />
+      }
       {command === 'shuffle' &&
         <OptionsSelector
           actionType="audio_shuffle"

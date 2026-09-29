@@ -84,23 +84,76 @@ const commands = {
   },
 
   // Volume
+  getVolume: {
+    rest: { method: 'GET', path: '/api/v1/volume' },
+  },
   setVolume: {
-    // Was _package: 'volume' -- that namespace doesn't exist server-side at all (removed with
-    // the old plugin system, never reintroduced), so this was a dead call. Now points at
-    // player.ctrl's own volume methods, which do exist and always did.
-    rest: { method: 'PUT', path: '/api/v1/player/volume' },
+    rest: { method: 'PUT', path: '/api/v1/volume' },
     argKeys: ['volume'],
   },
-  getVolume: {
-    rest: { method: 'GET', path: '/api/v1/player/volume' },
+  setMaxVolume: {
+    rest: { method: 'PUT', path: '/api/v1/volume/soft-max' },
+    argKeys: ['max_volume'],
+  },
+  toggleMuteVolume: {
+    rest: { method: 'POST', path: '/api/v1/volume/mute' },
+  },
+  change_volume: {
+    rest: { method: 'POST', path: '/api/v1/volume/change' },
+    cardAction: 'volume.change_volume',
+    argKeys: ['step'],
+  },
+  getAudioOutputs: {
+    rest: { method: 'GET', path: '/api/v1/volume/outputs' },
+  },
+  setAudioOutput: {
+    rest: { method: 'PUT', path: '/api/v1/volume/outputs/active' },
+    argKeys: ['name'],
+  },
+  toggle_output: {
+    rest: { method: 'POST', path: '/api/v1/volume/outputs/toggle' },
+    cardAction: 'volume.toggle_output',
   },
 
-  // Removed: getMaxVolume/setMaxVolume/change_volume/toggleMuteVolume/getAudioOutputs/
-  // setAudioOutput/toggle_output (volume.ctrl), the whole timers.* family, getAutohotspotStatus/
-  // startAutohotspot/stopAutohotspot/getIpAddress/getDiskUsage/reboot/shutdown/say_my_ip (host),
-  // and sync_rfidcards_all/sync_rfidcards_change_on_rfid_scan (sync_rfidcards.ctrl) -- all
-  // addressed RPC packages that don't exist server-side (removed with the old plugin system,
-  // never reintroduced). Coming back once those are reintroduced as components/plugins.
+  // Timers
+  listTimers: {
+    rest: { method: 'GET', path: '/api/v1/timers' },
+  },
+  startTimer: {
+    rest: { method: 'POST', path: '/api/v1/timers/start' },
+    argKeys: ['timer', 'wait_seconds'],
+  },
+  cancelTimer: {
+    rest: { method: 'POST', path: '/api/v1/timers/cancel' },
+    argKeys: ['timer'],
+  },
+  timer_stop_player: {
+    cardAction: 'timers.start',
+    cardArgs: { timer: 'stop_player' },
+    argKeys: ['wait_seconds'],
+  },
+  timer_fade_volume: {
+    cardAction: 'timers.start',
+    cardArgs: { timer: 'fade_volume' },
+    argKeys: ['wait_seconds'],
+  },
+  timer_shutdown: {
+    cardAction: 'timers.start',
+    cardArgs: { timer: 'shutdown' },
+    argKeys: ['wait_seconds'],
+  },
+
+  // System
+  getIpAddresses: {
+    rest: { method: 'GET', path: '/api/v1/system/ip-addresses' },
+  },
+  getSystemHealth: {
+    rest: { method: 'GET', path: '/api/v1/system/health' },
+  },
+  say_my_ip: {
+    rest: { method: 'POST', path: '/api/v1/system/say_my_ip' },
+    cardAction: 'system.say_my_ip',
+  },
 
   // Misc
   getAppSettings: {

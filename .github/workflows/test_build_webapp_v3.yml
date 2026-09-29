@@ -8,10 +8,10 @@ on:
   push:
   workflow_dispatch:
   pull_request:
-    # Keep PR checks scoped to version 3 target branches while v2 coexists.
+    # Keep PR checks scoped to the integration branches.
     branches:
-        - future3/develop
-        - future3/main
+        - develop
+        - main
     paths:
         - '.github/workflows/test_build_webapp_v3.yml'
         - '.github/actions/build-webapp/**'

@@ -3,86 +3,77 @@
 ## Table of Contents
 
 * [jukebox](#jukebox)
-* [jukebox.library](#jukebox.library)
-  * [LibraryError](#jukebox.library.LibraryError)
-  * [resolve\_library\_path](#jukebox.library.resolve_library_path)
-  * [UploadSession](#jukebox.library.UploadSession)
-  * [MusicLibrary](#jukebox.library.MusicLibrary)
-  * [create\_music\_library](#jukebox.library.create_music_library)
 * [jukebox.utils](#jukebox.utils)
-  * [decode\_rpc\_call](#jukebox.utils.decode_rpc_call)
-  * [decode\_rpc\_command](#jukebox.utils.decode_rpc_command)
-  * [decode\_and\_call\_rpc\_command](#jukebox.utils.decode_and_call_rpc_command)
-  * [bind\_rpc\_command](#jukebox.utils.bind_rpc_command)
-  * [rpc\_call\_to\_str](#jukebox.utils.rpc_call_to_str)
   * [get\_config\_action](#jukebox.utils.get_config_action)
-  * [generate\_cmd\_alias\_rst](#jukebox.utils.generate_cmd_alias_rst)
-  * [generate\_cmd\_alias\_reference](#jukebox.utils.generate_cmd_alias_reference)
   * [get\_git\_state](#jukebox.utils.get_git_state)
-* [jukebox.command\_aliases](#jukebox.command_aliases)
+* [jukebox.jingle](#jukebox.jingle)
+  * [Jingle](#jukebox.jingle.Jingle)
+    * [play](#jukebox.jingle.Jingle.play)
+* [jukebox.library.index](#jukebox.library.index)
+  * [read\_tags](#jukebox.library.index.read_tags)
+  * [LibraryIndex](#jukebox.library.index.LibraryIndex)
+    * [relative](#jukebox.library.index.LibraryIndex.relative)
+    * [scan](#jukebox.library.index.LibraryIndex.scan)
+    * [albums](#jukebox.library.index.LibraryIndex.albums)
+* [jukebox.library.files](#jukebox.library.files)
+  * [LibraryError](#jukebox.library.files.LibraryError)
+  * [resolve\_library\_path](#jukebox.library.files.resolve_library_path)
+  * [UploadSession](#jukebox.library.files.UploadSession)
+  * [MusicLibrary](#jukebox.library.files.MusicLibrary)
+* [jukebox.library.module](#jukebox.library.module)
+  * [LibrarySource](#jukebox.library.module.LibrarySource)
+    * [describe](#jukebox.library.module.LibrarySource.describe)
+    * [list\_items](#jukebox.library.module.LibrarySource.list_items)
+    * [cover](#jukebox.library.module.LibrarySource.cover)
+  * [song\_from\_source](#jukebox.library.module.song_from_source)
+  * [Library](#jukebox.library.module.Library)
+    * [list\_entries](#jukebox.library.module.Library.list_entries)
+    * [create\_folder](#jukebox.library.module.Library.create_folder)
+    * [delete\_entries](#jukebox.library.module.Library.delete_entries)
+    * [refresh](#jukebox.library.module.Library.refresh)
+    * [list\_sources](#jukebox.library.module.Library.list_sources)
+    * [list\_items](#jukebox.library.module.Library.list_items)
+    * [list\_songs](#jukebox.library.module.Library.list_songs)
+    * [get\_song](#jukebox.library.module.Library.get_song)
+    * [search](#jukebox.library.module.Library.search)
+    * [get\_song\_cover](#jukebox.library.module.Library.get_song_cover)
+    * [get\_album\_cover](#jukebox.library.module.Library.get_album_cover)
+    * [flush\_covers](#jukebox.library.module.Library.flush_covers)
+* [jukebox.library.covers](#jukebox.library.covers)
+  * [CoverCache](#jukebox.library.covers.CoverCache)
+    * [cover\_for](#jukebox.library.covers.CoverCache.cover_for)
+* [jukebox.library](#jukebox.library)
 * [jukebox.rfid.reader](#jukebox.rfid.reader)
-  * [RfidCardDetectCallbacks](#jukebox.rfid.reader.RfidCardDetectCallbacks)
-    * [register](#jukebox.rfid.reader.RfidCardDetectCallbacks.register)
-    * [run\_callbacks](#jukebox.rfid.reader.RfidCardDetectCallbacks.run_callbacks)
-  * [rfid\_card\_detect\_callbacks](#jukebox.rfid.reader.rfid_card_detect_callbacks)
-  * [CardRemovalTimerClass](#jukebox.rfid.reader.CardRemovalTimerClass)
-    * [\_\_init\_\_](#jukebox.rfid.reader.CardRemovalTimerClass.__init__)
-  * [start\_readers](#jukebox.rfid.reader.start_readers)
-* [jukebox.rfid.configure](#jukebox.rfid.configure)
-  * [BUNDLED\_READER\_EXTRAS](#jukebox.rfid.configure.BUNDLED_READER_EXTRAS)
-  * [reader\_install\_dependencies](#jukebox.rfid.configure.reader_install_dependencies)
-  * [reader\_load\_module](#jukebox.rfid.configure.reader_load_module)
-  * [query\_user\_for\_reader](#jukebox.rfid.configure.query_user_for_reader)
-  * [write\_config](#jukebox.rfid.configure.write_config)
-* [jukebox.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon)
-  * [create\_inputs](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs)
-  * [set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state)
-  * [que\_set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state)
-  * [fix\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state)
-  * [pbox\_set\_state](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state)
-  * [que\_set\_pbox](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox)
-  * [create\_outputs](#jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs)
-* [jukebox.rfid.hardware.fake\_reader\_gui.description](#jukebox.rfid.hardware.fake_reader_gui.description)
-* [jukebox.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui](#jukebox.rfid.hardware.fake_reader_gui.fake_reader_gui)
-* [jukebox.rfid.hardware.rdm6300\_serial.rdm6300\_serial](#jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial)
-  * [decode](#jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial.decode)
-* [jukebox.rfid.hardware.rdm6300\_serial.description](#jukebox.rfid.hardware.rdm6300_serial.description)
-* [jukebox.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c](#jukebox.rfid.hardware.mfrc522_i2c.mfrc522_i2c)
-* [jukebox.rfid.hardware.mfrc522\_i2c.description](#jukebox.rfid.hardware.mfrc522_i2c.description)
-* [jukebox.rfid.hardware.rc522\_spi.rc522\_spi](#jukebox.rfid.hardware.rc522_spi.rc522_spi)
-* [jukebox.rfid.hardware.rc522\_spi.description](#jukebox.rfid.hardware.rc522_spi.description)
-* [jukebox.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532](#jukebox.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532)
-* [jukebox.rfid.hardware.pn532\_i2c\_py532.description](#jukebox.rfid.hardware.pn532_i2c_py532.description)
-* [jukebox.rfid.hardware.generic\_nfcpy.description](#jukebox.rfid.hardware.generic_nfcpy.description)
-* [jukebox.rfid.hardware.generic\_nfcpy.generic\_nfcpy](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy)
-  * [ReaderClass](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass)
-    * [cleanup](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup)
-    * [stop](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop)
-    * [read\_card](#jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card)
-* [jukebox.rfid.hardware.template\_new\_reader.template\_new\_reader](#jukebox.rfid.hardware.template_new_reader.template_new_reader)
-  * [query\_customization](#jukebox.rfid.hardware.template_new_reader.template_new_reader.query_customization)
-  * [ReaderClass](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass)
-    * [\_\_init\_\_](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__)
-    * [cleanup](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup)
-    * [stop](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop)
-    * [read\_card](#jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card)
-* [jukebox.rfid.hardware.template\_new\_reader.description](#jukebox.rfid.hardware.template_new_reader.description)
-* [jukebox.rfid.hardware.generic\_usb.generic\_usb](#jukebox.rfid.hardware.generic_usb.generic_usb)
-* [jukebox.rfid.hardware.generic\_usb.description](#jukebox.rfid.hardware.generic_usb.description)
+  * [ReaderDriver](#jukebox.rfid.reader.ReaderDriver)
+    * [create\_reader](#jukebox.rfid.reader.ReaderDriver.create_reader)
+  * [CardRemovalTimer](#jukebox.rfid.reader.CardRemovalTimer)
+  * [Rfid](#jukebox.rfid.reader.Rfid)
+    * [resolve\_config\_action](#jukebox.rfid.reader.Rfid.resolve_config_action)
+    * [list\_readers](#jukebox.rfid.reader.Rfid.list_readers)
 * [jukebox.rfid.readerbase](#jukebox.rfid.readerbase)
   * [ReaderBaseClass](#jukebox.rfid.readerbase.ReaderBaseClass)
 * [jukebox.rfid](#jukebox.rfid)
 * [jukebox.rfid.cards](#jukebox.rfid.cards)
-  * [list\_cards](#jukebox.rfid.cards.list_cards)
-  * [delete\_card](#jukebox.rfid.cards.delete_card)
-  * [register\_card](#jukebox.rfid.cards.register_card)
-  * [register\_card\_custom](#jukebox.rfid.cards.register_card_custom)
-  * [save\_card\_database](#jukebox.rfid.cards.save_card_database)
-  * [register](#jukebox.rfid.cards.register)
+  * [Cards](#jukebox.rfid.cards.Cards)
+    * [list\_cards](#jukebox.rfid.cards.Cards.list_cards)
+    * [get\_card](#jukebox.rfid.cards.Cards.get_card)
+    * [register\_card](#jukebox.rfid.cards.Cards.register_card)
+    * [delete\_card](#jukebox.rfid.cards.Cards.delete_card)
 * [jukebox.rfid.cardutils](#jukebox.rfid.cardutils)
-  * [decode\_card\_command](#jukebox.rfid.cardutils.decode_card_command)
   * [card\_command\_to\_str](#jukebox.rfid.cardutils.card_command_to_str)
-  * [card\_to\_str](#jukebox.rfid.cardutils.card_to_str)
+* [jukebox.volume](#jukebox.volume)
+  * [PlayerMixer](#jukebox.volume.PlayerMixer)
+  * [PulseMixer](#jukebox.volume.PulseMixer)
+  * [Volume](#jukebox.volume.Volume)
+    * [get\_volume](#jukebox.volume.Volume.get_volume)
+    * [set\_volume](#jukebox.volume.Volume.set_volume)
+    * [change\_volume](#jukebox.volume.Volume.change_volume)
+    * [mute](#jukebox.volume.Volume.mute)
+    * [set\_soft\_max\_volume](#jukebox.volume.Volume.set_soft_max_volume)
+    * [get\_outputs](#jukebox.volume.Volume.get_outputs)
+    * [set\_output](#jukebox.volume.Volume.set_output)
+    * [toggle\_output](#jukebox.volume.Volume.toggle_output)
+    * [fade\_out](#jukebox.volume.Volume.fade_out)
 * [jukebox.nv\_manager](#jukebox.nv_manager)
 * [jukebox.publishing.bus](#jukebox.publishing.bus)
   * [EventBus](#jukebox.publishing.bus.EventBus)
@@ -91,13 +82,6 @@
     * [cache\_snapshot](#jukebox.publishing.bus.EventBus.cache_snapshot)
 * [jukebox.publishing](#jukebox.publishing)
   * [get\_bus](#jukebox.publishing.get_bus)
-  * [Publisher](#jukebox.publishing.Publisher)
-    * [send](#jukebox.publishing.Publisher.send)
-    * [revoke](#jukebox.publishing.Publisher.revoke)
-    * [resend](#jukebox.publishing.Publisher.resend)
-    * [close\_server](#jukebox.publishing.Publisher.close_server)
-  * [get\_publisher](#jukebox.publishing.get_publisher)
-  * [republish](#jukebox.publishing.republish)
 * [jukebox.playlistgenerator](#jukebox.playlistgenerator)
   * [TYPE\_DECODE](#jukebox.playlistgenerator.TYPE_DECODE)
   * [PlaylistCollector](#jukebox.playlistgenerator.PlaylistCollector)
@@ -111,9 +95,7 @@
   * [parse\_subscription\_command](#jukebox.api.events.parse_subscription_command)
 * [jukebox.api](#jukebox.api)
 * [jukebox.api.fastapi\_server](#jukebox.api.fastapi_server)
-  * [register\_player\_routes](#jukebox.api.fastapi_server.register_player_routes)
-  * [register\_settings\_routes](#jukebox.api.fastapi_server.register_settings_routes)
-  * [register\_cards\_routes](#jukebox.api.fastapi_server.register_cards_routes)
+  * [BodySizeLimit](#jukebox.api.fastapi_server.BodySizeLimit)
   * [FastApiServer](#jukebox.api.fastapi_server.FastApiServer)
 * [jukebox.api.webapp\_static](#jukebox.api.webapp_static)
   * [register\_webapp\_routes](#jukebox.api.webapp_static.register_webapp_routes)
@@ -137,17 +119,23 @@
   * [load\_yaml](#jukebox.cfghandler.load_yaml)
   * [ensure\_default\_config](#jukebox.cfghandler.ensure_default_config)
   * [write\_yaml](#jukebox.cfghandler.write_yaml)
-* [jukebox.callingback](#jukebox.callingback)
-  * [CallbackHandler](#jukebox.callingback.CallbackHandler)
-    * [register](#jukebox.callingback.CallbackHandler.register)
-    * [run\_callbacks](#jukebox.callingback.CallbackHandler.run_callbacks)
-    * [has\_callbacks](#jukebox.callingback.CallbackHandler.has_callbacks)
-* [jukebox.registry](#jukebox.registry)
-  * [register](#jukebox.registry.register)
-  * [callable\_method](#jukebox.registry.callable_method)
-  * [call](#jukebox.registry.call)
-  * [call\_ignore\_errors](#jukebox.registry.call_ignore_errors)
-  * [dump\_registry](#jukebox.registry.dump_registry)
+* [jukebox.timers](#jukebox.timers)
+  * [Timers](#jukebox.timers.Timers)
+    * [list\_timers](#jukebox.timers.Timers.list_timers)
+    * [start\_timer](#jukebox.timers.Timers.start_timer)
+    * [cancel](#jukebox.timers.Timers.cancel)
+    * [toggle](#jukebox.timers.Timers.toggle)
+* [jukebox.audio\_output](#jukebox.audio_output)
+  * [scale\_volume](#jukebox.audio_output.scale_volume)
+  * [AudioSink](#jukebox.audio_output.AudioSink)
+  * [PortAudioSink](#jukebox.audio_output.PortAudioSink)
+  * [play\_file](#jukebox.audio_output.play_file)
+* [jukebox.core\_modules](#jukebox.core_modules)
+* [jukebox.input\_devices](#jukebox.input_devices)
+  * [Evdev](#jukebox.input_devices.Evdev)
+    * [key\_downs](#jukebox.input_devices.Evdev.key_downs)
+  * [InputDevices](#jukebox.input_devices.InputDevices)
+    * [list\_devices](#jukebox.input_devices.InputDevices.list_devices)
 * [jukebox.multitimer](#jukebox.multitimer)
   * [MultiTimer](#jukebox.multitimer.MultiTimer)
     * [cancel](#jukebox.multitimer.MultiTimer.cancel)
@@ -167,8 +155,12 @@
     * [close](#jukebox.multitimer.GenericTimerClass.close)
   * [GenericEndlessTimerClass](#jukebox.multitimer.GenericEndlessTimerClass)
     * [get\_state](#jukebox.multitimer.GenericEndlessTimerClass.get_state)
+* [jukebox.legacy\_actions](#jukebox.legacy_actions)
+  * [convert](#jukebox.legacy_actions.convert)
+  * [bind\_action](#jukebox.legacy_actions.bind_action)
 * [jukebox.daemon](#jukebox.daemon)
   * [DEFAULT\_CONFIG\_TEMPLATE](#jukebox.daemon.DEFAULT_CONFIG_TEMPLATE)
+  * [shutdown\_signal](#jukebox.daemon.shutdown_signal)
   * [log\_active\_threads](#jukebox.daemon.log_active_threads)
   * [JukeBox](#jukebox.daemon.JukeBox)
     * [signal\_handler](#jukebox.daemon.JukeBox.signal_handler)
@@ -188,127 +180,120 @@
     * [\_\_init\_\_](#jukebox.misc.loggingext.ColorFilter.__init__)
   * [PubStream](#jukebox.misc.loggingext.PubStream)
   * [PubStreamHandler](#jukebox.misc.loggingext.PubStreamHandler)
+* [jukebox.contract.interfaces](#jukebox.contract.interfaces)
+* [jukebox.contract.declarations](#jukebox.contract.declarations)
+  * [OperationSpec](#jukebox.contract.declarations.OperationSpec)
+    * [kind](#jukebox.contract.declarations.OperationSpec.kind)
+  * [action](#jukebox.contract.declarations.action)
+  * [query](#jukebox.contract.declarations.query)
+  * [EventSpec](#jukebox.contract.declarations.EventSpec)
+  * [ExtensionPoint](#jukebox.contract.declarations.ExtensionPoint)
+    * [on\_register](#jukebox.contract.declarations.ExtensionPoint.on_register)
+  * [ExtensionPointSpec](#jukebox.contract.declarations.ExtensionPointSpec)
+  * [Operation](#jukebox.contract.declarations.Operation)
+    * [validate\_args](#jukebox.contract.declarations.Operation.validate_args)
+* [jukebox.contract.catalog](#jukebox.contract.catalog)
+  * [ActionCatalog](#jukebox.contract.catalog.ActionCatalog)
+    * [validate](#jukebox.contract.catalog.ActionCatalog.validate)
+* [jukebox.contract.context](#jukebox.contract.context)
+  * [ModuleConfig](#jukebox.contract.context.ModuleConfig)
+  * [ModuleProxy](#jukebox.contract.context.ModuleProxy)
+  * [Context](#jukebox.contract.context.Context)
+    * [lock](#jukebox.contract.context.Context.lock)
+    * [subscribe](#jukebox.contract.context.Context.subscribe)
+* [jukebox.contract.routes](#jukebox.contract.routes)
+* [jukebox.contract.manager](#jukebox.contract.manager)
+  * [discover\_plugins](#jukebox.contract.manager.discover_plugins)
+  * [ModuleHandle](#jukebox.contract.manager.ModuleHandle)
+  * [ModuleManager](#jukebox.contract.manager.ModuleManager)
+    * [\_\_init\_\_](#jukebox.contract.manager.ModuleManager.__init__)
+* [jukebox.contract.module](#jukebox.contract.module)
+  * [Module](#jukebox.contract.module.Module)
+    * [concurrency](#jukebox.contract.module.Module.concurrency)
+    * [ready](#jukebox.contract.module.Module.ready)
+    * [extra\_routes](#jukebox.contract.module.Module.extra_routes)
+  * [CoreModule](#jukebox.contract.module.CoreModule)
+  * [Plugin](#jukebox.contract.module.Plugin)
+* [jukebox.contract.version](#jukebox.contract.version)
+  * [CONTRACT\_VERSION](#jukebox.contract.version.CONTRACT_VERSION)
+* [jukebox.contract](#jukebox.contract)
+* [jukebox.contract.snapshots](#jukebox.contract.snapshots)
+  * [check\_target](#jukebox.contract.snapshots.check_target)
+* [jukebox.contract.errors](#jukebox.contract.errors)
+  * [ContractError](#jukebox.contract.errors.ContractError)
+  * [OperationError](#jukebox.contract.errors.OperationError)
+  * [ActionError](#jukebox.contract.errors.ActionError)
 * [jukebox.system](#jukebox.system)
-  * [get\_start\_time](#jukebox.system.get_start_time)
-  * [get\_log](#jukebox.system.get_log)
-  * [get\_log\_debug](#jukebox.system.get_log_debug)
-  * [get\_log\_error](#jukebox.system.get_log_error)
-  * [get\_git\_state](#jukebox.system.get_git_state)
-  * [empty\_rpc\_call](#jukebox.system.empty_rpc_call)
-  * [get\_app\_settings](#jukebox.system.get_app_settings)
-  * [set\_app\_settings](#jukebox.system.set_app_settings)
-* [jukebox.player.mpd\_plugin](#jukebox.player.mpd_plugin)
-  * [initialize\_mpd\_player](#jukebox.player.mpd_plugin.initialize_mpd_player)
-  * [initialize](#jukebox.player.mpd_plugin.initialize)
+  * [cpu\_temperature](#jukebox.system.cpu_temperature)
+  * [ip\_addresses](#jukebox.system.ip_addresses)
+  * [System](#jukebox.system.System)
+    * [log](#jukebox.system.System.log)
+    * [get\_info](#jukebox.system.System.get_info)
+    * [get\_health](#jukebox.system.System.get_health)
+    * [get\_ip\_addresses](#jukebox.system.System.get_ip_addresses)
+    * [say\_my\_ip](#jukebox.system.System.say_my_ip)
+    * [restart\_service](#jukebox.system.System.restart_service)
+    * [get\_log](#jukebox.system.System.get_log)
+    * [get\_app\_settings](#jukebox.system.System.get_app_settings)
+    * [set\_app\_settings](#jukebox.system.System.set_app_settings)
+    * [noop](#jukebox.system.System.noop)
 * [jukebox.player.coordinator](#jukebox.player.coordinator)
   * [PlayerCoordinator](#jukebox.player.coordinator.PlayerCoordinator)
+    * [\_\_init\_\_](#jukebox.player.coordinator.PlayerCoordinator.__init__)
     * [register\_backend](#jukebox.player.coordinator.PlayerCoordinator.register_backend)
+    * [set\_default\_backend](#jukebox.player.coordinator.PlayerCoordinator.set_default_backend)
     * [select\_backend](#jukebox.player.coordinator.PlayerCoordinator.select_backend)
-* [jukebox.player.playcontentcallback](#jukebox.player.playcontentcallback)
-  * [PlayContentCallbacks](#jukebox.player.playcontentcallback.PlayContentCallbacks)
-    * [register](#jukebox.player.playcontentcallback.PlayContentCallbacks.register)
-    * [run\_callbacks](#jukebox.player.playcontentcallback.PlayContentCallbacks.run_callbacks)
-* [jukebox.player.plugin](#jukebox.player.plugin)
+    * [play\_files](#jukebox.player.coordinator.PlayerCoordinator.play_files)
+* [jukebox.player.module](#jukebox.player.module)
+  * [Player](#jukebox.player.module.Player)
+    * [play](#jukebox.player.module.Player.play)
+    * [pause](#jukebox.player.module.Player.pause)
+    * [toggle](#jukebox.player.module.Player.toggle)
+    * [next](#jukebox.player.module.Player.next)
+    * [prev](#jukebox.player.module.Player.prev)
+    * [stop\_playback](#jukebox.player.module.Player.stop_playback)
+    * [seek](#jukebox.player.module.Player.seek)
+    * [shuffle](#jukebox.player.module.Player.shuffle)
+    * [repeat](#jukebox.player.module.Player.repeat)
+    * [rewind](#jukebox.player.module.Player.rewind)
+    * [replay](#jukebox.player.module.Player.replay)
+    * [replay\_if\_stopped](#jukebox.player.module.Player.replay_if_stopped)
+    * [resume](#jukebox.player.module.Player.resume)
+    * [play\_folder](#jukebox.player.module.Player.play_folder)
+    * [play\_card](#jukebox.player.module.Player.play_card)
+    * [play\_single](#jukebox.player.module.Player.play_single)
+    * [play\_album](#jukebox.player.module.Player.play_album)
+    * [queue\_load](#jukebox.player.module.Player.queue_load)
+    * [update](#jukebox.player.module.Player.update)
+    * [update\_wait](#jukebox.player.module.Player.update_wait)
+    * [playerstatus](#jukebox.player.module.Player.playerstatus)
+    * [get\_volume](#jukebox.player.module.Player.get_volume)
+    * [set\_volume](#jukebox.player.module.Player.set_volume)
+    * [playlistinfo](#jukebox.player.module.Player.playlistinfo)
+    * [get\_current\_song](#jukebox.player.module.Player.get_current_song)
+    * [get\_player\_type\_and\_version](#jukebox.player.module.Player.get_player_type_and_version)
+    * [list\_backends](#jukebox.player.module.Player.list_backends)
+    * [get\_active\_backend](#jukebox.player.module.Player.get_active_backend)
+    * [get\_default\_backend](#jukebox.player.module.Player.get_default_backend)
+    * [select\_backend](#jukebox.player.module.Player.select_backend)
+* [jukebox.player.status](#jukebox.player.status)
+  * [status\_from\_backend](#jukebox.player.status.status_from_backend)
 * [jukebox.player](#jukebox.player)
-  * [play\_card\_callbacks](#jukebox.player.play_card_callbacks)
   * [MusicLibPath](#jukebox.player.MusicLibPath)
   * [get\_music\_library\_path](#jukebox.player.get_music_library_path)
+* [jukebox.player.backend](#jukebox.player.backend)
+  * [PlayerBackend](#jukebox.player.backend.PlayerBackend)
+    * [set\_status\_callback](#jukebox.player.backend.PlayerBackend.set_status_callback)
+    * [play\_files](#jukebox.player.backend.PlayerBackend.play_files)
 * [jukebox.player.backends.local\_audio](#jukebox.player.backends.local_audio)
-  * [AudioSink](#jukebox.player.backends.local_audio.AudioSink)
-  * [PortAudioSink](#jukebox.player.backends.local_audio.PortAudioSink)
   * [PlayerLocalAudio](#jukebox.player.backends.local_audio.PlayerLocalAudio)
     * [rewind](#jukebox.player.backends.local_audio.PlayerLocalAudio.rewind)
     * [replay](#jukebox.player.backends.local_audio.PlayerLocalAudio.replay)
-  * [initialize](#jukebox.player.backends.local_audio.initialize)
-* [jukebox.player.backends.coverart\_cache\_manager](#jukebox.player.backends.coverart_cache_manager)
-* [jukebox.player.backends.mpd](#jukebox.player.backends.mpd)
-  * [PlayerMPD](#jukebox.player.backends.mpd.PlayerMPD)
-    * [mpd\_retry\_with\_mutex](#jukebox.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex)
-    * [pause](#jukebox.player.backends.mpd.PlayerMPD.pause)
-    * [next](#jukebox.player.backends.mpd.PlayerMPD.next)
-    * [rewind](#jukebox.player.backends.mpd.PlayerMPD.rewind)
-    * [replay](#jukebox.player.backends.mpd.PlayerMPD.replay)
-    * [toggle](#jukebox.player.backends.mpd.PlayerMPD.toggle)
-    * [replay\_if\_stopped](#jukebox.player.backends.mpd.PlayerMPD.replay_if_stopped)
-    * [is\_second\_swipe](#jukebox.player.backends.mpd.PlayerMPD.is_second_swipe)
-    * [play\_second\_swipe](#jukebox.player.backends.mpd.PlayerMPD.play_second_swipe)
-    * [flush\_coverart\_cache](#jukebox.player.backends.mpd.PlayerMPD.flush_coverart_cache)
-    * [get\_folder\_content](#jukebox.player.backends.mpd.PlayerMPD.get_folder_content)
-    * [play\_folder](#jukebox.player.backends.mpd.PlayerMPD.play_folder)
-    * [play\_album](#jukebox.player.backends.mpd.PlayerMPD.play_album)
-    * [get\_volume](#jukebox.player.backends.mpd.PlayerMPD.get_volume)
-    * [set\_volume](#jukebox.player.backends.mpd.PlayerMPD.set_volume)
 * [jukebox.player.backends](#jukebox.player.backends)
 
 <a id="jukebox"></a>
 
 # jukebox
-
-<a id="jukebox.library"></a>
-
-# jukebox.library
-
-Safe file operations within the configured MPD music library.
-
-
-<a id="jukebox.library.LibraryError"></a>
-
-## LibraryError Objects
-
-```python
-class LibraryError(Exception)
-```
-
-An expected library operation failure suitable for an HTTP response.
-
-
-<a id="jukebox.library.resolve_library_path"></a>
-
-#### resolve\_library\_path
-
-```python
-def resolve_library_path(root,
-                         value,
-                         *,
-                         allow_root=True,
-                         require_exists=False)
-```
-
-Resolve a relative or internal absolute path without escaping ``root``.
-
-
-<a id="jukebox.library.UploadSession"></a>
-
-## UploadSession Objects
-
-```python
-class UploadSession()
-```
-
-Write one upload to a temporary file and publish it atomically.
-
-
-<a id="jukebox.library.MusicLibrary"></a>
-
-## MusicLibrary Objects
-
-```python
-class MusicLibrary()
-```
-
-Perform validated mutations beneath a lazily resolved library root.
-
-
-<a id="jukebox.library.create_music_library"></a>
-
-#### create\_music\_library
-
-```python
-def create_music_library()
-```
-
-Create the production library service after the player component is started.
-
 
 <a id="jukebox.utils"></a>
 
@@ -316,115 +301,6 @@ Create the production library service after the player component is started.
 
 Common utility functions
 
-
-<a id="jukebox.utils.decode_rpc_call"></a>
-
-#### decode\_rpc\_call
-
-```python
-def decode_rpc_call(cfg_rpc_call: Dict) -> Optional[Dict]
-```
-
-Makes sure that the core rpc call parameters have valid default values in cfg_rpc_call.
-
-> [!IMPORTANT]
-> Leaves all other parameters in cfg_action untouched or later downstream processing!
-
-**Arguments**:
-
-- `cfg_rpc_call`: RPC command as configuration entry
-
-**Returns**:
-
-A fully populated deep copy of cfg_rpc_call
-
-<a id="jukebox.utils.decode_rpc_command"></a>
-
-#### decode\_rpc\_command
-
-```python
-def decode_rpc_command(cfg_rpc_cmd: Dict,
-                       logger: logging.Logger = log) -> Optional[Dict]
-```
-
-Decode an RPC Command from a config entry.
-
-This means
-
-* Decode RPC command alias (if present)
-* Ensure all RPC call parameters have valid default values
-
-If the command alias cannot be decoded correctly, the command is mapped to misc.empty_rpc_call
-which emits a misuse warning when called
-If an explicitly specified this is not done. However, it is ensured that the returned
-dictionary contains all mandatory parameters for an RPC call. RPC call functions have error handling
-for non-existing RPC commands and we get a clearer error message.
-
-**Arguments**:
-
-- `cfg_rpc_cmd`: RPC command as configuration entry
-- `logger`: The logger to use
-
-**Returns**:
-
-A decoded, fully populated deep copy of cfg_rpc_cmd
-
-<a id="jukebox.utils.decode_and_call_rpc_command"></a>
-
-#### decode\_and\_call\_rpc\_command
-
-```python
-def decode_and_call_rpc_command(rpc_cmd: Dict, logger: logging.Logger = log)
-```
-
-Convenience function combining decode_rpc_command and plugs.call_ignore_errors
-
-
-<a id="jukebox.utils.bind_rpc_command"></a>
-
-#### bind\_rpc\_command
-
-```python
-def bind_rpc_command(cfg_rpc_cmd: Dict,
-                     dereference=False,
-                     logger: logging.Logger = log)
-```
-
-Decode an RPC command configuration entry and bind it to a function
-
-**Arguments**:
-
-- `dereference`: Dereference even the call to plugs.call(...)
-    ``. If false, the returned function is ``plugs.call(package, plugin, method, *args, **kwargs)`` with
-        all checks applied at bind time
-    ``. If true, the returned function is ``package.plugin.method(*args, **kwargs)`` with
-        all checks applied at bind time.
-
-Setting deference to True, circumvents the dynamic nature of the plugins: the function to call
-    must exist at bind time and cannot change. If False, the function to call must only exist at call time.
-    This can be important during the initialization where package ordering and initialization means that not all
-    classes have been instantiated yet. With dereference=True also the plugs thread lock for serialization of calls
-    is circumvented. Use with care!
-
-**Returns**:
-
-Callable function w/o parameters which directly runs the RPC command
-using plugs.call_ignore_errors
-
-<a id="jukebox.utils.rpc_call_to_str"></a>
-
-#### rpc\_call\_to\_str
-
-```python
-def rpc_call_to_str(cfg_rpc_call: Dict, with_args=True) -> str
-```
-
-Return a readable string of an RPC call config
-
-**Arguments**:
-
-- `cfg_rpc_call`: RPC call configuration entry
-- `with_args`: Return string shall include the arguments of the function
 
 <a id="jukebox.utils.get_config_action"></a>
 
@@ -441,28 +317,6 @@ the associated entry from valid_actions_dict, if valid. Falls back to the given
 default otherwise.
 
 
-<a id="jukebox.utils.generate_cmd_alias_rst"></a>
-
-#### generate\_cmd\_alias\_rst
-
-```python
-def generate_cmd_alias_rst(stream)
-```
-
-Write a reference of all rpc command aliases in Restructured Text format
-
-
-<a id="jukebox.utils.generate_cmd_alias_reference"></a>
-
-#### generate\_cmd\_alias\_reference
-
-```python
-def generate_cmd_alias_reference(stream)
-```
-
-Write a reference of all rpc command aliases in text format
-
-
 <a id="jukebox.utils.get_git_state"></a>
 
 #### get\_git\_state
@@ -474,555 +328,488 @@ def get_git_state()
 Return git state information for the current branch
 
 
-<a id="jukebox.command_aliases"></a>
+<a id="jukebox.jingle"></a>
 
-# jukebox.command\_aliases
+# jukebox.jingle
 
-This file provides definitions for RPC command aliases
+The jingle core module: startup and shutdown sounds, and playing a sound on demand.
 
-See [RPC Commands](../../builders/rpc-commands.md)
 
-Trimmed to the components that survived the plugin-system removal (see
-documentation/developers/roadmap-core-architecture.md): only 'player' right now. Aliases for
-volume/host/timers/synchronisation will come back once those are reintroduced as components.
+<a id="jukebox.jingle.Jingle"></a>
+
+## Jingle Objects
+
+```python
+class Jingle(CoreModule)
+```
+
+Plays the startup sound when ready and the shutdown sound when stopping.
+
+
+<a id="jukebox.jingle.Jingle.play"></a>
+
+#### play
+
+```python
+@action()
+def play(sound: str) -> None
+```
+
+Play a sound file (path relative to the jukebox directory or absolute).
+
+
+<a id="jukebox.library.index"></a>
+
+# jukebox.library.index
+
+SQLite index of the music library: tags and durations read with mutagen.
+
+Songs are keyed by their path relative to the music library root. A scan only re-reads files whose
+modification time or size changed.
+
+
+<a id="jukebox.library.index.read_tags"></a>
+
+#### read\_tags
+
+```python
+def read_tags(path: Path) -> Dict[str, Any]
+```
+
+Title, artist, album, albumartist, track, disc and duration of an audio file (missing: None).
+
+
+<a id="jukebox.library.index.LibraryIndex"></a>
+
+## LibraryIndex Objects
+
+```python
+class LibraryIndex()
+```
+
+<a id="jukebox.library.index.LibraryIndex.relative"></a>
+
+#### relative
+
+```python
+def relative(song_url: str) -> Optional[str]
+```
+
+``song_url`` (absolute below the root, or relative to it) as index key, else None.
+
+
+<a id="jukebox.library.index.LibraryIndex.scan"></a>
+
+#### scan
+
+```python
+def scan() -> ScanResult
+```
+
+Bring the index in line with the files on disk. Concurrent calls run one after another.
+
+
+<a id="jukebox.library.index.LibraryIndex.albums"></a>
+
+#### albums
+
+```python
+def albums() -> List[Dict[str, Any]]
+```
+
+Albums grouped by album artist (falling back to the artist) and album title.
+
+
+<a id="jukebox.library.files"></a>
+
+# jukebox.library.files
+
+Safe file operations within the music library.
+
+
+<a id="jukebox.library.files.LibraryError"></a>
+
+## LibraryError Objects
+
+```python
+class LibraryError(OperationError)
+```
+
+An expected library operation failure suitable for an HTTP response.
+
+
+<a id="jukebox.library.files.resolve_library_path"></a>
+
+#### resolve\_library\_path
+
+```python
+def resolve_library_path(root,
+                         value,
+                         *,
+                         allow_root=True,
+                         require_exists=False)
+```
+
+Resolve a relative or internal absolute path without escaping ``root``.
+
+
+<a id="jukebox.library.files.UploadSession"></a>
+
+## UploadSession Objects
+
+```python
+class UploadSession()
+```
+
+Write one upload to a temporary file and publish it atomically.
+
+
+<a id="jukebox.library.files.MusicLibrary"></a>
+
+## MusicLibrary Objects
+
+```python
+class MusicLibrary()
+```
+
+Perform validated mutations beneath a lazily resolved library root.
+
+
+<a id="jukebox.library.module"></a>
+
+# jukebox.library.module
+
+The library core module: file management, index, metadata, cover art and library sources.
+
+
+<a id="jukebox.library.module.LibrarySource"></a>
+
+## LibrarySource Objects
+
+```python
+class LibrarySource(Protocol)
+```
+
+Further music a player backend or plugin can play (e.g. an mpd database, a streaming service).
+
+
+<a id="jukebox.library.module.LibrarySource.describe"></a>
+
+#### describe
+
+```python
+def describe() -> Dict[str, Any]
+```
+
+``{'id', 'label', 'views': [{'id', 'label', 'kind': 'items'|'folders', 'content_types'}]}``
+
+
+<a id="jukebox.library.module.LibrarySource.list_items"></a>
+
+#### list\_items
+
+```python
+def list_items(content_types: Optional[List[str]]) -> List[Dict[str, Any]]
+```
+
+Items (albums, playlists, ...) with ``albumartist``, ``album``, ``content_type``, ``content_uri``.
+
+
+<a id="jukebox.library.module.LibrarySource.cover"></a>
+
+#### cover
+
+```python
+def cover(song_url: str) -> Optional[str]
+```
+
+URL of the song's cover (absolute or relative to the web app), or None.
+
+
+<a id="jukebox.library.module.song_from_source"></a>
+
+#### song\_from\_source
+
+```python
+def song_from_source(provider: str, data: Dict[str, Any]) -> Song
+```
+
+A :class:`Song` from a source's song mapping (mpd style keys are understood).
+
+
+<a id="jukebox.library.module.Library"></a>
+
+## Library Objects
+
+```python
+class Library(CoreModule)
+```
+
+Music library: files, index with metadata, cover art; further sources plug in at ``library.sources``.
+
+
+<a id="jukebox.library.module.Library.list_entries"></a>
+
+#### list\_entries
+
+```python
+@query(path='/api/v1/library/entries')
+def list_entries(folder: str) -> LibraryEntries
+```
+
+Files and folders in a library folder.
+
+
+<a id="jukebox.library.module.Library.create_folder"></a>
+
+#### create\_folder
+
+```python
+@action(path='/api/v1/library/folders', status_code=201)
+def create_folder(parent: str, name: str) -> CreatedFolder
+```
+
+Create a folder in the library.
+
+
+<a id="jukebox.library.module.Library.delete_entries"></a>
+
+#### delete\_entries
+
+```python
+@action(method='DELETE', path='/api/v1/library/entries')
+def delete_entries(paths: List[str]) -> DeletedEntries
+```
+
+Delete files and folders from the library.
+
+
+<a id="jukebox.library.module.Library.refresh"></a>
+
+#### refresh
+
+```python
+@action(path='/api/v1/library/refresh')
+def refresh() -> ScanStarted
+```
+
+Rescan the library (and refresh all other sources).
+
+
+<a id="jukebox.library.module.Library.list_sources"></a>
+
+#### list\_sources
+
+```python
+@query(path='/sources')
+def list_sources() -> List[SourceInfo]
+```
+
+The local library and every registered source, with their views.
+
+
+<a id="jukebox.library.module.Library.list_items"></a>
+
+#### list\_items
+
+```python
+@query(path='/items')
+def list_items(provider: Optional[str] = None,
+               content_types: Optional[List[str]] = None) -> List[LibraryItem]
+```
+
+Albums (and other items) of one source or all of them.
+
+
+<a id="jukebox.library.module.Library.list_songs"></a>
+
+#### list\_songs
+
+```python
+@query(path='/songs')
+def list_songs(albumartist: str,
+               album: str,
+               content_uri: Optional[str] = None,
+               provider: Optional[str] = None) -> List[Song]
+```
+
+Songs of an album, in track order.
+
+
+<a id="jukebox.library.module.Library.get_song"></a>
+
+#### get\_song
+
+```python
+@query(path='/song')
+def get_song(song_url: str, provider: Optional[str] = None) -> Optional[Song]
+```
+
+Metadata of a single song, or null if it is unknown.
+
+
+<a id="jukebox.library.module.Library.search"></a>
+
+#### search
+
+```python
+@query(path='/search')
+def search(query: str) -> List[Song]
+```
+
+Songs of the local library matching title, artist, album or path.
+
+
+<a id="jukebox.library.module.Library.get_song_cover"></a>
+
+#### get\_song\_cover
+
+```python
+@query(path='/cover/song')
+def get_song_cover(song_url: str, provider: Optional[str] = None) -> CoverArt
+```
+
+Cover art URL of a song.
+
+
+<a id="jukebox.library.module.Library.get_album_cover"></a>
+
+#### get\_album\_cover
+
+```python
+@query(path='/cover/album')
+def get_album_cover(albumartist: str,
+                    album: str,
+                    content_uri: Optional[str] = None,
+                    provider: Optional[str] = None) -> CoverArt
+```
+
+Cover art URL of an album (the cover of its first song).
+
+
+<a id="jukebox.library.module.Library.flush_covers"></a>
+
+#### flush\_covers
+
+```python
+@action(path='/covers/flush')
+def flush_covers() -> None
+```
+
+Delete all cached cover art; it is extracted again when needed.
+
+
+<a id="jukebox.library.covers"></a>
+
+# jukebox.library.covers
+
+Cover art of songs: embedded pictures (MP3, FLAC, MP4, Ogg) or an image in the song's folder.
+
+
+<a id="jukebox.library.covers.CoverCache"></a>
+
+## CoverCache Objects
+
+```python
+class CoverCache()
+```
+
+Extracts covers into ``cache_dir`` once; names are content-independent hashes of the source.
+
+
+<a id="jukebox.library.covers.CoverCache.cover_for"></a>
+
+#### cover\_for
+
+```python
+def cover_for(song: Path) -> Optional[str]
+```
+
+File name in the cache of the song's cover, or None when it has none.
+
+
+<a id="jukebox.library"></a>
+
+# jukebox.library
+
+The music library: file management, index, metadata and cover art.
 
 
 <a id="jukebox.rfid.reader"></a>
 
 # jukebox.rfid.reader
 
-<a id="jukebox.rfid.reader.RfidCardDetectCallbacks"></a>
+RFID reader framework: one thread per configured reader, card dispatch, card removal detection.
 
-## RfidCardDetectCallbacks Objects
-
-```python
-class RfidCardDetectCallbacks(CallbackHandler)
-```
-
-Callbacks are executed if rfid card is detected
+Hardware drivers register at the ``rfid.readers`` extension point. Readers are configured in the
+reader config file (``rfid.reader_config``), each with the name of its driver under ``module``.
 
 
-<a id="jukebox.rfid.reader.RfidCardDetectCallbacks.register"></a>
+<a id="jukebox.rfid.reader.ReaderDriver"></a>
 
-#### register
+## ReaderDriver Objects
 
 ```python
-def register(func: Callable[[str, RfidCardDetectState], None])
+class ReaderDriver(Protocol)
 ```
 
-Add a new callback function :attr:`func`.
+<a id="jukebox.rfid.reader.ReaderDriver.create_reader"></a>
 
-Callback signature is
-
-.. py:function:: func(card_id: str, state: int)
-    :noindex:
-
-**Arguments**:
-
-- `card_id`: Card ID
-- `state`: See `RfidCardDetectState`
-
-<a id="jukebox.rfid.reader.RfidCardDetectCallbacks.run_callbacks"></a>
-
-#### run\_callbacks
+#### create\_reader
 
 ```python
-def run_callbacks(card_id: str, state: RfidCardDetectState)
+def create_reader(reader_cfg_key: str) -> Any
 ```
 
+Return a reader for the reader config key: a context manager that iterates card ids
+
+('' on timeout) and has ``stop()``.
 
 
-<a id="jukebox.rfid.reader.rfid_card_detect_callbacks"></a>
+<a id="jukebox.rfid.reader.CardRemovalTimer"></a>
 
-#### rfid\_card\_detect\_callbacks
-
-Callback handler instance for rfid_card_detect_callbacks events.
-
-See [`RfidCardDetectCallbacks`](#jukebox.rfid.reader.RfidCardDetectCallbacks)
-
-
-<a id="jukebox.rfid.reader.CardRemovalTimerClass"></a>
-
-## CardRemovalTimerClass Objects
+## CardRemovalTimer Objects
 
 ```python
-class CardRemovalTimerClass(threading.Thread)
+class CardRemovalTimer(threading.Thread)
 ```
 
-A timer watchdog thread that calls timeout_action on time-out
+Runs ``on_timeout`` once when the card has not been seen for about a second.
 
 
-<a id="jukebox.rfid.reader.CardRemovalTimerClass.__init__"></a>
+<a id="jukebox.rfid.reader.Rfid"></a>
 
-#### \_\_init\_\_
+## Rfid Objects
 
 ```python
-def __init__(on_timeout_callback, logger: logging.Logger = None)
+class Rfid(CoreModule)
 ```
 
-**Arguments**:
+RFID readers: detect cards and run their actions.
 
-- `on_timeout_callback`: The function to execute on time-out
 
-<a id="jukebox.rfid.reader.start_readers"></a>
+<a id="jukebox.rfid.reader.Rfid.resolve_config_action"></a>
 
-#### start\_readers
+#### resolve\_config\_action
 
 ```python
-def start_readers()
+def resolve_config_action(entry, where: str) -> Optional[Callable[[], Any]]
 ```
 
-Load the reader config/database and start a ReaderRunner thread per configured reader.
-
-Called explicitly by jukebox.daemon at start-up (no plugin system, see
-documentation/developers/roadmap-core-architecture.md).
+Turn a configured action (new or old format) into a callable, or None if invalid.
 
 
-<a id="jukebox.rfid.configure"></a>
+<a id="jukebox.rfid.reader.Rfid.list_readers"></a>
 
-# jukebox.rfid.configure
-
-<a id="jukebox.rfid.configure.BUNDLED_READER_EXTRAS"></a>
-
-#### BUNDLED\_READER\_EXTRAS
-
-Reader (sub)package name -> pyproject.toml extra providing its dependencies. Formalizes what
-
-used to be a per-reader requirements.txt, installed with `pip install -r requirements.txt`.
-
-
-<a id="jukebox.rfid.configure.reader_install_dependencies"></a>
-
-#### reader\_install\_dependencies
+#### list\_readers
 
 ```python
-def reader_install_dependencies(reader_path: str,
-                                dependency_install: str) -> None
+@query(path='/readers')
+def list_readers() -> Dict[str, str]
 ```
 
-Install dependencies for the selected reader module
+Configured readers and their driver.
 
-**Arguments**:
-
-- `reader_path`: Path to the reader module
-- `dependency_install`: how to handle installing of dependencies
-'query': query user (default)
-'auto': automatically
-'no': don't install dependencies
-
-<a id="jukebox.rfid.configure.reader_load_module"></a>
-
-#### reader\_load\_module
-
-```python
-def reader_load_module(reader_name)
-```
-
-Load the module for the reader_name
-
-A ModuleNotFoundError is unrecoverable, but we at least want to give some hint how to resolve that to the user
-All other errors will NOT be handled. Modules that do not load due to compile errors have other problems
-
-**Arguments**:
-
-- `reader_name`: Name of the reader to load the module for
-
-**Returns**:
-
-module
-
-<a id="jukebox.rfid.configure.query_user_for_reader"></a>
-
-#### query\_user\_for\_reader
-
-```python
-def query_user_for_reader(dependency_install='query') -> dict
-```
-
-Ask the user to select a RFID reader and prompt for the reader's configuration
-
-This function performs the following steps, to find and present all available readers to the user
-
-- search for available reader subpackages
-- dynamically load the description module for each reader subpackage
-- queries user for selection
-- if no_dep_install=False, install dependencies as given by requirements.txt and execute setup.inc.sh of subpackage
-- dynamically load the actual reader module from the reader subpackage
-- if selected reader has customization options query user for that now
-- return configuration
-
-There are checks to make sure we have the right reader modules and they are what we expect.
-The are as few requirements towards the reader module as possible and everything else is optional
-(see reader_template for these requirements)
-However, there is no error handling w.r.t to user input and reader's query_config. Firstly, in this script
-we cannot gracefully handle an exception that occurs on reader level, and secondly the exception will simply
-exit the script w/o writing the config to file. No harm done.
-
-This script expects to reside in the directory with all the reader subpackages, i.e it is part of the rfid-reader package.
-Otherwise you'll need to adjust sys.path
-
-**Arguments**:
-
-- `dependency_install`: how to handle installing of dependencies
-'query': query user (default)
-'auto': automatically
-'no': don't install dependencies
-
-**Returns**:
-
-`dict as {section: {parameter: value}}`: nested dict with entire configuration that can be read into ConfigParser
-
-<a id="jukebox.rfid.configure.write_config"></a>
-
-#### write\_config
-
-```python
-def write_config(config_file: str,
-                 config_dict: dict,
-                 force_overwrite=False) -> None
-```
-
-Write configuration to config_file
-
-**Arguments**:
-
-- `config_file`: relative or absolute path to config file
-- `config_dict`: nested dict with configuration parameters for ConfigParser consumption
-- `force_overwrite`: overwrite existing configuration file without asking
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon"></a>
-
-# jukebox.rfid.hardware.fake\_reader\_gui.gpioz\_gui\_addon
-
-Add GPIO input devices and output devices to the RFID Mock Reader GUI
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_inputs"></a>
-
-#### create\_inputs
-
-```python
-def create_inputs(frame, default_btn_width, default_padx, default_pady)
-```
-
-Add all input devies to the GUI
-
-**Arguments**:
-
-- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the buttons to
-
-**Returns**:
-
-List of all added GUI buttons
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.set_state"></a>
-
-#### set\_state
-
-```python
-def set_state(value, box_state_var)
-```
-
-Change the value of a checkbox state variable
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_state"></a>
-
-#### que\_set\_state
-
-```python
-def que_set_state(value, box_state_var)
-```
-
-Queue the action to change a checkbox state variable to the TK GUI main thread
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.fix_state"></a>
-
-#### fix\_state
-
-```python
-def fix_state(box_state_var)
-```
-
-Prevent a checkbox state variable to change on checkbox mouse press
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.pbox_set_state"></a>
-
-#### pbox\_set\_state
-
-```python
-def pbox_set_state(value, pbox_state_var, label_var)
-```
-
-Update progress bar state and related state label
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.que_set_pbox"></a>
-
-#### que\_set\_pbox
-
-```python
-def que_set_pbox(value, pbox_state_var, label_var)
-```
-
-Queue the action to change the progress bar state to the TK GUI main thread
-
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon.create_outputs"></a>
-
-#### create\_outputs
-
-```python
-def create_outputs(frame, default_btn_width, default_padx, default_pady)
-```
-
-Add all output devices to the GUI
-
-**Arguments**:
-
-- `frame`: The TK frame (e.g. LabelFrame) in the main GUI to add the representations to
-
-**Returns**:
-
-List of all added GUI objects
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.description"></a>
-
-# jukebox.rfid.hardware.fake\_reader\_gui.description
-
-<a id="jukebox.rfid.hardware.fake_reader_gui.fake_reader_gui"></a>
-
-# jukebox.rfid.hardware.fake\_reader\_gui.fake\_reader\_gui
-
-<a id="jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial"></a>
-
-# jukebox.rfid.hardware.rdm6300\_serial.rdm6300\_serial
-
-<a id="jukebox.rfid.hardware.rdm6300_serial.rdm6300_serial.decode"></a>
-
-#### decode
-
-```python
-def decode(raw_card_id: bytearray, number_format: int) -> str
-```
-
-Decode the RDM6300 data format into actual card ID
-
-
-<a id="jukebox.rfid.hardware.rdm6300_serial.description"></a>
-
-# jukebox.rfid.hardware.rdm6300\_serial.description
-
-<a id="jukebox.rfid.hardware.mfrc522_i2c.mfrc522_i2c"></a>
-
-# jukebox.rfid.hardware.mfrc522\_i2c.mfrc522\_i2c
-
-<a id="jukebox.rfid.hardware.mfrc522_i2c.description"></a>
-
-# jukebox.rfid.hardware.mfrc522\_i2c.description
-
-<a id="jukebox.rfid.hardware.rc522_spi.rc522_spi"></a>
-
-# jukebox.rfid.hardware.rc522\_spi.rc522\_spi
-
-<a id="jukebox.rfid.hardware.rc522_spi.description"></a>
-
-# jukebox.rfid.hardware.rc522\_spi.description
-
-<a id="jukebox.rfid.hardware.pn532_i2c_py532.pn532_i2c_py532"></a>
-
-# jukebox.rfid.hardware.pn532\_i2c\_py532.pn532\_i2c\_py532
-
-<a id="jukebox.rfid.hardware.pn532_i2c_py532.description"></a>
-
-# jukebox.rfid.hardware.pn532\_i2c\_py532.description
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.description"></a>
-
-# jukebox.rfid.hardware.generic\_nfcpy.description
-
-List of supported devices https://nfcpy.readthedocs.io/en/latest/overview.html
-
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy"></a>
-
-# jukebox.rfid.hardware.generic\_nfcpy.generic\_nfcpy
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass"></a>
-
-## ReaderClass Objects
-
-```python
-class ReaderClass(ReaderBaseClass)
-```
-
-The reader class for nfcpy supported NFC card readers.
-
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.cleanup"></a>
-
-#### cleanup
-
-```python
-def cleanup()
-```
-
-The cleanup function: free and release all resources used by this card reader (if any).
-
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.stop"></a>
-
-#### stop
-
-```python
-def stop()
-```
-
-This function is called to tell the reader to exit its reading function.
-
-
-<a id="jukebox.rfid.hardware.generic_nfcpy.generic_nfcpy.ReaderClass.read_card"></a>
-
-#### read\_card
-
-```python
-def read_card() -> str
-```
-
-Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader"></a>
-
-# jukebox.rfid.hardware.template\_new\_reader.template\_new\_reader
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.query_customization"></a>
-
-#### query\_customization
-
-```python
-def query_customization() -> dict
-```
-
-Query the user for reader parameter customization
-
-This function will be called during the configuration/setup phase when the user selects this reader module.
-It must return all configuration parameters that are necessary to later use the Reader class.
-You can ask the user for selections and choices. And/or provide default values.
-If your reader requires absolutely no configuration return {}
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass"></a>
-
-## ReaderClass Objects
-
-```python
-class ReaderClass(ReaderBaseClass)
-```
-
-The actual reader class that is used to read RFID cards.
-
-It will be instantiated once and then read_card() is called in an endless loop.
-
-It will be used in a  manner
-  with Reader(reader_cfg_key) as reader:
-    for card_id in reader:
-      ...
-which ensures proper resource de-allocation. For this to work derive this class from ReaderBaseClass.
-All the required interfaces are implemented there.
-
-Put your code into these functions (see below for more information)
-  - `__init__`
-  - read_card
-  - cleanup
-  - stop
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.__init__"></a>
-
-#### \_\_init\_\_
-
-```python
-def __init__(reader_cfg_key)
-```
-
-In the constructor, you will get the `reader_cfg_key` with which you can access the configuration data
-
-As you are dealing directly with potentially user-manipulated config information, it is
-advisable to do some sanity checks and give useful error messages. Even if you cannot recover gracefully,
-a good error message helps :-)
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.cleanup"></a>
-
-#### cleanup
-
-```python
-def cleanup()
-```
-
-The cleanup function: free and release all resources used by this card reader (if any).
-
-Put all your cleanup code here, e.g. if you are using the serial bus or GPIO pins.
-Will be called implicitly via the __exit__ function
-This function must exist! If there is nothing to do, just leave the pass statement in place below
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.stop"></a>
-
-#### stop
-
-```python
-def stop()
-```
-
-This function is called to tell the reader to exist it's reading function.
-
-This function is called before cleanup is called.
-
-> [!NOTE]
-> This is usually called from a different thread than the reader's thread! And this is the reason for the
-> two-step exit strategy. This function works across threads to indicate to the reader that is should stop attempt
-> to read a card. Once called, the function read_card will not be called again. When the reader thread exits
-> cleanup is called from the reader thread itself.
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.template_new_reader.ReaderClass.read_card"></a>
-
-#### read\_card
-
-```python
-def read_card() -> str
-```
-
-Blocking or non-blocking function that waits for a new card to appear and return the card's UID as string
-
-This is were your main code goes :-)
-This function must return a string with the card id
-In case of error, it may return None or an empty string
-
-The function should break and return with an empty string, once stop() is called
-
-
-<a id="jukebox.rfid.hardware.template_new_reader.description"></a>
-
-# jukebox.rfid.hardware.template\_new\_reader.description
-
-Provide a short title for this reader.
-
-This is what that user will see when asked for selecting his RFID reader
-So, be precise but readable. Precise means 40 characters or less
-
-
-<a id="jukebox.rfid.hardware.generic_usb.generic_usb"></a>
-
-# jukebox.rfid.hardware.generic\_usb.generic\_usb
-
-<a id="jukebox.rfid.hardware.generic_usb.description"></a>
-
-# jukebox.rfid.hardware.generic\_usb.description
 
 <a id="jukebox.rfid.readerbase"></a>
 
@@ -1049,130 +836,82 @@ Look at template_new_reader.py for documentation how to integrate a new RFID rea
 
 # jukebox.rfid.cards
 
-Handling the RFID card database
+The RFID card database: which action a card triggers.
 
-A few considerations:
-- Changing the Card DB influences to current state
-  - rfid.reader: Does not care, as it always freshly looks into the DB when a new card is triggered
-  - fake_reader_gui: Initializes the Drop-down menu once on start --> Will get out of date!
-
-Do we need a notifier? Or a callback for modules to get notified?
-Do we want to publish the information about a card DB update?
-TODO: Add callback for on_database_change
-
-TODO: check card id type (if int, convert to str)
-TODO: check if args is really a list (convert if not?)
+Entries are stored as ``action: <module>.<action>`` plus named ``args``. Entries in the pre-contract
+format (alias or package/plugin/method) are converted once all modules are ready; the original
+file is kept as a backup.
 
 
-<a id="jukebox.rfid.cards.list_cards"></a>
+<a id="jukebox.rfid.cards.Cards"></a>
+
+## Cards Objects
+
+```python
+class Cards(CoreModule)
+```
+
+Card database: register, list and delete cards.
+
+
+<a id="jukebox.rfid.cards.Cards.list_cards"></a>
 
 #### list\_cards
 
 ```python
-def list_cards()
+@query(path='/api/v1/cards')
+def list_cards() -> Dict[str, CardInfo]
 ```
 
-Provide a summarized, decoded list of all card actions
-
-This is intended as basis for a formatter function
-
-Format: 'id': {decoded_function_call, ignore_same_id_delay, ignore_card_removal_action, description, from_alias}
+All registered cards with their action and whether it is currently available.
 
 
-<a id="jukebox.rfid.cards.delete_card"></a>
+<a id="jukebox.rfid.cards.Cards.get_card"></a>
 
-#### delete\_card
+#### get\_card
 
 ```python
-def delete_card(card_id: str, auto_save: bool = True)
+@query(path='/api/v1/cards/{card_id}')
+def get_card(card_id: str) -> Optional[CardEntry]
 ```
 
-**Arguments**:
+The card's entry, or null when it is unknown or its action is unavailable.
 
-- `auto_save`: 
-- `card_id`: 
 
-<a id="jukebox.rfid.cards.register_card"></a>
+<a id="jukebox.rfid.cards.Cards.register_card"></a>
 
 #### register\_card
 
 ```python
+@action(path='/api/v1/cards')
 def register_card(card_id: str,
-                  cmd_alias: str,
-                  args: Optional[List] = None,
-                  kwargs: Optional[Dict] = None,
-                  ignore_card_removal_action: Optional[bool] = None,
-                  ignore_same_id_delay: Optional[bool] = None,
-                  overwrite: bool = False,
-                  auto_save: bool = True)
+                  action: str,
+                  args: Optional[Dict[str, Any]] = None,
+                  ignore_same_id_delay: bool = False,
+                  ignore_card_removal_action: bool = False,
+                  overwrite: bool = False) -> None
 ```
 
-Register a new card based on quick-selection
-
-If you are going to call this through the RPC it will get a little verbose
-
-**Example:** Registering a new card with ID *0009* for increment volume with a custom argument to inc_volume
-(*here: 15*) and custom *ignore_same_id_delay value*::
-
-    plugin.call_ignore_errors('cards', 'register_card',
-                              args=['0009', 'inc_volume'],
-                              kwargs={'args': [15], 'ignore_same_id_delay': True, 'overwrite': True})
+Register a card to trigger an action.
 
 
-<a id="jukebox.rfid.cards.register_card_custom"></a>
+<a id="jukebox.rfid.cards.Cards.delete_card"></a>
 
-#### register\_card\_custom
+#### delete\_card
 
 ```python
-def register_card_custom()
+@action(method='DELETE', path='/api/v1/cards/{card_id}')
+def delete_card(card_id: str) -> None
 ```
 
-Register a new card with full RPC call specification (Not implemented yet)
-
-
-<a id="jukebox.rfid.cards.save_card_database"></a>
-
-#### save\_card\_database
-
-```python
-def save_card_database(filename=None, *, only_if_changed=True)
-```
-
-Store the current card database. If filename is None, it is saved back to the file it was loaded from
-
-
-<a id="jukebox.rfid.cards.register"></a>
-
-#### register
-
-```python
-def register()
-```
-
-Register the card-database RPC calls as 'cards.<name>'.
-
-Called explicitly by jukebox.daemon at start-up (no plugin system, see
-documentation/developers/roadmap-core-architecture.md).
+Delete a card.
 
 
 <a id="jukebox.rfid.cardutils"></a>
 
 # jukebox.rfid.cardutils
 
-Common card decoding functions
-
-TODO: Thread safety when accessing the card DB!
-
-
-<a id="jukebox.rfid.cardutils.decode_card_command"></a>
-
-#### decode\_card\_command
-
-```python
-def decode_card_command(cfg_rpc_cmd: Mapping, logger: logging.Logger = log)
-```
-
-Extension of utils.decode_action with card-specific parameters
+Readable descriptions of card database entries.
 
 
 <a id="jukebox.rfid.cardutils.card_command_to_str"></a>
@@ -1180,23 +919,162 @@ Extension of utils.decode_action with card-specific parameters
 #### card\_command\_to\_str
 
 ```python
-def card_command_to_str(cfg_rpc_cmd: Mapping, long=False) -> List[str]
+def card_command_to_str(entry: Mapping[str, Any],
+                        long: bool = False) -> List[str]
 ```
 
-Returns a list of strings with [card_action, ignore_same_id_delay, ignore_card_removal_action]
-
-The last two parameters are only present, if *long* is True and if they are present in the cfg_rpc_cmd
+``[action(args)]``, plus the card flags when ``long`` is set.
 
 
-<a id="jukebox.rfid.cardutils.card_to_str"></a>
+<a id="jukebox.volume"></a>
 
-#### card\_to\_str
+# jukebox.volume
+
+The volume core module: volume, mute, soft maximum, output selection and fade-out.
+
+The mixer is PulseAudio/PipeWire (via pulsectl) when a server is reachable, otherwise the volume of
+the active player backend.
+
+
+<a id="jukebox.volume.PlayerMixer"></a>
+
+## PlayerMixer Objects
 
 ```python
-def card_to_str(card_id: str, long=False) -> List[str]
+class PlayerMixer()
 ```
 
-Returns a list of strings from card entry command in the format of :func:`card_command_to_str`
+Volume of the active player backend; no outputs to choose from.
+
+
+<a id="jukebox.volume.PulseMixer"></a>
+
+## PulseMixer Objects
+
+```python
+class PulseMixer()
+```
+
+PulseAudio/PipeWire default sink; ``volume_limit`` of an output scales 0..100 to 0..limit.
+
+
+<a id="jukebox.volume.Volume"></a>
+
+## Volume Objects
+
+```python
+class Volume(CoreModule)
+```
+
+Volume, mute, soft maximum and audio output.
+
+
+<a id="jukebox.volume.Volume.get_volume"></a>
+
+#### get\_volume
+
+```python
+@query(path='')
+def get_volume() -> VolumeState
+```
+
+Current volume, mute state and soft maximum.
+
+
+<a id="jukebox.volume.Volume.set_volume"></a>
+
+#### set\_volume
+
+```python
+@action(method='PUT', path='')
+def set_volume(volume: int) -> VolumeState
+```
+
+Set the volume (0-100, limited to the soft maximum).
+
+
+<a id="jukebox.volume.Volume.change_volume"></a>
+
+#### change\_volume
+
+```python
+@action(path='/change')
+def change_volume(step: int = 5) -> VolumeState
+```
+
+Change the volume by ``step`` (negative to lower it).
+
+
+<a id="jukebox.volume.Volume.mute"></a>
+
+#### mute
+
+```python
+@action(path='/mute')
+def mute(mute: Optional[bool] = None) -> VolumeState
+```
+
+Mute or unmute; toggles when ``mute`` is left out.
+
+
+<a id="jukebox.volume.Volume.set_soft_max_volume"></a>
+
+#### set\_soft\_max\_volume
+
+```python
+@action(method='PUT', path='/soft-max')
+def set_soft_max_volume(max_volume: int) -> VolumeState
+```
+
+Limit the volume that can be set (0-100); lowers the current volume if needed.
+
+
+<a id="jukebox.volume.Volume.get_outputs"></a>
+
+#### get\_outputs
+
+```python
+@query(path='/outputs')
+def get_outputs() -> OutputsState
+```
+
+Configured outputs that are available right now.
+
+
+<a id="jukebox.volume.Volume.set_output"></a>
+
+#### set\_output
+
+```python
+@action(method='PUT', path='/outputs/active')
+def set_output(name: str) -> OutputsState
+```
+
+Switch the audio output.
+
+
+<a id="jukebox.volume.Volume.toggle_output"></a>
+
+#### toggle\_output
+
+```python
+@action(path='/outputs/toggle')
+def toggle_output() -> OutputsState
+```
+
+Switch to the next available output.
+
+
+<a id="jukebox.volume.Volume.fade_out"></a>
+
+#### fade\_out
+
+```python
+@action(path='/fade-out')
+def fade_out(seconds: float = 10.0) -> None
+```
+
+Lower the volume to zero over ``seconds``, stop playback, then restore the volume.
 
 
 <a id="jukebox.nv_manager"></a>
@@ -1265,6 +1143,9 @@ A shallow copy of the full last-value cache, for a client that just subscribed.
 
 # jukebox.publishing
 
+The process-wide event bus. Modules publish through their ``Context``, not directly.
+
+
 <a id="jukebox.publishing.get_bus"></a>
 
 #### get\_bus
@@ -1273,103 +1154,8 @@ A shallow copy of the full last-value cache, for a client that just subscribed.
 def get_bus() -> EventBus
 ```
 
-The shared, thread-safe event bus. Prefer get_publisher() for the send/resend API.
+The shared, thread-safe event bus.
 
-
-<a id="jukebox.publishing.Publisher"></a>
-
-## Publisher Objects
-
-```python
-class Publisher()
-```
-
-Thin, source-compatible wrapper around the shared :class:`EventBus`.
-
-Kept as a class only so existing call sites (``publishing.get_publisher().send(...)``) don't
-need to change. Unlike the old ZMQ-backed Publisher, a single shared instance is safe to use
-from any thread -- the "one Publisher per thread" rule from the ZMQ days is gone along with
-ZMQ (see documentation/developers/roadmap-core-architecture.md).
-
-
-<a id="jukebox.publishing.Publisher.send"></a>
-
-#### send
-
-```python
-def send(topic: str, payload) -> None
-```
-
-Send out a message for topic
-
-
-<a id="jukebox.publishing.Publisher.revoke"></a>
-
-#### revoke
-
-```python
-def revoke(topic: str) -> None
-```
-
-Revoke a single topic element (not a topic tree!)
-
-
-<a id="jukebox.publishing.Publisher.resend"></a>
-
-#### resend
-
-```python
-def resend(topic: Optional[str] = None) -> None
-```
-
-Re-send current status of the topic tree `topic` (default: everything) to all subscribers.
-
-Not necessary to call after incremental updates or new subscriptions -- that happens
-automatically.
-
-
-<a id="jukebox.publishing.Publisher.close_server"></a>
-
-#### close\_server
-
-```python
-def close_server() -> None
-```
-
-No-op, kept for source compatibility with the old shutdown call.
-
-There is no separate server thread to close down anymore -- the bus is just an object.
-
-
-<a id="jukebox.publishing.get_publisher"></a>
-
-#### get\_publisher
-
-```python
-def get_publisher() -> Publisher
-```
-
-Return the shared publisher instance.
-
-Example::
-
-    import jukebox.publishing as publishing
-    publishing.get_publisher().send('hello', f'Hi there, howya?')
-
-
-<a id="jukebox.publishing.republish"></a>
-
-#### republish
-
-```python
-def republish(topic=None)
-```
-
-Re-publish the topic tree 'topic' to all subscribers
-
-**Arguments**:
-
-- `topic`: Topic tree to republish. None = resend all
 
 <a id="jukebox.playlistgenerator"></a>
 
@@ -1571,48 +1357,24 @@ HTTP and WebSocket API for browser clients.
 
 FastAPI + uvicorn HTTP and WebSocket API server.
 
-The sole browser-facing HTTP/WebSocket bridge. Serves health, the typed REST routes for player,
-settings and cards, events-over-websocket, the library upload/folder/entries/refresh endpoints, and
-(see jukebox.api.webapp_static) the webapp's static build + /logs -- this is the one thing reachable
-from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
+The sole browser-facing HTTP/WebSocket bridge. Serves health, the routes of the modules (see
+jukebox.contract.routes), events-over-websocket and (see jukebox.api.webapp_static) the webapp's
+static build + /logs -- this is the one thing reachable from the LAN, hence `api.bind_address`
+defaulting to 0.0.0.0.
 
-Handlers run on a multi-worker executor: components are responsible for their own thread-safety,
-so a slow call doesn't serialize the rest of the API.
-
-
-<a id="jukebox.api.fastapi_server.register_player_routes"></a>
-
-#### register\_player\_routes
-
-```python
-def register_player_routes(app: FastAPI, executor) -> None
-```
-
-Typed REST routes for the PlayerCoordinator -- see roadmap-core-architecture.md,
-
-"Advanced plugin system".
+Handlers run on a multi-worker executor; each module guards itself (see the contract's threading
+model), so a slow call doesn't serialize the rest of the API.
 
 
-<a id="jukebox.api.fastapi_server.register_settings_routes"></a>
+<a id="jukebox.api.fastapi_server.BodySizeLimit"></a>
 
-#### register\_settings\_routes
+## BodySizeLimit Objects
 
 ```python
-def register_settings_routes(app: FastAPI, executor) -> None
+class BodySizeLimit()
 ```
 
-misc.get_app_settings/set_app_settings -- webapp UI settings stored in jukebox.yaml.
-
-
-<a id="jukebox.api.fastapi_server.register_cards_routes"></a>
-
-#### register\_cards\_routes
-
-```python
-def register_cards_routes(app: FastAPI, executor) -> None
-```
-
-RFID card database CRUD (cards.list_cards/register_card/delete_card).
+Reject request bodies above ``limit`` bytes with 413 (except for streaming upload paths).
 
 
 <a id="jukebox.api.fastapi_server.FastApiServer"></a>
@@ -1979,161 +1741,203 @@ Writes ConfigHandler data to yaml file / sys.stdout
 
 None
 
-<a id="jukebox.callingback"></a>
+<a id="jukebox.timers"></a>
 
-# jukebox.callingback
+# jukebox.timers
 
-Provides a generic callback handler
+The timers core module: named countdowns that run an action when they expire.
+
+Timers are configured under ``timers:``; each runs an action (``action``/``args``) after
+``default_timeout_sec`` unless started with another duration. A timer whose action is not available
+(e.g. its plugin is disabled) is listed, but can't be started.
 
 
-<a id="jukebox.callingback.CallbackHandler"></a>
+<a id="jukebox.timers.Timers"></a>
 
-## CallbackHandler Objects
-
-```python
-class CallbackHandler()
-```
-
-Generic Callback Handler to collect callbacks functions through :func:`register` and execute them
-
-with :func:`run_callbacks`
-
-A lock is used to sequence registering of new functions and running callbacks.
-
-**Arguments**:
-
-- `name`: A name of this handler for usage in log messages
-- `logger`: The logger instance to use for logging
-- `context`: A custom context handler to use as lock. If none, a local :class:`threading.Lock()` will be created
-
-<a id="jukebox.callingback.CallbackHandler.register"></a>
-
-#### register
+## Timers Objects
 
 ```python
-def register(func: Optional[Callable[..., None]])
+class Timers(CoreModule)
 ```
 
-Register a new function to be executed when the callback event happens
+Countdown timers that run an action when they expire.
 
-**Arguments**:
 
-- `func`: The function to register. If set to :data:`None`, this register request is silently ignored.
+<a id="jukebox.timers.Timers.list_timers"></a>
 
-<a id="jukebox.callingback.CallbackHandler.run_callbacks"></a>
-
-#### run\_callbacks
+#### list\_timers
 
 ```python
-def run_callbacks(*args, **kwargs)
+@query(path='')
+def list_timers() -> List[TimerState]
 ```
 
-Run all registered callbacks.
-
-*ALL* exceptions from callback functions will be caught and logged only.
-Exceptions are not raised upwards!
+All timers with their state.
 
 
-<a id="jukebox.callingback.CallbackHandler.has_callbacks"></a>
+<a id="jukebox.timers.Timers.start_timer"></a>
 
-#### has\_callbacks
+#### start\_timer
 
 ```python
-@property
-def has_callbacks()
+@action(name='start', path='/start')
+def start_timer(timer: str,
+                wait_seconds: Optional[float] = None) -> TimerState
 ```
 
+Start (or restart) a timer; ``wait_seconds`` defaults to the timer's configured timeout.
 
 
-<a id="jukebox.registry"></a>
+<a id="jukebox.timers.Timers.cancel"></a>
 
-# jukebox.registry
-
-Explicit call registry for core components.
-
-Replaces the old dynamic, config-driven plugin system (formerly ``jukebox.plugs``): components are
-registered directly by ``daemon.py`` at start-up instead of being discovered from ``jukebox.yaml`` via
-decorator magic (``@plugs.register`` / ``@plugs.initialize`` / ``@plugs.finalize`` / ``@plugs.atexit``).
-
-There is no dynamic loading and no module-wide serializing lock here (the old ``plugs.py`` serialized
-every call through one global lock regardless of which component it targeted -- see
-documentation/developers/roadmap-core-architecture.md). Each component is responsible for its own
-thread-safety.
-
-Call addressing (``package``, ``plugin``, ``method``) is unchanged from the old system so the webapp's
-RPC call shape (``{'package': ..., 'plugin': ..., 'method': ...}``) keeps working without changes on
-that side.
-
-
-<a id="jukebox.registry.register"></a>
-
-#### register
+#### cancel
 
 ```python
-def register(obj: Any, name: str, package: str) -> Any
+@action(path='/cancel')
+def cancel(timer: str) -> TimerState
 ```
 
-Register ``obj`` (a function, bound method, or class instance) under ``package.name``.
+Cancel a running timer.
 
 
-<a id="jukebox.registry.callable_method"></a>
+<a id="jukebox.timers.Timers.toggle"></a>
 
-#### callable\_method
+#### toggle
 
 ```python
-def callable_method(func: Callable) -> Callable
+@action(path='/toggle')
+def toggle(timer: str, wait_seconds: Optional[float] = None) -> TimerState
 ```
 
-Mark a bound method as callable through the registry (i.e. over RPC).
+Start the timer if it is not running, cancel it otherwise.
 
 
-<a id="jukebox.registry.call"></a>
+<a id="jukebox.audio_output"></a>
 
-#### call
+# jukebox.audio\_output
+
+PCM output through sounddevice/PortAudio, shared by the local_audio backend and the jingle.
+
+
+<a id="jukebox.audio_output.scale_volume"></a>
+
+#### scale\_volume
 
 ```python
-def call(package: str,
-         plugin: str,
-         method: Optional[str] = None,
-         *,
-         args=(),
-         kwargs=None,
-         as_thread: bool = False,
-         thread_name: Optional[str] = None) -> Any
+def scale_volume(data: bytes, volume: int) -> bytes
 ```
 
-Call a registered function/method. See the old ``jukebox.plugs.call`` for the historical
-
-behavioural contract this preserves (addressing, ``as_thread`` semantics).
+Scale packed s16 PCM by volume (0-100). No-op at full volume (the common case).
 
 
-<a id="jukebox.registry.call_ignore_errors"></a>
+<a id="jukebox.audio_output.AudioSink"></a>
 
-#### call\_ignore\_errors
+## AudioSink Objects
 
 ```python
-def call_ignore_errors(package: str,
-                       plugin: str,
-                       method: Optional[str] = None,
-                       *,
-                       args=(),
-                       kwargs=None,
-                       as_thread: bool = False,
-                       thread_name: Optional[str] = None) -> Any
+class AudioSink()
 ```
 
-Like :func:`call`, but exceptions are logged and swallowed rather than propagated.
+What a decoded track is written to. Exists so tests don't need a real audio device.
 
 
-<a id="jukebox.registry.dump_registry"></a>
+<a id="jukebox.audio_output.PortAudioSink"></a>
 
-#### dump\_registry
+## PortAudioSink Objects
 
 ```python
-def dump_registry(stream)
+class PortAudioSink(AudioSink)
 ```
 
-Write a human readable summary of all registered callables to stream.
+Real output via sounddevice/PortAudio. Falls back to silent (no-op) if no device is
+
+available -- e.g. the no-audio docker dev stack, or a CI box -- rather than raising and
+killing the daemon.
+
+
+<a id="jukebox.audio_output.play_file"></a>
+
+#### play\_file
+
+```python
+def play_file(path: str,
+              volume: int = 100,
+              sink=None,
+              should_stop=lambda: False) -> None
+```
+
+Decode ``path`` and play it to the end (or until ``should_stop()``), blocking.
+
+
+<a id="jukebox.core_modules"></a>
+
+# jukebox.core\_modules
+
+The core modules the daemon always starts. Order is irrelevant, ``requires`` decides.
+
+
+<a id="jukebox.input_devices"></a>
+
+# jukebox.input\_devices
+
+The input core module: keys of evdev input devices (USB buttons, keyboards, headset buttons) run actions.
+
+Configured under ``input:``::
+
+    input:
+      media_keys: false          # play/pause/next/volume keys of any device (e.g. a Bluetooth headset)
+      devices:
+        joystick:
+          device_name: DragonRise Inc.   Generic   USB
+          exact: false           # substring match of the device name
+          keys:
+            BTN_TRIGGER: {action: player.toggle}
+            297: {action: player.prev}
+
+
+<a id="jukebox.input_devices.Evdev"></a>
+
+## Evdev Objects
+
+```python
+class Evdev()
+```
+
+Access to the evdev library; replaced in tests.
+
+
+<a id="jukebox.input_devices.Evdev.key_downs"></a>
+
+#### key\_downs
+
+```python
+def key_downs(device, stop: threading.Event)
+```
+
+Yield key codes pressed on ``device`` until ``stop`` is set; raises OSError on disconnect.
+
+
+<a id="jukebox.input_devices.InputDevices"></a>
+
+## InputDevices Objects
+
+```python
+class InputDevices(CoreModule)
+```
+
+Keys of input devices run actions.
+
+
+<a id="jukebox.input_devices.InputDevices.list_devices"></a>
+
+#### list\_devices
+
+```python
+@query(path='/devices')
+def list_devices() -> List[DeviceState]
+```
+
+Configured input devices and whether they are connected.
 
 
 <a id="jukebox.multitimer"></a>
@@ -2198,7 +2002,7 @@ Run until all iterations complete, cancellation, or callback failure.
 class GenericTimerClass()
 ```
 
-A race-safe, single-execution timer with plugin/RPC support.
+A race-safe, single-execution timer. ``on_change(state)`` is called on every state change.
 
 
 <a id="jukebox.multitimer.GenericTimerClass.start"></a>
@@ -2206,7 +2010,6 @@ A race-safe, single-execution timer with plugin/RPC support.
 #### start
 
 ```python
-@plugin.tag
 def start(wait_seconds: Optional[float] = None, restart: bool = True)
 ```
 
@@ -2218,7 +2021,6 @@ Start the timer, atomically replacing an active generation by default.
 #### cancel
 
 ```python
-@plugin.tag
 def cancel()
 ```
 
@@ -2241,7 +2043,6 @@ Cancel one worker without affecting a newer generation.
 #### toggle
 
 ```python
-@plugin.tag
 def toggle()
 ```
 
@@ -2253,7 +2054,6 @@ Toggle between active and disabled states.
 #### trigger
 
 ```python
-@plugin.tag
 def trigger()
 ```
 
@@ -2265,7 +2065,6 @@ Trigger the active generation immediately.
 #### is\_alive
 
 ```python
-@plugin.tag
 def is_alive() -> bool
 ```
 
@@ -2277,7 +2076,6 @@ Return whether a timer generation is logically active.
 #### get\_timeout
 
 ```python
-@plugin.tag
 def get_timeout() -> float
 ```
 
@@ -2289,7 +2087,6 @@ Return the configured timeout in seconds.
 #### set\_timeout
 
 ```python
-@plugin.tag
 def set_timeout(wait_seconds: float) -> float
 ```
 
@@ -2301,7 +2098,6 @@ Set the timeout, atomically replacing an active generation.
 #### publish
 
 ```python
-@plugin.tag
 def publish()
 ```
 
@@ -2313,11 +2109,10 @@ Publish the current timer state.
 #### get\_state
 
 ```python
-@plugin.tag
 def get_state() -> Dict[str, Any]
 ```
 
-Return the RPC-compatible timer state.
+Return the timer state.
 
 
 <a id="jukebox.multitimer.GenericTimerClass.close"></a>
@@ -2347,11 +2142,54 @@ A fixed-delay timer that repeats until cancellation.
 #### get\_state
 
 ```python
-@plugin.tag
 def get_state() -> Dict[str, Any]
 ```
 
-Return the RPC-compatible periodic timer state.
+Return the periodic timer state.
+
+
+<a id="jukebox.legacy_actions"></a>
+
+# jukebox.legacy\_actions
+
+Conversion of pre-contract commands to action ids.
+
+Before the core/plugin contract, card entries and config actions were stored either as an alias
+(``alias: play_card``) or as ``package``/``plugin``/``method`` plus positional ``args`` and
+``kwargs``. The contract stores ``action: <module>.<action>`` plus named ``args``.
+
+
+<a id="jukebox.legacy_actions.convert"></a>
+
+#### convert
+
+```python
+def convert(
+        entry: Mapping,
+        param_names=None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]
+```
+
+Convert a legacy command to ``{'action': ..., 'args': {...}}`` (card flags are kept).
+
+**Arguments**:
+
+- `param_names`: callable ``action_id -> list of parameter names`` or None if unknown;
+needed only to name positional arguments
+
+**Returns**:
+
+``(converted, None)`` or ``(None, reason)``
+
+<a id="jukebox.legacy_actions.bind_action"></a>
+
+#### bind\_action
+
+```python
+def bind_action(catalog, entry, where: str,
+                logger) -> Optional[Callable[[], Any]]
+```
+
+A callable running a configured action (either format), or None (logged) if it's invalid.
 
 
 <a id="jukebox.daemon"></a>
@@ -2365,6 +2203,17 @@ Return the RPC-compatible periodic timer state.
 Template a missing configuration_file is created from on first run (see JukeBox.__init__).
 
 Repository-root-relative, same convention as every other path in this codebase.
+
+
+<a id="jukebox.daemon.shutdown_signal"></a>
+
+#### shutdown\_signal
+
+```python
+def shutdown_signal() -> Optional[int]
+```
+
+The signal that started the shutdown (e.g. ``signal.SIGINT`` for Ctrl-C), None before.
 
 
 <a id="jukebox.daemon.log_active_threads"></a>
@@ -2678,130 +2527,598 @@ Using this Handler, we can output to PubStream whithout
 support code to instantiate PubStream keeping this file generic
 
 
+<a id="jukebox.contract.interfaces"></a>
+
+# jukebox.contract.interfaces
+
+Interface snapshots of modules and the framework contract, and the rules for version bumps.
+
+A snapshot is a JSON description of everything another module or plugin can rely on. Comparing
+the stored snapshot with the current one tells whether a change is compatible (minor bump) or
+breaking (major bump). See documentation/developers/core-and-plugins.md, "Versioning".
+
+
+<a id="jukebox.contract.declarations"></a>
+
+# jukebox.contract.declarations
+
+Declarations a module uses to describe its interface: operations, events, extension points.
+
+
+<a id="jukebox.contract.declarations.OperationSpec"></a>
+
+## OperationSpec Objects
+
+```python
+@dataclass(frozen=True)
+class OperationSpec()
+```
+
+<a id="jukebox.contract.declarations.OperationSpec.kind"></a>
+
+#### kind
+
+'action' | 'query'
+
+
+<a id="jukebox.contract.declarations.action"></a>
+
+#### action
+
+```python
+def action(func: Optional[Callable] = None,
+           *,
+           method: str = 'POST',
+           path: Optional[str] = None,
+           exclusive: bool = True,
+           name: Optional[str] = None,
+           status_code: Optional[int] = None)
+```
+
+Declare a state-changing operation: REST route, card action and in-process call.
+
+``name`` overrides the operation name (default: the method name), e.g. where the method name
+would clash with the lifecycle methods ``start``/``stop``/``ready``. ``status_code`` replaces
+the default HTTP status of a successful call (200, or 204 without a result).
+
+
+<a id="jukebox.contract.declarations.query"></a>
+
+#### query
+
+```python
+def query(func: Optional[Callable] = None,
+          *,
+          path: Optional[str] = None,
+          exclusive: bool = True,
+          name: Optional[str] = None)
+```
+
+Declare a read-only operation: GET route and in-process call, not card-triggerable.
+
+
+<a id="jukebox.contract.declarations.EventSpec"></a>
+
+## EventSpec Objects
+
+```python
+class EventSpec()
+```
+
+A declared event. Published through ``ctx.publish(spec, payload)`` as ``<module>.<name>``.
+
+
+<a id="jukebox.contract.declarations.ExtensionPoint"></a>
+
+## ExtensionPoint Objects
+
+```python
+class ExtensionPoint()
+```
+
+Named implementations of a protocol, registered by other modules.
+
+
+<a id="jukebox.contract.declarations.ExtensionPoint.on_register"></a>
+
+#### on\_register
+
+```python
+def on_register(listener: Callable[[str, Any], None]) -> None
+```
+
+Call ``listener(key, implementation)`` for every current and future registration.
+
+
+<a id="jukebox.contract.declarations.ExtensionPointSpec"></a>
+
+## ExtensionPointSpec Objects
+
+```python
+class ExtensionPointSpec()
+```
+
+Class-level declaration of an extension point; each module instance gets its own registry.
+
+
+<a id="jukebox.contract.declarations.Operation"></a>
+
+## Operation Objects
+
+```python
+class Operation()
+```
+
+An operation of a module class with its argument model and return type.
+
+
+<a id="jukebox.contract.declarations.Operation.validate_args"></a>
+
+#### validate\_args
+
+```python
+def validate_args(args: Optional[dict]) -> dict
+```
+
+Validate a mapping of arguments; return the coerced keyword arguments.
+
+
+<a id="jukebox.contract.catalog"></a>
+
+# jukebox.contract.catalog
+
+Card-triggerable actions of all started modules, addressed by ``<module>.<action>``.
+
+
+<a id="jukebox.contract.catalog.ActionCatalog"></a>
+
+## ActionCatalog Objects
+
+```python
+class ActionCatalog()
+```
+
+<a id="jukebox.contract.catalog.ActionCatalog.validate"></a>
+
+#### validate
+
+```python
+def validate(action_id: str, args: Optional[dict] = None) -> Dict[str, Any]
+```
+
+Check that ``action_id`` exists and ``args`` fit its signature. Returns coerced args.
+
+
+<a id="jukebox.contract.context"></a>
+
+# jukebox.contract.context
+
+What a module sees of the rest of the system.
+
+
+<a id="jukebox.contract.context.ModuleConfig"></a>
+
+## ModuleConfig Objects
+
+```python
+class ModuleConfig()
+```
+
+A module's own section of the main config (``<name>`` for core, ``plugins.<name>`` for plugins).
+
+
+<a id="jukebox.contract.context.ModuleProxy"></a>
+
+## ModuleProxy Objects
+
+```python
+class ModuleProxy()
+```
+
+The contract surface of another module: its operations and extension points.
+
+
+<a id="jukebox.contract.context.Context"></a>
+
+## Context Objects
+
+```python
+class Context()
+```
+
+<a id="jukebox.contract.context.Context.lock"></a>
+
+#### lock
+
+```python
+@property
+def lock()
+```
+
+The module's own lock, for work outside operations (e.g. background threads).
+
+A no-op context manager for ``concurrency = 'threadsafe'`` modules.
+
+
+<a id="jukebox.contract.context.Context.subscribe"></a>
+
+#### subscribe
+
+```python
+def subscribe(topic_prefix: str, callback: Callable[[str, Optional[Any]],
+                                                    None]) -> None
+```
+
+Call ``callback(topic, payload)`` for every event under ``topic_prefix``; payload None = revoked.
+
+
+<a id="jukebox.contract.routes"></a>
+
+# jukebox.contract.routes
+
+FastAPI routes generated from module operations, plus ``GET /api/v1/modules``.
+
+
+<a id="jukebox.contract.manager"></a>
+
+# jukebox.contract.manager
+
+Discovers, orders, starts and stops core modules and enabled plugins.
+
+
+<a id="jukebox.contract.manager.discover_plugins"></a>
+
+#### discover\_plugins
+
+```python
+def discover_plugins() -> Dict[str, Callable[[], type]]
+```
+
+Installed plugins by entry-point name. Loading (importing) happens only when enabled.
+
+
+<a id="jukebox.contract.manager.ModuleHandle"></a>
+
+## ModuleHandle Objects
+
+```python
+class ModuleHandle()
+```
+
+A started (or starting) module instance plus its lock and context.
+
+
+<a id="jukebox.contract.manager.ModuleManager"></a>
+
+## ModuleManager Objects
+
+```python
+class ModuleManager()
+```
+
+<a id="jukebox.contract.manager.ModuleManager.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(core_modules: Sequence[Type[CoreModule]],
+             cfg,
+             bus,
+             *,
+             plugins: Optional[Dict[str, Callable[[], type]]] = None,
+             strict: Optional[bool] = None)
+```
+
+**Arguments**:
+
+- `core_modules`: core module classes (order doesn't matter, ``requires`` decides)
+- `cfg`: the main config handler; plugins are enabled under its ``plugins`` key
+- `bus`: the event bus
+- `plugins`: installed plugins by name (default: entry points of ``jukebox.plugins``)
+- `strict`: raise instead of log on invalid events (default: ``$JUKEBOX_STRICT``)
+
+<a id="jukebox.contract.module"></a>
+
+# jukebox.contract.module
+
+Base classes for core modules and plugins.
+
+
+<a id="jukebox.contract.module.Module"></a>
+
+## Module Objects
+
+```python
+class Module()
+```
+
+Common base of :class:`CoreModule` and :class:`Plugin`. Not subclassed directly.
+
+
+<a id="jukebox.contract.module.Module.concurrency"></a>
+
+#### concurrency
+
+'serialized': every operation runs under a per-module lock. 'threadsafe': no lock.
+
+
+<a id="jukebox.contract.module.Module.ready"></a>
+
+#### ready
+
+```python
+def ready() -> None
+```
+
+Called once every module has started, in start order. All actions are available now.
+
+
+<a id="jukebox.contract.module.Module.extra_routes"></a>
+
+#### extra\_routes
+
+```python
+def extra_routes(router) -> None
+```
+
+Escape hatch for routes the declarations can't express (e.g. streaming uploads).
+
+Receives a FastAPI ``APIRouter``; paths should live under ``/api/v1/<name>``.
+
+
+<a id="jukebox.contract.module.CoreModule"></a>
+
+## CoreModule Objects
+
+```python
+class CoreModule(Module)
+```
+
+Always shipped, always running part of the jukebox.
+
+
+<a id="jukebox.contract.module.Plugin"></a>
+
+## Plugin Objects
+
+```python
+class Plugin(Module)
+```
+
+Separately installed, opt-in module. Declares which framework contract it targets.
+
+
+<a id="jukebox.contract.version"></a>
+
+# jukebox.contract.version
+
+<a id="jukebox.contract.version.CONTRACT_VERSION"></a>
+
+#### CONTRACT\_VERSION
+
+Version of the framework contract (Module/CoreModule/Plugin, declarations, Context, lifecycle).
+
+Major bump on breaking changes, minor bump on additions. Checked by test/contract snapshots.
+
+
+<a id="jukebox.contract"></a>
+
+# jukebox.contract
+
+Contract shared by core modules and plugins. See documentation/developers/core-and-plugins.md.
+
+
+<a id="jukebox.contract.snapshots"></a>
+
+# jukebox.contract.snapshots
+
+Check or update the stored interface snapshots of the framework, core modules and bundled plugins.
+
+uv run python -m jukebox.contract.snapshots            # check (what CI runs via pytest)
+uv run python -m jukebox.contract.snapshots --update   # write snapshots after a version bump
+
+
+<a id="jukebox.contract.snapshots.check_target"></a>
+
+#### check\_target
+
+```python
+def check_target(target: Target) -> Optional[str]
+```
+
+Return a problem description, or None when the stored snapshot matches.
+
+
+<a id="jukebox.contract.errors"></a>
+
+# jukebox.contract.errors
+
+<a id="jukebox.contract.errors.ContractError"></a>
+
+## ContractError Objects
+
+```python
+class ContractError(Exception)
+```
+
+A module violates the contract (declaration, dependency or version problem).
+
+
+<a id="jukebox.contract.errors.OperationError"></a>
+
+## OperationError Objects
+
+```python
+class OperationError(Exception)
+```
+
+Raised by an operation to report a client error with an HTTP status and error code.
+
+
+<a id="jukebox.contract.errors.ActionError"></a>
+
+## ActionError Objects
+
+```python
+class ActionError(Exception)
+```
+
+An action id or its arguments are invalid.
+
+
 <a id="jukebox.system"></a>
 
 # jukebox.system
 
-Miscellaneous RPC calls, registered explicitly by jukebox.daemon (no plugin system)
+The system core module: version, logs, system information and web app settings.
 
 
-<a id="jukebox.system.get_start_time"></a>
+<a id="jukebox.system.cpu_temperature"></a>
 
-#### get\_start\_time
+#### cpu\_temperature
 
 ```python
-def get_start_time()
+def cpu_temperature() -> Optional[float]
 ```
 
-Time when JukeBox has been started
+CPU temperature in °C from the first thermal zone, None where there is none.
 
 
-<a id="jukebox.system.get_log"></a>
+<a id="jukebox.system.ip_addresses"></a>
+
+#### ip\_addresses
+
+```python
+def ip_addresses() -> List[str]
+```
+
+Non-loopback IPv4 addresses of this machine.
+
+
+<a id="jukebox.system.System"></a>
+
+## System Objects
+
+```python
+class System(CoreModule)
+```
+
+Version information, log files and web app settings.
+
+
+<a id="jukebox.system.System.log"></a>
+
+#### log
+
+Published by jukebox.misc.loggingext.PubStreamHandler when configured in logger.yaml
+
+
+<a id="jukebox.system.System.get_info"></a>
+
+#### get\_info
+
+```python
+@query(path='/info')
+def get_info() -> SystemInfo
+```
+
+Version, git state and start time of the jukebox.
+
+
+<a id="jukebox.system.System.get_health"></a>
+
+#### get\_health
+
+```python
+@query(path='/health')
+def get_health() -> SystemHealth
+```
+
+CPU temperature (where available) and disk usage of the music library's file system.
+
+
+<a id="jukebox.system.System.get_ip_addresses"></a>
+
+#### get\_ip\_addresses
+
+```python
+@query(path='/ip-addresses')
+def get_ip_addresses() -> IpAddresses
+```
+
+IPv4 addresses of this machine.
+
+
+<a id="jukebox.system.System.say_my_ip"></a>
+
+#### say\_my\_ip
+
+```python
+@action()
+def say_my_ip() -> None
+```
+
+Speak the IP address (needs espeak).
+
+
+<a id="jukebox.system.System.restart_service"></a>
+
+#### restart\_service
+
+```python
+@action()
+def restart_service() -> None
+```
+
+Restart the jukebox systemd user service.
+
+
+<a id="jukebox.system.System.get_log"></a>
 
 #### get\_log
 
 ```python
-def get_log(handler_name: str)
+@query(path='/log')
+def get_log(kind: Literal['debug', 'error'] = 'debug') -> str
 ```
 
-Get the log file from the loggers (debug_file_handler, error_file_handler)
+Content of the debug or error log file of this run.
 
 
-<a id="jukebox.system.get_log_debug"></a>
-
-#### get\_log\_debug
-
-```python
-def get_log_debug()
-```
-
-Get the log file (from the debug_file_handler)
-
-
-<a id="jukebox.system.get_log_error"></a>
-
-#### get\_log\_error
-
-```python
-def get_log_error()
-```
-
-Get the log file (from the error_file_handler)
-
-
-<a id="jukebox.system.get_git_state"></a>
-
-#### get\_git\_state
-
-```python
-def get_git_state()
-```
-
-Return git state information for the current branch
-
-
-<a id="jukebox.system.empty_rpc_call"></a>
-
-#### empty\_rpc\_call
-
-```python
-def empty_rpc_call(msg: str = '')
-```
-
-This function does nothing.
-
-The RPC command alias 'none' is mapped to this function.
-
-This is also used when configuration errors lead to non existing RPC command alias definitions.
-When the alias definition is void, we still want to return a valid function to simplify error handling
-up the module call stack.
-
-**Arguments**:
-
-- `msg`: If present, this message is send to the logger with severity warning
-
-<a id="jukebox.system.get_app_settings"></a>
+<a id="jukebox.system.System.get_app_settings"></a>
 
 #### get\_app\_settings
 
 ```python
-def get_app_settings()
+@query(path='/api/v1/settings')
+def get_app_settings() -> AppSettings
 ```
 
-Return settings for web app stored in jukebox.yaml
+Web app settings.
 
 
-<a id="jukebox.system.set_app_settings"></a>
+<a id="jukebox.system.System.set_app_settings"></a>
 
 #### set\_app\_settings
 
 ```python
-def set_app_settings(settings={})
+@action(method='PUT', path='/api/v1/settings')
+def set_app_settings(settings: AppSettingsUpdate) -> None
 ```
 
-Set configuration settings for the web app.
+Change web app settings; fields left out stay unchanged.
 
 
-<a id="jukebox.player.mpd_plugin"></a>
+<a id="jukebox.system.System.noop"></a>
 
-# jukebox.player.mpd\_plugin
-
-<a id="jukebox.player.mpd_plugin.initialize_mpd_player"></a>
-
-#### initialize\_mpd\_player
+#### noop
 
 ```python
-def initialize_mpd_player() -> PlayerCoordinator
+@action()
+def noop(message: str = '') -> None
 ```
 
-Create the coordinator with MPD as its sole backend and register it as 'player.ctrl'.
-
-
-<a id="jukebox.player.mpd_plugin.initialize"></a>
-
-#### initialize
-
-Satisfies the `initialize() -> PlayerCoordinator` contract `player.plugin` dispatches to.
+Do nothing (logs ``message`` as a warning if given).
 
 
 <a id="jukebox.player.coordinator"></a>
@@ -2819,6 +3136,19 @@ class PlayerCoordinator()
 Provider-neutral facade for playback and content backends.
 
 
+<a id="jukebox.player.coordinator.PlayerCoordinator.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(second_swipe_action: Optional[Callable[[], Any]] = None)
+```
+
+**Arguments**:
+
+- `second_swipe_action`: runs on a second swipe of the same card instead of the
+backend's own second-swipe behavior
+
 <a id="jukebox.player.coordinator.PlayerCoordinator.register_backend"></a>
 
 #### register\_backend
@@ -2832,79 +3162,441 @@ def register_backend(name: str,
 Register a backend, selecting the first registered backend by default.
 
 
+<a id="jukebox.player.coordinator.PlayerCoordinator.set_default_backend"></a>
+
+#### set\_default\_backend
+
+```python
+def set_default_backend(name: str) -> None
+```
+
+Make ``name`` the backend used for content without an explicit provider.
+
+
 <a id="jukebox.player.coordinator.PlayerCoordinator.select_backend"></a>
 
 #### select\_backend
 
 ```python
-@plugs.tag
 def select_backend(name: str)
 ```
 
 Stop the current backend and select another registered backend.
 
 
-<a id="jukebox.player.playcontentcallback"></a>
+<a id="jukebox.player.coordinator.PlayerCoordinator.play_files"></a>
 
-# jukebox.player.playcontentcallback
-
-<a id="jukebox.player.playcontentcallback.PlayContentCallbacks"></a>
-
-## PlayContentCallbacks Objects
+#### play\_files
 
 ```python
-class PlayContentCallbacks(Generic[STATE], CallbackHandler)
+def play_files(paths)
 ```
 
-Callbacks executed before card-triggered playback actions.
+Play a list of songs (paths below the music library, absolute or relative).
 
 
-<a id="jukebox.player.playcontentcallback.PlayContentCallbacks.register"></a>
+<a id="jukebox.player.module"></a>
 
-#### register
+# jukebox.player.module
+
+The player core module: playback through registered backends, typed status events.
+
+
+<a id="jukebox.player.module.Player"></a>
+
+## Player Objects
 
 ```python
-def register(func: Callable[[str, STATE], None])
+class Player(CoreModule)
 ```
 
-Register a callback with the signature ``callback(content, state)``.
+Playback of folders, songs and albums; backends plug in at ``player.backends``.
 
-**Arguments**:
 
-- `func`: Callback to register
+<a id="jukebox.player.module.Player.play"></a>
 
-<a id="jukebox.player.playcontentcallback.PlayContentCallbacks.run_callbacks"></a>
-
-#### run\_callbacks
+#### play
 
 ```python
-def run_callbacks(content: str, state: STATE)
+@action(path='/play')
+def play() -> None
 ```
 
+Start or resume playback.
 
 
-<a id="jukebox.player.plugin"></a>
+<a id="jukebox.player.module.Player.pause"></a>
 
-# jukebox.player.plugin
+#### pause
 
-Player start-up/shutdown, called explicitly by jukebox.daemon (no plugin system).
+```python
+@action(path='/pause')
+def pause(state: int = 1) -> None
+```
 
-Selects a playback backend module by `player.backend` config, mirroring how
-`jukebox.rfid.reader` dynamically loads a hardware module by name.
+Pause (state=1) or resume (state=0).
+
+
+<a id="jukebox.player.module.Player.toggle"></a>
+
+#### toggle
+
+```python
+@action(path='/toggle')
+def toggle() -> None
+```
+
+Toggle between play and pause.
+
+
+<a id="jukebox.player.module.Player.next"></a>
+
+#### next
+
+```python
+@action(path='/next')
+def next() -> None
+```
+
+Skip to the next song.
+
+
+<a id="jukebox.player.module.Player.prev"></a>
+
+#### prev
+
+```python
+@action(path='/prev')
+def prev() -> None
+```
+
+Go back to the previous song.
+
+
+<a id="jukebox.player.module.Player.stop_playback"></a>
+
+#### stop\_playback
+
+```python
+@action(name='stop', path='/stop')
+def stop_playback() -> None
+```
+
+Stop playback.
+
+
+<a id="jukebox.player.module.Player.seek"></a>
+
+#### seek
+
+```python
+@action(path='/seek')
+def seek(position: float) -> None
+```
+
+Jump to a position (seconds) in the current song.
+
+
+<a id="jukebox.player.module.Player.shuffle"></a>
+
+#### shuffle
+
+```python
+@action(path='/shuffle')
+def shuffle(option: str = 'toggle') -> None
+```
+
+Shuffle mode: 'toggle', 'enable' or 'disable'.
+
+
+<a id="jukebox.player.module.Player.repeat"></a>
+
+#### repeat
+
+```python
+@action(path='/repeat')
+def repeat(option: str = 'toggle') -> None
+```
+
+Repeat mode: 'toggle', 'enable', 'enable_repeat_single' or 'disable'.
+
+
+<a id="jukebox.player.module.Player.rewind"></a>
+
+#### rewind
+
+```python
+@action(path='/rewind')
+def rewind() -> None
+```
+
+Restart the playlist from its first song.
+
+
+<a id="jukebox.player.module.Player.replay"></a>
+
+#### replay
+
+```python
+@action(path='/replay')
+def replay() -> None
+```
+
+Replay the current folder from the start.
+
+
+<a id="jukebox.player.module.Player.replay_if_stopped"></a>
+
+#### replay\_if\_stopped
+
+```python
+@action(path='/replay-if-stopped')
+def replay_if_stopped() -> None
+```
+
+Replay the current folder if playback has stopped.
+
+
+<a id="jukebox.player.module.Player.resume"></a>
+
+#### resume
+
+```python
+@action(path='/resume')
+def resume() -> None
+```
+
+Resume the last played folder where it stopped.
+
+
+<a id="jukebox.player.module.Player.play_folder"></a>
+
+#### play\_folder
+
+```python
+@action(path='/folder')
+def play_folder(folder: str, recursive: bool = False) -> None
+```
+
+Play a folder of the music library.
+
+
+<a id="jukebox.player.module.Player.play_card"></a>
+
+#### play\_card
+
+```python
+@action()
+def play_card(folder: str, recursive: bool = False) -> None
+```
+
+Play a folder; a second swipe of the same card runs the second-swipe action.
+
+
+<a id="jukebox.player.module.Player.play_single"></a>
+
+#### play\_single
+
+```python
+@action(path='/song')
+def play_single(song_url: str, provider: Optional[str] = None) -> None
+```
+
+Play a single song.
+
+
+<a id="jukebox.player.module.Player.play_album"></a>
+
+#### play\_album
+
+```python
+@action(path='/album')
+def play_album(albumartist: str,
+               album: str,
+               content_uri: Optional[str] = None,
+               provider: Optional[str] = None) -> None
+```
+
+Play an album of the library or of a backend's own catalog (``provider``).
+
+
+<a id="jukebox.player.module.Player.queue_load"></a>
+
+#### queue\_load
+
+```python
+@action(path='/queue')
+def queue_load(folder: str) -> None
+```
+
+Load a folder into the queue without playing it.
+
+
+<a id="jukebox.player.module.Player.update"></a>
+
+#### update
+
+```python
+@action(path='/update')
+def update() -> Any
+```
+
+Rescan the music library of the default backend.
+
+
+<a id="jukebox.player.module.Player.update_wait"></a>
+
+#### update\_wait
+
+```python
+@action(path='/update-wait')
+def update_wait() -> Any
+```
+
+Rescan the music library and wait for it to finish.
+
+
+<a id="jukebox.player.module.Player.playerstatus"></a>
+
+#### playerstatus
+
+```python
+@query(path='/status')
+def playerstatus() -> PlayerStatus
+```
+
+Current player status.
+
+
+<a id="jukebox.player.module.Player.get_volume"></a>
+
+#### get\_volume
+
+```python
+@query(path='/volume')
+def get_volume() -> VolumeLevel
+```
+
+Current playback volume of the active backend.
+
+
+<a id="jukebox.player.module.Player.set_volume"></a>
+
+#### set\_volume
+
+```python
+@action(method='PUT', path='/volume')
+def set_volume(volume: int) -> VolumeLevel
+```
+
+Set the playback volume of the active backend.
+
+
+<a id="jukebox.player.module.Player.playlistinfo"></a>
+
+#### playlistinfo
+
+```python
+@query(path='/playlist')
+def playlistinfo() -> List[Dict[str, Any]]
+```
+
+The current queue.
+
+
+<a id="jukebox.player.module.Player.get_current_song"></a>
+
+#### get\_current\_song
+
+```python
+@query(path='/current-song')
+def get_current_song(param: Optional[str] = None) -> Any
+```
+
+Details of the current song.
+
+
+<a id="jukebox.player.module.Player.get_player_type_and_version"></a>
+
+#### get\_player\_type\_and\_version
+
+```python
+@query(path='/type')
+def get_player_type_and_version() -> str
+```
+
+Type and version of the active backend.
+
+
+<a id="jukebox.player.module.Player.list_backends"></a>
+
+#### list\_backends
+
+```python
+@query(path='/backends')
+def list_backends() -> List[str]
+```
+
+Registered backends.
+
+
+<a id="jukebox.player.module.Player.get_active_backend"></a>
+
+#### get\_active\_backend
+
+```python
+@query(path='/backends/active')
+def get_active_backend() -> BackendName
+```
+
+The backend playing right now.
+
+
+<a id="jukebox.player.module.Player.get_default_backend"></a>
+
+#### get\_default\_backend
+
+```python
+@query(path='/backends/default')
+def get_default_backend() -> BackendName
+```
+
+The backend used for content without an explicit provider.
+
+
+<a id="jukebox.player.module.Player.select_backend"></a>
+
+#### select\_backend
+
+```python
+@action(method='PUT', path='/backends/active')
+def select_backend(name: str) -> BackendName
+```
+
+Stop the current backend and switch to another one.
+
+
+<a id="jukebox.player.status"></a>
+
+# jukebox.player.status
+
+Typed player status, independent of the backend that produced it.
+
+
+<a id="jukebox.player.status.status_from_backend"></a>
+
+#### status\_from\_backend
+
+```python
+def status_from_backend(raw: Mapping[str, Any], provider: str) -> PlayerStatus
+```
+
+Build a :class:`PlayerStatus` from a backend's raw (mpd-style) status mapping.
 
 
 <a id="jukebox.player"></a>
 
 # jukebox.player
-
-<a id="jukebox.player.play_card_callbacks"></a>
-
-#### play\_card\_callbacks
-
-Callback handler for card-triggered playback. This belongs to the player
-
-facade rather than to a specific playback backend.
-
 
 <a id="jukebox.player.MusicLibPath"></a>
 
@@ -2932,6 +3624,46 @@ def get_music_library_path()
 Get the music library path
 
 
+<a id="jukebox.player.backend"></a>
+
+# jukebox.player.backend
+
+Protocol a player backend implements to register at the ``player.backends`` extension point.
+
+Optional capabilities (library browsing, cover art, rewind, ...) are looked up by name at call
+time; a backend without them makes the corresponding operation answer 501.
+
+
+<a id="jukebox.player.backend.PlayerBackend"></a>
+
+## PlayerBackend Objects
+
+```python
+class PlayerBackend(Protocol)
+```
+
+<a id="jukebox.player.backend.PlayerBackend.set_status_callback"></a>
+
+#### set\_status\_callback
+
+```python
+def set_status_callback(callback: Callable[[Mapping[str, Any]], None]) -> None
+```
+
+Receive the raw status mapping whenever it changes (only forwarded while active).
+
+
+<a id="jukebox.player.backend.PlayerBackend.play_files"></a>
+
+#### play\_files
+
+```python
+def play_files(paths: List[str]) -> None
+```
+
+Replace the queue with ``paths`` (absolute or relative to the music library) and play.
+
+
 <a id="jukebox.player.backends.local_audio"></a>
 
 # jukebox.player.backends.local\_audio
@@ -2952,31 +3684,6 @@ whenever it's told to (re)start one. This keeps the state machine in one place i
 to signal a live decode loop with finer-grained commands.
 
 
-<a id="jukebox.player.backends.local_audio.AudioSink"></a>
-
-## AudioSink Objects
-
-```python
-class AudioSink()
-```
-
-What a decoded track is written to. Exists so tests don't need a real audio device.
-
-
-<a id="jukebox.player.backends.local_audio.PortAudioSink"></a>
-
-## PortAudioSink Objects
-
-```python
-class PortAudioSink(AudioSink)
-```
-
-Real output via sounddevice/PortAudio. Falls back to silent (no-op) if no device is
-
-available -- e.g. the no-audio docker dev stack, or a CI box -- rather than raising and
-killing the daemon.
-
-
 <a id="jukebox.player.backends.local_audio.PlayerLocalAudio"></a>
 
 ## PlayerLocalAudio Objects
@@ -2993,7 +3700,6 @@ Decode-and-output player backend. See module docstring for the state machine.
 #### rewind
 
 ```python
-@plugs.tag
 def rewind()
 ```
 
@@ -3005,315 +3711,10 @@ Re-start current playlist from the first track.
 #### replay
 
 ```python
-@plugs.tag
 def replay()
 ```
 
 Re-start playing the last-played folder.
-
-
-<a id="jukebox.player.backends.local_audio.initialize"></a>
-
-#### initialize
-
-```python
-def initialize()
-```
-
-Create the coordinator with local_audio as its sole backend and register it as 'player.ctrl'.
-
-
-<a id="jukebox.player.backends.coverart_cache_manager"></a>
-
-# jukebox.player.backends.coverart\_cache\_manager
-
-Cover-art cache support for the MPD backend.
-
-
-<a id="jukebox.player.backends.mpd"></a>
-
-# jukebox.player.backends.mpd
-
-Package for interfacing with the MPD Music Player Daemon
-
-Status information in three topics
-1) Player Status: published only on change
-  This is a subset of the MPD status (and not the full MPD status) ??
-  - folder
-  - song
-  - volume (volume is published only via player status, and not separatly to avoid too many Threads)
-  - ...
-2) Elapsed time: published every 250 ms, unless constant
-  - elapsed
-3) Folder Config: published only on change
-   This belongs to the folder being played
-   Publish:
-   - random, resume, single, loop
-   On save store this information:
-   Contains the information for resume functionality of each folder
-   - random, resume, single, loop
-   - if resume:
-     - current song, elapsed
-   - what is PLAYSTATUS for?
-   When to save
-   - on stop
-   Angstsave:
-   - on pause (only if box get turned off without proper shutdown - else stop gets implicitly called)
-   - on status change of random, resume, single, loop (for resume omit current status if currently playing- this has now meaning)
-   Load checks:
-   - if resume, but no song, elapsed -> log error and start from the beginning
-
-Status storing:
-  - Folder config for each folder (see above)
-  - Information to restart last folder playback, which is:
-    - last_folder -> folder_on_close
-    - song, elapsed
-    - random, resume, single, loop
-    - if resume is enabled, after start we need to set last_played_folder, such that card swipe is detected as second swipe?!
-      on the other hand: if resume is enabled, this is also saved to folder.config -> and that is checked by play card
-
-Internal status
-  - last played folder: Needed to detect second swipe
-
-
-Saving {'player_status': {'last_played_folder': 'TraumfaengerStarkeLieder', 'CURRENTSONGPOS': '0', 'CURRENTFILENAME': 'TraumfaengerStarkeLieder/01.mp3'},
-'audio_folder_status':
-{'TraumfaengerStarkeLieder': {'ELAPSED': '1.0', 'CURRENTFILENAME': 'TraumfaengerStarkeLieder/01.mp3', 'CURRENTSONGPOS': '0', 'PLAYSTATUS': 'stop', 'RESUME': 'OFF', 'SHUFFLE': 'OFF', 'LOOP': 'OFF', 'SINGLE': 'OFF'},
-'Giraffenaffen': {'ELAPSED': '1.0', 'CURRENTFILENAME': 'TraumfaengerStarkeLieder/01.mp3', 'CURRENTSONGPOS': '0', 'PLAYSTATUS': 'play', 'RESUME': 'OFF', 'SHUFFLE': 'OFF', 'LOOP': 'OFF', 'SINGLE': 'OFF'}}}
-
-References:
-https://github.com/Mic92/python-mpd2
-https://python-mpd2.readthedocs.io/en/latest/topics/commands.html
-https://mpd.readthedocs.io/en/latest/protocol.html
-
-sudo -u mpd speaker-test -t wav -c 2
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD"></a>
-
-## PlayerMPD Objects
-
-```python
-class PlayerMPD()
-```
-
-Interface to MPD Music Player Daemon
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.mpd_retry_with_mutex"></a>
-
-#### mpd\_retry\_with\_mutex
-
-```python
-def mpd_retry_with_mutex(mpd_cmd, *args)
-```
-
-This method adds thread saftey for acceses to mpd via a mutex lock,
-
-it shall be used for each access to mpd to ensure thread safety
-In case of a communication error the connection will be reestablished and the pending command will be repeated 2 times
-
-I think this should be refactored to a decorator
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.pause"></a>
-
-#### pause
-
-```python
-@plugs.tag
-def pause(state: int = 1)
-```
-
-Enforce pause to state (1: pause, 0: resume)
-
-This is what you want as card removal action: pause the playback, so it can be resumed when card is placed
-on the reader again. What happens on re-placement depends on configured second swipe option
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.next"></a>
-
-#### next
-
-```python
-@plugs.tag
-def next()
-```
-
-Play next track in current playlist
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.rewind"></a>
-
-#### rewind
-
-```python
-@plugs.tag
-def rewind()
-```
-
-Re-start current playlist from first track
-
-Note: Will not re-read folder config, but leave settings untouched
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.replay"></a>
-
-#### replay
-
-```python
-@plugs.tag
-def replay()
-```
-
-Re-start playing the last-played folder
-
-Will reset settings to folder config
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.toggle"></a>
-
-#### toggle
-
-```python
-@plugs.tag
-def toggle()
-```
-
-Toggle pause state, i.e. do a pause / resume depending on current state
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.replay_if_stopped"></a>
-
-#### replay\_if\_stopped
-
-```python
-@plugs.tag
-def replay_if_stopped()
-```
-
-Re-start playing the last-played folder unless playlist is still playing
-
-> [!NOTE]
-> To me this seems much like the behaviour of play,
-> but we keep it as it is specifically implemented in box 2.X
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.is_second_swipe"></a>
-
-#### is\_second\_swipe
-
-```python
-def is_second_swipe(folder: str) -> bool
-```
-
-Return whether a card request should run the configured second-swipe action.
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.play_second_swipe"></a>
-
-#### play\_second\_swipe
-
-```python
-def play_second_swipe()
-```
-
-Run the configured second-swipe action.
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.flush_coverart_cache"></a>
-
-#### flush\_coverart\_cache
-
-```python
-@plugs.tag
-def flush_coverart_cache()
-```
-
-Deletes the Cover Art Cache
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.get_folder_content"></a>
-
-#### get\_folder\_content
-
-```python
-@plugs.tag
-def get_folder_content(folder: str)
-```
-
-Get the folder content as content list with meta-information. Depth is always 1.
-
-Call repeatedly to descend in hierarchy
-
-**Arguments**:
-
-- `folder`: Folder path relative to music library path
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.play_folder"></a>
-
-#### play\_folder
-
-```python
-@plugs.tag
-def play_folder(folder: str, recursive: bool = False) -> None
-```
-
-Playback a music folder.
-
-Folder content is added to the playlist as described by :mod:`jukebox.playlistgenerator`.
-The playlist is cleared first.
-
-**Arguments**:
-
-- `folder`: Folder path relative to music library path
-- `recursive`: Add folder recursively
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.play_album"></a>
-
-#### play\_album
-
-```python
-@plugs.tag
-def play_album(albumartist: str, album: str)
-```
-
-Playback a album found in MPD database.
-
-All album songs are added to the playlist
-The playlist is cleared first.
-
-**Arguments**:
-
-- `albumartist`: Artist of the Album provided by MPD database
-- `album`: Album name provided by MPD database
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.get_volume"></a>
-
-#### get\_volume
-
-```python
-def get_volume()
-```
-
-Get the current volume
-
-For volume control do not use directly, but use through the plugin 'volume',
-as the user may have configured a volume control manager other than MPD
-
-
-<a id="jukebox.player.backends.mpd.PlayerMPD.set_volume"></a>
-
-#### set\_volume
-
-```python
-def set_volume(volume)
-```
-
-Set the volume
-
-For volume control do not use directly, but use through the plugin 'volume',
-as the user may have configured a volume control manager other than MPD
 
 
 <a id="jukebox.player.backends"></a>

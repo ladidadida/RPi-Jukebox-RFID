@@ -1,63 +1,17 @@
-# Bluetooth
+# Bluetooth audio buttons
 
-## Bluetooth Audio Buttons
+Headsets and Bluetooth speakers expose their play/pause/next/previous/volume buttons as input
+devices. Let the jukebox react to them with the media keys of the core `input` module:
 
-When a bluetooth sound device (headphone, speakers) connects attempt to
-automatically listen to it's buttons (play, next, etc.)
-
-The bluetooth input device name is matched automatically from the
-bluetooth sound card device name. During boot up, it is uncertain if the
-bluetooth device connects first, or the Jukebox service is ready first.
-Therefore, after service initialization, already connected bluetooth
-sound devices are scanned and an attempt is made to find their input
-buttons.
-
-> [!NOTE]
-> If the automatic matching fails, there currently is no manual configuration option. Open an issue ticket if you have problems with the automatic matching.
-
-Button key codes are standardized and by default the buttons play,
-pause, next song, previous song are recognized. Volume up/down is
-handled independently from this module by PulseAudio and the bluetooth
-audio transmission protocol.
-
-The module needs to be enabled in the main configuration file with:
-
-``` yaml
-bluetooth_audio_buttons:
-  enable: true
+```yaml
+input:
+  media_keys: true
 ```
 
-### Custom key bindings
+This maps `KEY_PLAYPAUSE`, `KEY_PLAYCD`, `KEY_PAUSECD`, `KEY_STOPCD`, `KEY_NEXTSONG`,
+`KEY_PREVIOUSSONG`, `KEY_VOLUMEUP`, `KEY_VOLUMEDOWN` and `KEY_MUTE` of any device that has such
+keys to the matching [actions](actions.md). It is off by default so a jukebox running on a desktop
+doesn't take over the keyboard's media keys. Devices connecting later are picked up automatically.
 
-You may change or extend the actions assigned to a button in the
-configuration. If the configuration contains a block 'mapping', the
-default button-action mapping is *completely* replaced with the new
-mapping. The definitions for each key looks like
-`key-code: {rpc_command_definition}`. The RPC command follows the
-regular RPC command rules as defined in
-[Actions](actions.md).
-
-``` yaml
-bluetooth_audio_buttons:
-  enable: true
-  mapping:
-    # Play & pause both map to toggle which is also the usual behaviour of headsets
-    200:
-      alias: toggle
-    201:
-      alias: toggle
-    # Re-map next song button, to set defined output volume (for some fun)
-    163:
-      package: volume
-      plugin: ctrl
-      method: set_volume
-      args: [18]
-    # Re-map prev song button to shutdown
-    165:
-      alias: shutdown
-```
-
-Key codes can be found in the log files. Press the various buttons on
-your headset, while watching the logs with e.g.
-`tail -f shared/logs/app.log`. Look for entries like
-`No callback registered for button ...`.
+Switching the audio output to the headset is done with `volume.toggle_output` or in the web app's
+audio settings (see the `volume.outputs` configuration).

@@ -22,7 +22,7 @@
 
 * [Power](./components/power/)
   * [OnOff SHIM for safe power on/off](./components/power/onoff-shim.md)
-  * [Battery Monitor based on a ADS1015](./components/power/batterymonitor.md)
+  * [Battery Monitor](./components/power/batterymonitor.md)
 * [Soundcards](./components/soundcards/)
   * [HiFiBerry Boards](./components/soundcards/hifiberry.md)
 * [RFID Readers](./../developers/rfid/README.md)

@@ -57,7 +57,10 @@ Fork goals, roughly in the order we're tackling them:
    format for card actions, not an HTTP API -- replacing it belongs to the plugin-system redesign.
    Untagging methods breaks it (tried and reverted once, see git history).
 
-   **Next: core and plugin contract** -- core is what makes sense on any machine (player,
+   **Status (branch `core-plugin-contract`): core and plugin contract implemented**, all seven
+   steps of [core-and-plugins.md](core-and-plugins.md). Earlier plan for reference:
+
+   **Core and plugin contract** -- core is what makes sense on any machine (player,
    library, cards, settings, system info, volume, timers, jingle, input devices); platform-specific
    parts and integrations become opt-in plugins (bundled or external: `raspberry-pi` for power/GPIO/
    battery, `mpd`, RFID reader drivers, MQTT, card sync), both built on one

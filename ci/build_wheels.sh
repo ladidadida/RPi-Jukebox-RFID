@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Build the wheels of the core, the CLI and the bundled plugins, with the web app inside the core wheel.
+#   ci/build_wheels.sh [output-dir]     (default: dist/)
+# Set SKIP_WEBAPP_BUILD=1 to package an existing packages/webapp/build.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="${1:-${ROOT}/dist}"
+WEBAPP_TARGET="${ROOT}/packages/jukebox/src/jukebox/webapp"
+
+if [[ -z "${SKIP_WEBAPP_BUILD:-}" ]]; then
+  (cd "${ROOT}/packages/webapp" && npm ci && npm run build)
+fi
+if [[ ! -f "${ROOT}/packages/webapp/build/index.html" ]]; then
+  echo "No web app build in packages/webapp/build" >&2
+  exit 1
+fi
+
+rm -rf "${WEBAPP_TARGET:?}"
+cp -r "${ROOT}/packages/webapp/build" "${WEBAPP_TARGET}"
+rm -rf "${WEBAPP_TARGET:?}/cover-cache"
+
+cd "${ROOT}"
+uv build --all-packages --wheel -o "${OUT}"
+rm -rf "${WEBAPP_TARGET:?}"
+ls -1 "${OUT}"

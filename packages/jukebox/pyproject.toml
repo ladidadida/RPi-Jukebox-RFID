@@ -31,4 +31,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/jukebox"]
+# The web app build, copied in by ci/build_wheels.sh (ignored by git, so listed explicitly)
+artifacts = ["src/jukebox/webapp/**"]
 

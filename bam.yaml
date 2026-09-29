@@ -69,6 +69,17 @@ tasks:
 
   # ── Docs ──────────────────────────────────────────────────────────────────────
 
+  wheels:
+    command: ci/build_wheels.sh
+    inputs:
+      - "packages/**/*.py"
+      - "packages/*/pyproject.toml"
+      - "packages/plugins/*/pyproject.toml"
+      - "packages/webapp/src/**"
+      - "packages/jukebox/src/jukebox/resources/**"
+    outputs:
+      - dist/
+
   docs:
     command: uv run pydoc-markdown
     inputs:

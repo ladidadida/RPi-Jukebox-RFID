@@ -8,6 +8,8 @@
 /shared/*
 /packages/webapp/public/cover-cache/*.*
 /packages/webapp/test-results/
+/packages/jukebox/src/jukebox/webapp/
+/dist/
 /packages/webapp/playwright-report/
 
 # Byte-compiled / optimized / DLL files

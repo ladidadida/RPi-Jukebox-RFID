@@ -95,10 +95,12 @@ optimisation. Steps needing root run their commands through `sudo`.
 
 ## Implementation plan
 
-1. **Paths:** `JUKEBOX_HOME`, path resolution against it, resources as package data, web app
-   directory configurable; `.env` for source mode.
-2. **Wheels:** the web app build in the `jukebox` wheel; CI builds the wheels (core, CLI, bundled
-   plugins) and attaches them to GitHub releases.
+1. **Paths** -- *done*: `JUKEBOX_HOME`, path resolution against it, resources as package data, web
+   app directory configurable; `.env` for source mode.
+2. **Wheels** -- *done*: `ci/build_wheels.sh` (also `bam wheels`) builds the web app, copies it into
+   the `jukebox` package and builds the wheels of core, CLI and bundled plugins.
+   `.github/workflows/wheels.yml` builds them on every push/PR, installs them into a fresh
+   environment and starts the jukebox; a tag `v<version>` attaches them to a GitHub release.
 3. **Plugin commands.**
 4. **Setup framework and steps**, porting the Bash routines one by one.
 5. **Install script** for package and source installs; CI runs it in the Debian containers.

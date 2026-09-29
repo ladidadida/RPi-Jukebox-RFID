@@ -1,10 +1,14 @@
-"""Optional features: MPD, Samba, kiosk mode, WiFi hotspot."""
+"""Optional features: MPD, Samba, kiosk mode, WiFi hotspot, audio outputs."""
 
 import re
 
+import click
+import typer
+
+import jukebox.cfghandler
 import jukebox.paths
 from jukebox_cli.setup.base import Question, Step
-from jukebox_cli.setup.system import SetupError
+from jukebox_cli.setup.system import SetupError, StepSkipped
 
 
 class MpdStep(Step):
@@ -256,3 +260,50 @@ class AutohotspotStep(Step):
         system.run('systemctl', 'enable', self.TIMER, root=True)
         if not system.unit_enabled(self.TIMER):
             raise SetupError(f'{self.TIMER} could not be enabled')
+
+
+class AudioStep(Step):
+    name = 'audio'
+    title = 'Audio outputs'
+    questions = (
+        Question('audio', 'Choose the audio outputs now (otherwise the system default output is used)?',
+                 default=False, help='A second output (e.g. Bluetooth headphones) can be switched to in the web app.'),
+    )
+
+    def wanted(self, ctx):
+        return bool(ctx.answer('audio'))
+
+    def check(self, ctx):
+        cfg = ctx.load_config()
+        if not cfg.getn('volume', 'outputs', 'primary', 'pulse_sink_name', default=None):
+            return ['no primary audio output chosen']
+        return []
+
+    def _sinks(self):
+        import pulsectl
+        try:
+            with pulsectl.Pulse('jukebox-setup') as pulse:
+                return [(sink.name, sink.description) for sink in pulse.sink_list()]
+        except pulsectl.PulseError as error:
+            raise SetupError(f'no PulseAudio/PipeWire server reachable: {error}') from None
+
+    def apply(self, ctx):
+        if ctx.assume_yes:
+            raise StepSkipped("choosing the outputs is interactive; run 'jukebox setup audio' later")
+        sinks = self._sinks()
+        if not sinks:
+            raise SetupError('the sound server reports no audio outputs')
+        for index, (name, description) in enumerate(sinks):
+            typer.echo(f"{index:2d}: {description}  ({name})")
+        primary = typer.prompt('Primary output', default=0, type=click.IntRange(0, len(sinks) - 1))
+        secondary = -1
+        if len(sinks) > 1:
+            secondary = typer.prompt('Secondary output (-1: none)', default=-1,
+                                     type=click.IntRange(-1, len(sinks) - 1))
+        outputs = {'primary': {'alias': sinks[primary][1], 'volume_limit': 100, 'pulse_sink_name': sinks[primary][0]}}
+        if secondary >= 0:
+            outputs['secondary'] = {'alias': sinks[secondary][1], 'volume_limit': 100,
+                                    'pulse_sink_name': sinks[secondary][0]}
+        cfg = ctx.load_config()
+        cfg.setn('volume', 'outputs', value=outputs)
+        jukebox.cfghandler.write_yaml(cfg, str(ctx.config_path))

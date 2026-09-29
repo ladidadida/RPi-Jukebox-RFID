@@ -3,6 +3,8 @@
 import re
 from typing import List
 
+import typer
+
 import jukebox.paths
 from jukebox_cli.setup.base import Context, Question, Step
 from jukebox_cli.setup.system import SetupError
@@ -31,12 +33,41 @@ class PackagesStep(Step):
         pass
 
 
+HIFIBERRY_BOARDS = {
+    'hifiberry-dac': 'DAC (HiFiBerry MiniAmp, I2S PCM5102A DAC)',
+    'hifiberry-dacplus': 'HiFiBerry DAC+ Standard/Pro/Amp2',
+    'hifiberry-dacplushd': 'HiFiBerry DAC2 HD',
+    'hifiberry-dacplusadc': 'HiFiBerry DAC+ ADC',
+    'hifiberry-dacplusadcpro': 'HiFiBerry DAC+ ADC Pro',
+    'hifiberry-digi': 'HiFiBerry Digi+',
+    'hifiberry-digi-pro': 'HiFiBerry Digi+ Pro',
+    'hifiberry-amp': 'HiFiBerry Amp+ (not Amp2)',
+    'hifiberry-amp3': 'HiFiBerry Amp3',
+}
+HIFIBERRY_OVERLAY = re.compile(r'^dtoverlay=(hifiberry-[\w-]+)\s*$', re.MULTILINE)
+
+
+def _configured_sound_card(ctx: Context) -> str:
+    match = HIFIBERRY_OVERLAY.search(ctx.system.read(ctx.system.boot_file('config.txt')) or '')
+    return match.group(1) if match else 'none'
+
+
+def _validate_sound_card(value: str):
+    if value == 'none' or value in HIFIBERRY_BOARDS:
+        return None
+    return f"Choose one of: none, {', '.join(HIFIBERRY_BOARDS)}"
+
+
 class RaspberryPiStep(Step):
     name = 'raspi'
     title = 'Raspberry Pi settings'
     questions = (
+        Question('sound_card', 'HifiBerry (or compatible I2S DAC) sound card', kind='text',
+                 default=_configured_sound_card, validate=_validate_sound_card,
+                 help='none, or one of: ' + ', '.join(f'{key} ({name})' for key, name in HIFIBERRY_BOARDS.items())),
         Question('disable_onboard_audio', "Disable the Pi's on-chip audio (headphone jack)?", default=False,
-                 help='Recommended with an external sound card (USB, HifiBerry, ...); '
+                 when=lambda a: a.get('sound_card', 'none') == 'none',
+                 help='Recommended with an external sound card (USB, ...); '
                       'keep it for Bluetooth-only speakers. config.txt is backed up first.'),
     )
     AUDIO_ON = re.compile(r'^(dtparam=([^,\n]*,)*)audio=(on|true|yes|1)(.*)$', re.MULTILINE)
@@ -47,11 +78,29 @@ class RaspberryPiStep(Step):
     def packages(self, ctx):
         return ['liblgpio-dev', 'swig']
 
+    def _card(self, ctx) -> str:
+        return ctx.answer('sound_card') or 'none'
+
+    def _onboard_off(self, ctx) -> bool:
+        return self._card(ctx) != 'none' or bool(ctx.answer('disable_onboard_audio'))
+
+    def _config(self, ctx, config: str) -> str:
+        """config.txt as this step wants it."""
+        if self._onboard_off(ctx):
+            config = self.AUDIO_ON.sub(r'\1audio=off\4', config)
+        card = self._card(ctx)
+        if card != 'none' and HIFIBERRY_OVERLAY.findall(config) != [card]:
+            config = HIFIBERRY_OVERLAY.sub('', config).rstrip('\n') + f'\ndtoverlay={card}\n'
+            config = re.sub(r'\n{3,}', '\n\n', config)
+        return config
+
     def check(self, ctx):
-        problems = []
         config = ctx.system.read(ctx.system.boot_file('config.txt')) or ''
-        if ctx.answer('disable_onboard_audio') and self.AUDIO_ON.search(config):
+        problems = []
+        if self._onboard_off(ctx) and self.AUDIO_ON.search(config):
             problems.append('on-chip audio is enabled in config.txt')
+        if self._card(ctx) != 'none' and HIFIBERRY_OVERLAY.findall(config) != [self._card(ctx)]:
+            problems.append(f'config.txt does not load (only) the {self._card(ctx)} overlay')
         return problems
 
     def apply(self, ctx):
@@ -59,9 +108,11 @@ class RaspberryPiStep(Step):
         system.run('iwconfig', 'wlan0', 'power', 'off', root=True, check=False)
         path = system.boot_file('config.txt')
         config = system.read(path) or ''
-        if ctx.answer('disable_onboard_audio') and self.AUDIO_ON.search(config):
-            system.write(f'{path}.backup-audio-on', config, root=True)
-            system.write(path, self.AUDIO_ON.sub(r'\1audio=off\4', config), root=True)
+        wanted = self._config(ctx, config)
+        if wanted != config:
+            system.write(f'{path}.backup', config, root=True)
+            system.write(path, wanted, root=True)
+            typer.echo('    config.txt changed: reboot for it to take effect.')
 
 
 class BootStep(Step):

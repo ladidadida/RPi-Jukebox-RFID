@@ -30,24 +30,13 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 │   │                           frühere Komponenten (gpio, mqtt, volume, timers, battery_monitor,
 │   │                           controls, jingle, hostif, synchronisation) wurden entfernt, kommen
 │   │                           später neu gestaltet zurück. Kein ZeroMQ mehr im ganzen Projekt.
-│   ├── cli/                    Jukebox-CLI (jukebox-cli). Bisher implementiert: `jukebox run`
-│   │                           (Core starten), `jukebox debug sniff` (Publishing-Bus-Sniffer).
-│   │                           `jukebox setup ...` (Installationsroutinen) noch nicht umgesetzt —
-│   │                           liegt weiterhin in migrate_to_cli/.
+│   ├── cli/                    Jukebox-CLI (jukebox-cli): `jukebox run` (Core starten), `home`,
+│   │                           `plugin ...`, `setup ...` (Maschinen-Setup), `update`,
+│   │                           `debug sniff` (Publishing-Bus-Sniffer).
 │   └── webapp/                 React-Frontend (Touch-/Web-UI), kommuniziert per HTTP/WebSocket mit
 │                                der FastAPI-Bridge (`/api/v1/*`). Kein uv-Workspace-Member
 │                                (npm/Vite-Projekt), liegt aber strukturell neben den Python-Packages.
-├── migrate_to_cli/             Alles, was perspektivisch CLI-Funktionalität wird und noch nicht
-│   │                           umgebaut ist (siehe Roadmap, "Packaging/install overhaul") — bewusst
-│   │                           hierher verschoben, damit klar als provisorisch erkennbar; läuft
-│   │                           aber unverändert weiter, nur der Pfad hat sich geändert:
-│   ├── installation/           Alte Bash-Installationsroutinen (install-jukebox.sh, routines/, …),
-│   │                           nach `jukebox setup` portiert; fliegt raus, sobald install.sh sie ersetzt
-│   └── scripts/                 RFID-Registrierung und Audio-Config — beide aktuell kaputt
-│                                  (importieren jukebox.hostif, mit dem alten Plugin-System entfernt),
-│                                  blockiert auf einem hostif-Redesign, noch nicht in die CLI portiert.
-│                                  run_jukebox.py/run_publicity_sniffer.py wurden durch
-│                                  `jukebox run`/`jukebox debug sniff` ersetzt und hier entfernt.
+├── install.sh                  Installer (curl | bash): Basis-Pakete, uv, Jukebox, `jukebox setup`
 ├── docker/                     Dockerfiles + docker-compose für eine Nicht-Pi-Entwicklungsumgebung
 ├── resources/                  Default-Settings, systemd-Services, Beispiel-Audio, Autohotspot-Configs
 ├── shared/                     Laufzeitdaten: audiofolders, playlists, settings, logs
@@ -132,7 +121,7 @@ Python-Version: **3.11**.
   Audio-Routing.
 - **Docker & Docker Compose** für eine Pi-unabhängige Entwicklungsumgebung (separate Container für
   Core, MPD, Webapp).
-- **systemd** für die Diensteinrichtung auf dem Pi (`resources/default-services`).
+- **systemd** für die Diensteinrichtung (User-Unit, von `jukebox setup service` erzeugt).
 - **MQTT** (paho-mqtt) für optionale Smart-Home-/Automatisierungs-Integration.
 - **GitHub Actions** für CI (Python-Tests, Doku-Checks, Installationstests unter Debian/Docker).
 - **Coveralls** für Testabdeckung.

@@ -1,31 +1,13 @@
 # HiFiBerry
 
-The installation script works for the most common set of HiFiBerry boards but also other "DAC" related sound cards like `I2S PCM5102A DAC`.
+The setup works for the most common set of HiFiBerry boards but also other "DAC" related sound cards like `I2S PCM5102A DAC`.
 
 ## Automatic setup
 
-Run the following command to install any HiFiBerry board. Make sure you reboot your device afterwards.
-
-```bash
-cd ~/RPi-Jukebox-RFID/migrate_to_cli/installation/components
-./setup_hifiberry.sh
-```
-
-If you know you HifiBerry Board identifier, you can run the script as a 1-liner as well
-
-```bash
-./setup_hifiberry.sh enable hifiberry-dac
-```
-
-If you like to disable your HiFiberry Sound card and enable onboard sound, run the following command
-
-```bash
-./setup_hifiberry.sh disable
-```
-
-## Additional information
-
-If you like to understand what's happening under the hood, feel free to check the [install script](../../../../migrate_to_cli/installation/components/setup_hifiberry.sh).
+`jukebox setup raspi` asks for the sound card: answer with the board identifier, e.g.
+`hifiberry-dac` (the question lists all of them). It adds the board's `dtoverlay` to
+`/boot/firmware/config.txt` (replacing another HiFiBerry overlay), disables the on-chip audio and
+keeps a backup of the previous file. Reboot afterwards.
 
 The setup is based on [HiFiBerry's instructions](https://www.hifiberry.com/docs/software/configuring-linux-3-18-x/).
 

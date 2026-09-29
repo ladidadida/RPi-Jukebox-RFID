@@ -5,10 +5,10 @@
 # TO ACTIVATE: cp .githooks/post-merge .git/hooks/.
 #
 # Checks:
-# - Changes to system requirements
 # - Changes to python requirements
 # - Changes to Web App
 # - Changes to web dependency
+# - Changes to the setup steps
 #
 # Actions are not triggered automatically as they can take some
 # time. The user is warned if an action is required.
@@ -42,26 +42,14 @@ warn_webapp() {
   echo -e "\n"
 }
 
-warn_system_requirements() {
-  echo -e "\n"
-  echo "************************************************************"
-  echo "ATTENTION: System requirements have changed since last pull!"
-  echo ""
-  echo "To update system requirements on the RPi run"
-  echo " sudo apt-get -y update"
-  echo " sed 's/#.*//g' packages-core.txt | xargs sudo apt-get -y install --no-install-recommends"
-  echo "************************************************************"
-  echo -e "\n"
-}
-
 warn_python_requirements() {
   echo -e "\n"
   echo "************************************************************"
   echo "ATTENTION: Python requirements have changed since last pull!"
   echo ""
-  echo "To update python requirements on the RPi run"
-  echo " uv sync --no-dev --no-install-package pyzmq"
-  echo "(installation/routines/setup_jukebox_core.sh does this, plus the RPi.GPIO cleanup, for you)"
+  echo "Update the environment with"
+  echo " uv sync --no-dev --frozen"
+  echo "('jukebox update' pulls and does this for you)"
   echo "************************************************************"
   echo -e "\n"
 }
@@ -77,24 +65,24 @@ warn_githooks() {
   echo -e "\n"
 }
 
-warn_installer() {
+warn_setup() {
   echo -e "\n"
   echo "************************************************************"
-  echo "ATTENTION: Installer sources have changed since last pull!"
+  echo "ATTENTION: Setup steps have changed since last pull!"
   echo ""
-  echo "It is NOT recommended to continue the update process."
-  echo "The installation routines have changed and"
-  echo "compatibility with the old version is not guaranteed."
+  echo "Check and re-apply them with"
+  echo " jukebox setup --check"
+  echo " jukebox setup --yes"
   echo "************************************************************"
   echo -e "\n"
 }
 
 # files_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD)"
-python_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD pyproject.toml packages/jukebox/pyproject.toml uv.lock)"
+python_req_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD pyproject.toml packages/*/pyproject.toml packages/plugins/*/pyproject.toml uv.lock)"
 webapp_changed="$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD packages/webapp)"
 webapp_dep_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD packages/webapp/package.json)"
 githooks_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD .githooks)"
-installer_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD installation)"
+setup_changed="$(git diff --name-only --no-commit-id ORIG_HEAD HEAD packages/cli/src/jukebox_cli/setup)"
 
 if [[ -n $python_req_changed ]]; then
     warn_python_requirements
@@ -110,8 +98,8 @@ if [[ -n $githooks_changed ]]; then
     warn_githooks
 fi
 
-if [[ -n $installer_changed ]]; then
-    warn_installer
+if [[ -n $setup_changed ]]; then
+    warn_setup
 fi
 
 echo -e "\nTo see a summary of what happened since your last pull, do:"

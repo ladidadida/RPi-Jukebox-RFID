@@ -34,16 +34,6 @@ packages/          uv workspace members
   webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
                    (FastAPI, `/api/v1/*`). Not a uv workspace member (npm/Vite project), but lives
                    alongside the Python packages structurally.
-migrate_to_cli/    Working area for everything slated to become CLI functionality and not yet
-                   rewritten (see documentation/developers/roadmap-core-architecture.md,
-                   "Packaging/install overhaul") — moved here so it's obviously provisional rather
-                   than mixed in with permanent code. Runs exactly as before, just relocated:
-  installation/    Bash install routines (install-jukebox.sh + routines/), ported to
-                   `jukebox setup`; removed once the new install script replaces them
-  scripts/         RFID registration and audio config setup tools -- both currently broken (import
-                   jukebox.hostif, removed along with the old plugin system) and blocked on a
-                   hostif redesign; not yet ported to the CLI. run_jukebox.py/run_publicity_sniffer.py
-                   were replaced by `jukebox run`/`jukebox debug sniff` and removed from here.
 docker/            Dockerfiles + compose files for a non-Pi development environment
 install.sh         Installer (curl | bash): base packages, uv, jukebox (release wheels or --source),
                    then `jukebox setup`
@@ -52,7 +42,7 @@ shared/            JUKEBOX_HOME when running from this checkout (see .env): sett
 documentation/     Project docs: builders/ (end users/installers) and developers/ (contributors)
 test/              Python unit tests (pytest)
 ci/                CI helper scripts: build_wheels.sh, test_install.sh (install.sh in a Debian
-                   container), ci-debian.Dockerfile + installation/ (old Bash installer tests)
+                   container)
 ```
 
 ## Architecture essentials

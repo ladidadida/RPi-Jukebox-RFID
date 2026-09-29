@@ -21,8 +21,8 @@ For debugging, it's best to run Jukebox directly from the console rather than as
 
 The player backend is selected via `player.backend` in the Jukebox configuration (default:
 `local_audio`, no extra install needed). `mpd` and the RFID reader drivers are plugins: enable
-them under `plugins:` (e.g. `mpd: {}`, `rfid_generic_usb: {}`). Reader drivers with extra
-dependencies need them installed first, e.g. `uv sync --inexact --extra rc522-spi`.
+them under `plugins:` (e.g. `mpd: {}`, `rfid_generic_usb: {}`), or with
+`jukebox plugin enable <name> --with-extras`, which also installs a driver's extra dependencies.
 
 ## Configuration Tools
 
@@ -31,9 +31,9 @@ See [Best practice procedure](../builders/configuration.md#best-practice-procedu
 
 ### Audio
 
-**Scriptname:** [setup_configure_audio.sh](../../migrate_to_cli/installation/components/setup_configure_audio.sh)
+**Command:** `jukebox setup audio` (`packages/cli/src/jukebox_cli/setup/steps/extras.py`)
 
-A setup tool to select the primary and secondary audio sinks used by the Jukebox.
+Selects the primary and secondary audio sinks used by the Jukebox (`volume.outputs`).
 
 Run this once after installation. It can be re-run at any time to change the
 selected outputs. For more information see
@@ -41,9 +41,9 @@ selected outputs. For more information see
 
 ### RFID Reader
 
-**Scriptname:** [setup_rfid_reader.sh](../../migrate_to_cli/installation/components/setup_rfid_reader.sh)
+**Command:** `jukebox setup rfid` (uses `jukebox_rfid_readers.configure`)
 
-Setup tool to configure the RFID Readers.
+Configures the RFID readers and enables their driver plugins.
 
 Run this once to register and configure the RFID readers with Jukebox. It can be re-run at any time to change the settings. For more information see [RFID Readers](./rfid/README.md).
 

@@ -21,7 +21,7 @@ udev_file="/etc/udev/rules.d/50-usb-nfc-rule.rules"
 
 usb_devices=$(lsusb | sed -e 's/.*ID \([a-f0-9]\+:[a-f0-9]\+\).*/\1/g')
 
-valid_device_ids=($(python -c "import nfc.clf.device; [print('%04x:%04x' % x) for x in nfc.clf.device.usb_device_map.keys()]"))
+valid_device_ids=($("${PYTHON:-python3}" -c "import nfc.clf.device; [print('%04x:%04x' % x) for x in nfc.clf.device.usb_device_map.keys()]"))
 
 if [ -e "$udev_file" ]; then
     sudo rm -f "$udev_file"

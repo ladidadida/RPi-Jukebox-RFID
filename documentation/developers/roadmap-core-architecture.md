@@ -68,9 +68,9 @@ Fork goals, roughly in the order we're tackling them:
    `requires`-based start order, a stated threading model, and `cards.yaml` migration. Draft for
    review: [core-and-plugins.md](core-and-plugins.md).
 3. **Packaging/install overhaul** — install logic entirely in Python, one package + subpackages, CLI
-   drives system setup instead of ~20 bash scripts. Upstream already scoped this in
-   `documentation/developers/roadmap-plugins-and-packaging.md` (Track B) — largely reusable, not
-   reinvented here.
+   drives system setup instead of ~20 bash scripts. Done: see
+   [packaging-and-setup.md](packaging-and-setup.md) (wheels, `install.sh`, `jukebox setup`,
+   `jukebox plugin`, `jukebox update`).
 4. **New name** — deferred, no dependency on the above.
 
 ## Current state (inherited from future3/develop)

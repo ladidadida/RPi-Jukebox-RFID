@@ -1,147 +1,48 @@
 # Update
 
-- [Updating your Jukebox Version 3](#updating-your-jukebox-version-3)
-  - [Manually upgrade to the latest version (not recommended)](#manually-upgrade-to-the-latest-version-not-recommended)
+- [Updating your Jukebox](#updating-your-jukebox)
+- [Coming from an installation with the old installer](#coming-from-an-installation-with-the-old-installer)
 - [Migration Path from Version 2](#migration-path-from-version-2)
 
-## Updating your Jukebox Version 3
+## Updating your Jukebox
 
-Currently there is no functionality to update an existing installation to the next release.
-This is planned for a future release ([#2304](https://github.com/MiczFlor/RPi-Jukebox-RFID/issues/2304))
+```bash
+jukebox update --check     # is there a newer version?
+jukebox update             # install it, re-apply the setup, restart the jukebox
+```
 
-To switch to the latest version
+- **Package installation** (the default of `install.sh`): installs the latest release from
+  GitHub (`--version vX.Y.Z` for a specific one) into the jukebox's environment. Plugins you
+  installed yourself stay, extra dependencies of enabled plugins are kept.
+- **Source installation** (`install.sh --source`): `git pull` of the current branch, then
+  `uv sync`; the web app is rebuilt if it changed and `npm` is installed.
 
-- back up your './shared' folder and changed files
-- perform a new installation on a fresh image
-- restore your backed up files after the new installation was successful
-- check if new mandatory settings have been added
+Afterwards `jukebox setup --yes` re-applies the setup with your earlier answers (e.g. an updated
+service definition) and a running jukebox service is restarted.
 
-    ``` bash
-    diff shared/settings/jukebox.yaml resources/default-settings/jukebox.default.yaml
-    ```
+Your data -- music, settings, cards -- lives in the jukebox home (`jukebox home` shows it) and is
+not touched by an update. Cards in the old format are converted when the jukebox starts (with a
+backup of the card database).
 
-### Manually upgrade to the latest version (not recommended)
+## Coming from an installation with the old installer
 
-> [!CAUTION]
-> **This process is strongly discouraged to use in general.**
->
-> It can help in some specific cases, like applying hotfixes on the `future3/main` branch or a few commits on the `future3/develop` branch.
-This process may necessitate specific migration steps and, if overlooked, could result in system failure. Please use these steps with caution and note extra information in the release notes.
+Installations made with the old `install-jukebox.sh` keep their data in `~/RPi-Jukebox-RFID/shared`.
+Either keep using that checkout as a source installation:
 
-Typically these steps need to be considered
+```bash
+cd ~/RPi-Jukebox-RFID && git pull
+curl -fsSL https://raw.githubusercontent.com/ladidadida/RPi-Jukebox-RFID/main/install.sh | bash -s -- --source ~/RPi-Jukebox-RFID
+```
 
-1. Backup local changes
-1. Pull the latest changes and run update commands
-1. Update Web App (if installed, and an official release branch is used)
-1. Update the config files
+or install the package and point it at the old data:
 
-#### In detail
+```bash
+curl -fsSL https://raw.githubusercontent.com/ladidadida/RPi-Jukebox-RFID/main/install.sh | bash -s -- --home ~/RPi-Jukebox-RFID/shared
+```
 
-1. Backup local changes
-
-    - SSH into your Phoniebox and open the installation folder
-
-        ```bash
-        cd ~/RPi-Jukebox-RFID/
-        ```
-
-    - Stash your local changes:
-
-        ```bash
-        git stash push -m "Backup before pull"
-        ```
-
-    - Create a backup branch (and potentially delete an already existing one):
-
-        ```bash
-        git branch -D backup-before-pull
-        git branch backup-before-pull
-        ```
-
-1. Pull the latest changes and run update commands:
-
-    ```bash
-    git pull
-    ```
-
-    After the `pull` some checks are triggered to make recommendations about needed update commands. Run the commands described in the output. If the Web App is installed, update it from the exact-commit bundle as described below.
-
-    Note the commands in case of an backup restore.
-
-1. Update Web App (if installed, and an official release branch is used):
-    - Determine the required exact-commit bundle name:
-
-        ```bash
-        cd ~/RPi-Jukebox-RFID
-        git rev-parse HEAD
-        echo "webapp-build-$(git rev-parse --short=10 HEAD).tar.gz"
-        ```
-
-    - Go to the [GitHub Release page](https://github.com/MiczFlor/RPi-Jukebox-RFID/releases) for the branch used.
-    - Under "Assets", find the bundle with exactly that name and copy its URL. If it is missing, stop and publish or rerun the `Test Build Web App v3` workflow for the commit. Do not use a bundle with a different commit suffix.
-    - Backup the current Web App build:
-
-        ```bash
-        cd ~/RPi-Jukebox-RFID/packages/webapp
-        rm -rf build-backup
-        mv build build-backup
-        ```
-
-    - On your Phoniebox, download and extract the bundle. Afterwards, delete the archive:
-
-        ```bash
-        cd ~/RPi-Jukebox-RFID/packages/webapp
-        bundle_name="webapp-build-$(git rev-parse --short=10 HEAD).tar.gz"
-        wget "{URL}" -O "${bundle_name}"
-        tar -xzf "${bundle_name}"
-        rm -f "${bundle_name}"
-        ```
-
-1. Update the config files
-
-    - Check if new mandatory settings have been added
-
-        ``` bash
-        diff shared/settings/jukebox.yaml resources/default-settings/jukebox.default.yaml
-        ```
-
-Reboot the Phoniebox:
-
-   ```bash
-   sudo reboot
-   ```
-
-Verify the version of your Phoniebox in the settings tab.
-
-#### Revert to backup if needed
-
-- SSH into your Phoniebox and open the installation folder
-
-    ```bash
-    cd ~/RPi-Jukebox-RFID/
-    ```
-
-- Reset current branch to the backup state:
-
-    ```bash
-    git reset --hard backup-before-pull
-    ```
-
-- Reapply stashed changes (if any):
-
-    ```bash
-    git stash pop
-    ```
-
-- Rerun noted update commands
-
-- Revert Web App:
-
-    ```bash
-    cd ~/RPi-Jukebox-RFID/packages/webapp
-    rm -rf build
-    mv build-backup build
-    ```
+Paths written by the old installer (`../../shared/...`) are understood. The old system service
+(`/usr/lib/systemd/user/jukebox-daemon.service`) is overridden by the one `jukebox setup` writes to
+`~/.config/systemd/user/`.
 
 ## Migration path from Version 2
 

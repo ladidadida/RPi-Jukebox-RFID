@@ -164,3 +164,41 @@ def test_mpd_and_hotspot(tmp_path, home, extras):
     assert "ap_ssid='Phoniebox_Hotspot_jukebox'" in script and "wdev0='wlan0'" in script
     assert 'autohotspot.timer' in system.enabled
     assert not system.exists('/etc/dhcpcd.conf')
+
+
+def test_audio_is_skipped_unattended_and_writes_outputs_interactively(tmp_path, home, extras, monkeypatch):
+    from jukebox_cli.setup.steps import extras as extras_steps
+    system = FakeSystem(tmp_path / 'root')
+    failed, ctx = setup_run(system, home, names=['audio'], answers={'audio': True})
+    assert failed == 0
+
+    monkeypatch.setattr(extras_steps.AudioStep, '_sinks',
+                        lambda self: [('alsa_output.analog', 'Speakers'), ('bluez_sink.x', 'Headset')])
+    answers = iter([0, 1])
+    monkeypatch.setattr(extras_steps.typer, 'prompt', lambda *a, **k: next(answers))
+    ctx.assume_yes = False
+    extras_steps.AudioStep().apply(ctx)
+    outputs = ctx.load_config().getn('volume', 'outputs')
+    assert outputs['primary']['pulse_sink_name'] == 'alsa_output.analog'
+    assert outputs['secondary']['alias'] == 'Headset'
+    assert extras_steps.AudioStep().check(ctx) == []
+
+
+def test_hifiberry_replaces_other_overlays(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    system.write('/boot/firmware/config.txt', 'dtparam=audio=on\ndtoverlay=hifiberry-dac\n[all]\n')
+    failed, _ = setup_run(system, home, names=['raspi'], answers={'sound_card': 'hifiberry-amp3'})
+    assert failed == 0
+    config = system.read('/boot/firmware/config.txt')
+    assert 'dtoverlay=hifiberry-amp3' in config and 'hifiberry-dac' not in config
+    assert 'audio=off' in config and '[all]' in config
+    assert system.read('/boot/firmware/config.txt.backup').startswith('dtparam=audio=on')
+
+
+def test_existing_sound_card_is_the_default(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    system.write('/boot/firmware/config.txt', 'dtparam=audio=off\ndtoverlay=hifiberry-dacplus\n')
+    failed, ctx = setup_run(system, home, names=['raspi'])
+    assert failed == 0
+    assert ctx.answers['sound_card'] == 'hifiberry-dacplus'
+    assert not system.exists('/boot/firmware/config.txt.backup')

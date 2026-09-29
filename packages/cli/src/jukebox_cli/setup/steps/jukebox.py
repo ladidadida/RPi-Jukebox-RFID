@@ -119,10 +119,7 @@ class RfidStep(Step):
             import jukebox_rfid_readers.configure as configure
         except ImportError as error:
             raise SetupError(f'the rfid-readers plugin package is not installed: {error}') from None
-        config = configure.query_user_for_reader(dependency_install='no')
+        config = configure.query_user_for_reader(dependency_install='query')
         configure.write_config(str(jukebox.paths.settings_dir() / 'rfid.yaml'), config, force_overwrite=True)
         drivers = sorted({f"rfid_{reader['module']}" for reader in config['rfid']['readers'].values()})
-        requirements = [req for name in drivers for req in plugin.plugin_extras(name)]
-        if requirements:
-            plugin.install_requirements(requirements)
         plugin.add_to_config(ctx.config_path, drivers)

@@ -1,7 +1,9 @@
 import logging
 import os
 import importlib
+import shutil
 import subprocess
+import sys
 
 import jukebox.cfghandler
 from jukebox.misc.simplecolors import Colors
@@ -23,6 +25,13 @@ BUNDLED_READER_EXTRAS = {
 }
 
 
+def install_python_packages(requirements: list[str]) -> None:
+    """Into the environment the jukebox runs in (uv if available, else pip)."""
+    uv = shutil.which('uv')
+    command = [uv, 'pip', 'install', '--python', sys.executable] if uv else [sys.executable, '-m', 'pip', 'install']
+    subprocess.run([*command, *requirements], check=False)
+
+
 def reader_install_dependencies(reader_path: str, dependency_install: str) -> None:
     """
     Install dependencies for the selected reader module
@@ -38,22 +47,17 @@ def reader_install_dependencies(reader_path: str, dependency_install: str) -> No
         reader_name = os.path.basename(reader_path.rstrip('/'))
         extra = BUNDLED_READER_EXTRAS.get(reader_name)
         if extra is not None:
-            print(f"\nInstalling/Checking Python dependencies (`uv sync --inexact --extra {extra}`) ...\n")
-            if dependency_install == 'auto' or pyil.input_yesno("Install Python dependencies?", blank=True,
-                                                                prompt_color=Colors.lightgreen, prompt_hint=True):
-                print(f"{'=' * 80}")
-                subprocess.run(['uv', 'sync', '--inexact', '--extra', extra], check=False)
-                print(f"\n{'=' * 80}\nInstalling dependencies ... done!")
+            requirements = [f'jukebox-plugin-rfid-readers[{extra}]']
         elif os.path.exists(reader_path + '/requirements.txt'):
-            # Third-party reader dropped in locally with its own requirements.txt (not one of the
-            # bundled readers above, which get their deps from a pyproject.toml extra instead).
-            print("\nInstalling/Checking Python dependencies  ...\n")
+            requirements = ['-r', reader_path + '/requirements.txt']
+        else:
+            requirements = []
+        if requirements:
+            print("\nInstalling/Checking Python dependencies ...\n")
             if dependency_install == 'auto' or pyil.input_yesno("Install Python dependencies?", blank=True,
                                                                 prompt_color=Colors.lightgreen, prompt_hint=True):
                 print(f"{'=' * 80}")
-                quiet_level = '-q' if logger.isEnabledFor(logging.DEBUG) else ''
-                subprocess.run(f"pip install --upgrade {quiet_level} -r requirements.txt", cwd=reader_path,
-                               shell=True, check=False)
+                install_python_packages(requirements)
                 print(f"\n{'=' * 80}\nInstalling dependencies ... done!")
         if os.path.exists(reader_path + '/setup.inc.sh'):
             # The shell dependencies/settings (if any)
@@ -61,8 +65,8 @@ def reader_install_dependencies(reader_path: str, dependency_install: str) -> No
             if dependency_install == 'auto' or pyil.input_yesno("Auto-configure system settings?", blank=True,
                                                                 prompt_color=Colors.lightgreen, prompt_hint=True):
                 print(f"{'=' * 80}")
-                subprocess.run('./setup.inc.sh', cwd=reader_path,
-                               shell=True, check=False)
+                subprocess.run(['bash', 'setup.inc.sh'], cwd=reader_path, check=False,
+                               env={**os.environ, 'PYTHON': sys.executable})
                 print(f"\n{'=' * 80}\nExecuting shell support commands  ... done!\n")
 
 

@@ -77,7 +77,7 @@ asks. Steps are idempotent: running `jukebox setup` again repairs or updates, it
 Answers are stored in `$JUKEBOX_HOME/settings/setup.yaml` so unattended re-runs
 (`jukebox setup --yes`) reuse them.
 
-Steps port the Bash routines under `migrate_to_cli/installation/`: system packages, Raspberry Pi
+Steps port the former Bash installer routines: system packages, Raspberry Pi
 settings, the systemd user service, mpd (only when the `mpd` plugin is chosen), Samba, autohotspot,
 kiosk mode, RFID readers (the existing reader configuration tool), audio output, boot-time
 optimisation. Steps needing root run their commands through `sudo`.
@@ -141,7 +141,18 @@ optimisation. Steps needing root run their commands through `sudo`.
    `../../shared/...`, `../../resources/audio/...`) are handled where paths are resolved, and the
    card database converts itself on start. A versioned migration step gets added with the first
    incompatible configuration change.
-7. Remove `migrate_to_cli/` once everything is ported.
+7. **Remove the Bash installer** -- *done*: `migrate_to_cli/` (installer, RFID and audio tools,
+   now `jukebox setup rfid` / `jukebox setup audio`; the HifiBerry script is the `sound_card`
+   question of `jukebox setup raspi`), its Debian CI (`ci/ci-debian.Dockerfile`,
+   `ci/installation/`, `test_docker_debian*_v3.yml`), `packages-core.txt`, the service template
+   (the unit is generated) and the upstream-only `bundle_webapp_and_release_v3.yml`.
+
+## Open points
+
+- The `service` step is covered by unit tests only; the CI containers have no systemd.
+- A first release (tag `v<version>`) is needed before `install.sh` works without `--source`/`--wheels`.
+- Configurations from upstream installs (`modules:`, `gpioz:`, `host:`, ...) are not converted to
+  the plugin configuration; only their paths keep working.
 
 ## Decisions
 

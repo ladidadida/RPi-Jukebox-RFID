@@ -1,0 +1,105 @@
+import subprocess
+
+import pytest
+
+import jukebox.paths
+from jukebox_cli import plugin, update
+
+
+def git(cwd, *args):
+    subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', *args], cwd=cwd, check=True,
+                   capture_output=True)
+
+
+@pytest.fixture
+def repos(tmp_path):
+    origin, clone = tmp_path / 'origin', tmp_path / 'clone'
+    origin.mkdir()
+    git(origin, 'init', '-q', '-b', 'main')
+    (origin / 'README').write_text('1')
+    git(origin, 'add', '.')
+    git(origin, 'commit', '-qm', 'one')
+    git(tmp_path, 'clone', '-q', str(origin), str(clone))
+    return origin, clone
+
+
+@pytest.fixture
+def commands(monkeypatch):
+    recorded = []
+    real_run = update.run
+
+    def fake_run(*args, cwd=None, capture=False):
+        if args[0] == 'git':
+            return real_run(*args, cwd=cwd, capture=capture)
+        recorded.append(args)
+        return ''
+
+    monkeypatch.setattr(update, 'run', fake_run)
+    monkeypatch.setattr(update.shutil, 'which', lambda name: f'/usr/bin/{name}')
+    return recorded
+
+
+def test_source_up_to_date(repos, commands):
+    assert update.update_source(repos[1]) is False
+    assert commands == []
+
+
+def test_source_update_pulls_syncs_and_builds_changed_webapp(repos, commands):
+    origin, clone = repos
+    (origin / 'packages' / 'webapp').mkdir(parents=True)
+    (origin / 'packages' / 'webapp' / 'x.js').write_text('x')
+    git(origin, 'add', '.')
+    git(origin, 'commit', '-qm', 'two')
+    assert update.update_source(clone, check_only=True) is True
+    assert not (clone / 'packages').exists()
+    assert update.update_source(clone) is True
+    assert (clone / 'packages' / 'webapp' / 'x.js').exists()
+    assert [c[1:] for c in commands] == [('sync', '--no-dev', '--frozen'), ('ci',), ('run', 'build')]
+
+
+def test_source_without_upstream(tmp_path):
+    git(tmp_path, 'init', '-q')
+    with pytest.raises(update.UpdateError, match='no upstream'):
+        update.update_source(tmp_path)
+
+
+def test_wheel_requirements_keep_extras(tmp_path):
+    wheels = [tmp_path / 'jukebox-3.8.0-py3-none-any.whl',
+              tmp_path / 'jukebox_plugin_raspberry_pi-1.1.0-py3-none-any.whl']
+    requirements = update.wheel_requirements(wheels, {'jukebox-plugin-raspberry-pi': ['gpio']})
+    assert requirements == [f'jukebox @ {wheels[0].as_uri()}',
+                            f'jukebox-plugin-raspberry-pi[gpio] @ {wheels[1].as_uri()}']
+
+
+class FakeResponse:
+    status_code = 200
+
+    def __init__(self, payload=None, content=b''):
+        self.payload, self.content = payload, content
+
+    def json(self):
+        return self.payload
+
+    def raise_for_status(self):
+        pass
+
+
+def test_package_update(tmp_path, monkeypatch):
+    release = {'tag_name': 'v99.0.0', 'assets': [
+        {'name': 'jukebox-99.0.0-py3-none-any.whl', 'browser_download_url': 'https://x/jukebox.whl'},
+        {'name': 'notes.txt', 'browser_download_url': 'https://x/notes.txt'}]}
+    monkeypatch.setattr(update.requests, 'get',
+                        lambda url, timeout: FakeResponse(release) if 'api.github' in url else FakeResponse(content=b'w'))
+    installed = []
+    monkeypatch.setattr(plugin, 'install_requirements', installed.extend)
+    jukebox.paths.set_home(tmp_path)
+    try:
+        assert update.update_package('o/r', 'latest', tmp_path / 'jukebox.yaml') is True
+    finally:
+        jukebox.paths.set_home(None)
+    assert len(installed) == 1 and installed[0].startswith('jukebox @ file://')
+
+
+def test_package_up_to_date(monkeypatch):
+    monkeypatch.setattr(update.requests, 'get', lambda url, timeout: FakeResponse({'tag_name': 'v0.0.1'}))
+    assert update.update_package('o/r', 'latest', jukebox.paths.settings_dir() / 'x.yaml') is False

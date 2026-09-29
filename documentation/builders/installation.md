@@ -79,3 +79,13 @@ jukebox setup samba        # run a single step (see: jukebox setup --list)
 jukebox setup rfid         # configure an RFID reader
 jukebox plugin list        # installed plugins; enable/disable them
 ```
+
+### Updating
+
+```bash
+jukebox update --check     # is there a newer version?
+jukebox update             # install it, re-apply the setup, restart the jukebox
+```
+
+A package installation updates to the latest release (`--version vX.Y.Z` for a specific one), a
+source installation pulls its branch.

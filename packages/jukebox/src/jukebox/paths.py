@@ -6,8 +6,9 @@ All runtime data lives below one directory::
     $JUKEBOX_HOME/audiofolders/  the music library
     $JUKEBOX_HOME/logs/  cache/  playlists/
 
-Relative paths in the configuration are resolved against ``JUKEBOX_HOME``. A leading ``shared/``
-(the checkout layout before ``JUKEBOX_HOME`` existed) is dropped, so old configurations keep working.
+Relative paths in the configuration are resolved against ``JUKEBOX_HOME``. A leading ``shared/``,
+also behind ``../`` (the checkout layout before ``JUKEBOX_HOME`` existed, relative to the repository
+root or to ``src/jukebox``), is dropped, so old configurations keep working.
 """
 
 import os
@@ -42,15 +43,24 @@ def set_home(path: Union[str, Path, None]) -> None:
     _home = Path(path).expanduser().resolve() if path is not None else None
 
 
+def strip_legacy_prefix(path: Path) -> Path:
+    """``shared/x`` or ``../../shared/x`` -> ``x``; anything else unchanged."""
+    parts = path.parts
+    ups = 0
+    while ups < len(parts) and parts[ups] == '..':
+        ups += 1
+    if ups < len(parts) and parts[ups] == LEGACY_PREFIX:
+        rest = parts[ups + 1:]
+        return Path(*rest) if rest else Path('.')
+    return path
+
+
 def resolve(value: Union[str, Path]) -> Path:
     """A configured path: absolute or ``~`` as given, relative ones below the home."""
     path = Path(value).expanduser()
     if path.is_absolute():
         return path
-    parts = path.parts
-    if parts and parts[0] == LEGACY_PREFIX:
-        path = Path(*parts[1:]) if len(parts) > 1 else Path('.')
-    return home() / path
+    return home() / strip_legacy_prefix(path)
 
 
 def settings_dir() -> Path:

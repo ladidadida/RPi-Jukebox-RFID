@@ -1,13 +1,10 @@
 """The jukebox itself: plugins, the systemd user service, the RFID reader."""
 
-import shutil
-import sys
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 
-import jukebox
 import jukebox.paths
 from jukebox_cli import plugin
+from jukebox_cli.environment import checkout, jukebox_executable
 from jukebox_cli.setup.base import Context, Question, Step
 from jukebox_cli.setup.system import SetupError, StepSkipped
 
@@ -38,17 +35,6 @@ class PluginsStep(Step):
         if requirements:
             plugin.install_requirements(requirements)
         plugin.add_to_config(ctx.config_path, new)
-
-
-def checkout() -> Optional[Path]:
-    """The repository root when running from a source checkout."""
-    root = Path(jukebox.__file__).resolve().parents[4]
-    return root if (root / '.git').exists() and (root / 'packages' / 'jukebox').is_dir() else None
-
-
-def jukebox_executable() -> str:
-    candidate = Path(sys.executable).parent / 'jukebox'
-    return str(candidate) if candidate.exists() else (shutil.which('jukebox') or 'jukebox')
 
 
 class ServiceStep(Step):

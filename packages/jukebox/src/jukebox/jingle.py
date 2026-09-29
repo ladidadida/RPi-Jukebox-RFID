@@ -19,7 +19,7 @@ def sound_path(value: str, key: str = 'startup_sound') -> Path:
     """``default`` or ``resources/audio/<file>``: a packaged sound; anything else: a path below the home."""
     if value == 'default':
         return jukebox.paths.resource('audio', DEFAULT_SOUNDS[key])
-    parts = Path(value).parts
+    parts = tuple(part for part in Path(value).parts if part != '..')
     if parts[:2] == ('resources', 'audio'):
         return jukebox.paths.resource('audio', *parts[2:])
     return jukebox.paths.resolve(value)

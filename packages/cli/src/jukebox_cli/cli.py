@@ -29,6 +29,7 @@ import typer  # noqa: E402
 import jukebox.paths  # noqa: E402
 from jukebox_cli import debug, plugin  # noqa: E402
 from jukebox_cli.setup import setup  # noqa: E402
+from jukebox_cli.update import update  # noqa: E402
 from jukebox_cli.run import run  # noqa: E402
 
 app = typer.Typer(name="jukebox", help="Jukebox CLI.")
@@ -51,5 +52,6 @@ def show_home() -> None:
 
 app.command(name="run")(run)
 app.command(name="setup")(setup)
+app.command(name="update")(update)
 app.add_typer(debug.app, name="debug")
 app.add_typer(plugin.app, name="plugin")

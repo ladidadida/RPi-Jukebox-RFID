@@ -131,7 +131,16 @@ optimisation. Steps needing root run their commands through `sudo`.
    `~/.bashrc`. `ci/test_install.sh` runs it in a fresh `debian:<codename>-slim` container and
    starts the jukebox; the wheels workflow does that for the wheels (trixie, bookworm) and the
    checkout (trixie). No systemd in those containers, so the `service` step is not covered there.
-6. **`jukebox update`** and configuration migrations.
+6. **`jukebox update`** -- *done* (`packages/cli/src/jukebox_cli/update.py`). Source checkout:
+   `git pull --ff-only`, `uv sync --no-dev --frozen`, web app rebuilt with npm if it changed.
+   Package install: newest (or `--version`) GitHub release, if newer than the installed `jukebox`;
+   its wheels are installed with `uv pip` into the running environment, so other installed plugins
+   stay, and the extras of enabled plugins are kept. Afterwards `jukebox setup --yes` runs in a new
+   process (the updated steps) and an active service is restarted. `--check` only reports.
+   Configuration migrations: none needed so far. Old relative paths (`shared/...`,
+   `../../shared/...`, `../../resources/audio/...`) are handled where paths are resolved, and the
+   card database converts itself on start. A versioned migration step gets added with the first
+   incompatible configuration change.
 7. Remove `migrate_to_cli/` once everything is ported.
 
 ## Decisions

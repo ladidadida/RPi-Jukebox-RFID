@@ -28,7 +28,7 @@ packages/          uv workspace members
     interfaces/    Interface snapshots of the framework contract and every core module, checked
                    by test/contract/test_snapshots.py (see "Core and plugins" below)
   cli/             Jukebox CLI (jukebox-cli): `jukebox run` (start the daemon), `home`,
-                   `plugin list|enable|disable|install`, `setup` (machine setup steps in
+                   `plugin list|enable|disable|install`, `update`, `setup` (machine setup steps in
                    jukebox_cli/setup/, see documentation/developers/packaging-and-setup.md),
                    `debug sniff` (publishing-bus WebSocket sniffer).
   webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
@@ -99,7 +99,7 @@ ci/                CI helper scripts: build_wheels.sh, test_install.sh (install.
   `/api/v1/library/*`; the local source id is `local`.
 - **Paths** (`jukebox.paths`): all runtime data lives in `JUKEBOX_HOME` (`--home`, `$JUKEBOX_HOME`,
   default `$XDG_DATA_HOME/jukebox`; this checkout's `.env` sets it to `shared/`). Relative paths in
-  the configuration resolve against it (a legacy leading `shared/` is dropped); never resolve paths
+  the configuration resolve against it (a legacy leading `shared/` or `../../shared/` is dropped); never resolve paths
   against the working directory or the checkout. Packaged files (default settings, sounds, service
   templates) live in `jukebox/resources/`, read via `jukebox.paths.resource()`. The web app is
   served from `api.webapp_dir` / `$JUKEBOX_WEBAPP_DIR`, else from the package, else (source checkout) from
@@ -143,6 +143,7 @@ uv run jukebox plugin list      # installed plugins, enabled or not; also enable
                                  # [--with-extras], install <spec> [--enable]
 uv run jukebox setup --check    # what `jukebox setup [<step>...]` would change on this machine
                                  # (steps: `jukebox setup --list`; answers in settings/setup.yaml)
+uv run jukebox update --check   # newer release / upstream commits? (`jukebox update` applies it)
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)

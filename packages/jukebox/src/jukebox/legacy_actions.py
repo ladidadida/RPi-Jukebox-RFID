@@ -21,7 +21,7 @@ ALIASES: Dict[str, Tuple[str, Dict[str, Any]]] = {
     'toggle': ('player.toggle', {}),
     'shuffle': ('player.shuffle', {}),
     'repeat': ('player.repeat', {}),
-    'flush_coverart_cache': ('player.flush_coverart_cache', {}),
+    'flush_coverart_cache': ('library.flush_covers', {}),
     'set_volume': ('volume.set_volume', {}),
     'change_volume': ('volume.change_volume', {}),
     'set_soft_max_volume': ('volume.set_soft_max_volume', {}),

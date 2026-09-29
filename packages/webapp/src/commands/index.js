@@ -1,34 +1,22 @@
 const commands = {
   getSingleCoverArt: {
-    rest: { method: 'GET', path: '/api/v1/player/coverart/song' },
+    rest: { method: 'GET', path: '/api/v1/library/cover/song' },
   },
   getAlbumCoverArt: {
-    rest: { method: 'GET', path: '/api/v1/player/coverart/album' },
-  },
-  // Unused by any current call site (superseded by libraryItems' content_types filtering) --
-  // kept defined, now pointing at the equivalent REST route, for parity/future use.
-  directoryTreeOfAudiofolder: {
-    rest: { method: 'GET', path: '/api/v1/player/dirs' },
-  },
-  albumList: {
-    rest: { method: 'GET', path: '/api/v1/player/albums' },
+    rest: { method: 'GET', path: '/api/v1/library/cover/album' },
   },
   librarySources: {
-    rest: { method: 'GET', path: '/api/v1/player/library/sources' },
+    rest: { method: 'GET', path: '/api/v1/library/sources' },
   },
   libraryItems: {
-    rest: { method: 'GET', path: '/api/v1/player/library/items' },
+    rest: { method: 'GET', path: '/api/v1/library/items' },
   },
   songList: {
-    rest: { method: 'GET', path: '/api/v1/player/songs' },
+    rest: { method: 'GET', path: '/api/v1/library/songs' },
   },
   getSongByUrl: {
-    rest: { method: 'GET', path: '/api/v1/player/song-lookup' },
+    rest: { method: 'GET', path: '/api/v1/library/song' },
     argKeys: ['song_url', 'provider']
-  },
-  // Unused by any current call site -- see directoryTreeOfAudiofolder above.
-  folderList: {
-    rest: { method: 'GET', path: '/api/v1/player/folder-content' },
   },
   cardsList: {
     rest: { method: 'GET', path: '/api/v1/cards' },

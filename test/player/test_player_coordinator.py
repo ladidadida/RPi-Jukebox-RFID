@@ -68,20 +68,13 @@ def test_rejects_invalid_backend_registrations():
         ('move', (), ()),
         ('play_single', ('album/song.mp3',), ('album/song.mp3',)),
         ('resume', (), ()),
-        ('get_single_coverart', ('album/song.mp3',), ('album/song.mp3',)),
-        ('get_album_coverart', ('Artist', 'Album'), ('Artist', 'Album')),
-        ('flush_coverart_cache', (), ()),
-        ('get_folder_content', ('album',), ('album',)),
         ('play_folder', ('album',), ('album', False)),
         ('play_folder', ('album', True), ('album', True)),
         ('play_album', ('Artist', 'Album'), ('Artist', 'Album')),
+        ('play_files', (['a.mp3', 'b.mp3'],), (['a.mp3', 'b.mp3'],)),
         ('queue_load', ('album',), ('album',)),
         ('playerstatus', (), ()),
         ('playlistinfo', (), ()),
-        ('list_all_dirs', (), ()),
-        ('list_albums', (), ()),
-        ('list_songs_by_artist_and_album', ('Artist', 'Album'), ('Artist', 'Album')),
-        ('get_song_by_url', ('album/song.mp3',), ('album/song.mp3',)),
         ('get_volume', (), ()),
         ('set_volume', (42,), (42,)),
     ],
@@ -280,63 +273,6 @@ def test_playerstatus_is_returned_without_translation():
     )
 
     assert coordinator.playerstatus() is player_status
-
-
-def test_library_sources_and_items_are_provider_aware():
-    local = backend_with(
-        library_source=Mock(return_value={
-            'id': 'local',
-            'label': 'Local',
-            'views': [],
-        }),
-        list_library_items=Mock(return_value=[{'provider': 'local'}]),
-    )
-    streaming = backend_with(
-        library_source=Mock(return_value={
-            'id': 'streaming',
-            'label': 'Streaming',
-            'views': [],
-        }),
-        list_library_items=Mock(return_value=[{'provider': 'streaming'}]),
-    )
-    coordinator = PlayerCoordinator()
-    coordinator.register_backend('local', local)
-    coordinator.register_backend('streaming', streaming)
-
-    assert [source['id'] for source in coordinator.list_library_sources()] == [
-        'local',
-        'streaming',
-    ]
-    assert coordinator.list_library_items(content_types=['album']) == [
-        {'provider': 'local'},
-        {'provider': 'streaming'},
-    ]
-    assert coordinator.list_library_items(
-        provider='streaming',
-        content_types=['playlist'],
-    ) == [{'provider': 'streaming'}]
-    local.list_library_items.assert_called_once_with(['album'])
-    streaming.list_library_items.assert_has_calls([
-        call(['album']),
-        call(['playlist']),
-    ])
-
-
-def test_combined_catalog_ignores_unavailable_optional_backend():
-    local = backend_with(
-        list_library_items=Mock(return_value=[{'provider': 'local'}]),
-    )
-    unavailable = backend_with(
-        list_library_items=Mock(side_effect=RuntimeError('offline')),
-    )
-    coordinator = PlayerCoordinator()
-    coordinator.register_backend('local', local)
-    coordinator.register_backend('unavailable', unavailable)
-
-    assert coordinator.list_library_items() == [{'provider': 'local'}]
-
-    with pytest.raises(RuntimeError, match='offline'):
-        coordinator.list_library_items(provider='unavailable')
 
 
 def test_legacy_player_aliases_map_to_existing_player_actions():

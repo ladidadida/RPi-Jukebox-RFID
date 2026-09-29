@@ -21,7 +21,7 @@ const SelectecSingle = ({ values: [song_url, provider] }) => {
       setIsLoading(false);
 
       if(result) {
-        setSong(result[0]);
+        setSong(result);
       }
       if(error) setError(error);
     }

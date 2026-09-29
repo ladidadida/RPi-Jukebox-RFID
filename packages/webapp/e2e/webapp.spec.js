@@ -89,7 +89,7 @@ async function mockBackend(
 
   const librarySources = () => [
     {
-      id: 'mpd',
+      id: 'local',
       label: 'Local',
       views: [
         {
@@ -126,7 +126,7 @@ async function mockBackend(
         ...entry,
         album,
         content_type: 'album',
-        provider: 'mpd',
+        provider: 'local',
       }))
     ));
     const streamingItems = streamingLibrary ? [{
@@ -146,16 +146,15 @@ async function mockBackend(
 
   const getResponses = {
     '/api/v1/cards': () => backendData.list_cards,
-    '/api/v1/player/albums': () => backendData.list_albums,
     '/api/v1/library/entries': (query) => {
       libraryCalls.push(query.get('folder'));
       return { entries: backendData.get_folder_content };
     },
-    '/api/v1/player/coverart/album': () => ({ cover_url: backendData.get_single_coverart }),
-    '/api/v1/player/coverart/song': () => ({ cover_url: backendData.get_single_coverart }),
-    '/api/v1/player/library/items': libraryItems,
-    '/api/v1/player/library/sources': librarySources,
-    '/api/v1/player/songs': () => backendData.list_songs_by_artist_and_album,
+    '/api/v1/library/cover/album': () => ({ cover_url: backendData.get_single_coverart }),
+    '/api/v1/library/cover/song': () => ({ cover_url: backendData.get_single_coverart }),
+    '/api/v1/library/items': libraryItems,
+    '/api/v1/library/sources': librarySources,
+    '/api/v1/library/songs': () => backendData.list_songs_by_artist_and_album,
     '/api/v1/player/status': () => socketEvents['player.status'],
     '/api/v1/player/volume': () => backendData.get_volume,
     '/api/v1/settings': () => ({ show_covers: showCovers }),
@@ -416,7 +415,7 @@ test('encoded library folder routes preserve the folder path', async ({ page }) 
   await page.goto('/#/library/folders/Music%2FRock');
 
   await expect.poll(() => libraryCalls).toContain('Music/Rock');
-  await expect(page).toHaveURL(/#\/library\/mpd\/folders\/Music%2FRock$/);
+  await expect(page).toHaveURL(/#\/library\/local\/folders\/Music%2FRock$/);
   await expect(page.getByRole('link', { name: 'Library' })).toHaveClass(/Mui-selected/);
   await expect(page.getByText('sample.mp3')).toBeVisible();
   await expectStableLayout(page);
@@ -426,11 +425,11 @@ test('encoded library folder routes preserve the folder path', async ({ page }) 
 test('local library tabs replace the current nested route', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);
   await mockBackend(page);
-  await page.goto('/#/library/mpd/folders/Music%2FRock?cardId=123');
+  await page.goto('/#/library/local/folders/Music%2FRock?cardId=123');
 
   await page.getByRole('tab', { name: 'Albums' }).click();
 
-  await expect(page).toHaveURL(/#\/library\/mpd\/albums\?cardId=123$/);
+  await expect(page).toHaveURL(/#\/library\/local\/albums\?cardId=123$/);
   await expect(page.getByText('Discovery', { exact: true })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });

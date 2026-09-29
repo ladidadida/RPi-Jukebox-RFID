@@ -26,7 +26,13 @@ const flatByAlbum = (albumList, entry) => {
 };
 
 
+// Cover URLs are absolute (http(s) or a path of this server) or names in the web app's cover cache.
+const coverSrc = (coverUrl) => (
+  coverUrl.startsWith('http') || coverUrl.startsWith('/') ? coverUrl : `/cover-cache/${coverUrl}`
+);
+
 export {
+  coverSrc,
   flatByAlbum,
   pluginIsLoaded,
   progressToTime,

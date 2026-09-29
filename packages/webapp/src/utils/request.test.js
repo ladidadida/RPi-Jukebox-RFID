@@ -38,7 +38,7 @@ describe('request', () => {
 
     expect(response).toEqual({ result: [{ album: 'Mezzanine' }] });
     expect(global.fetch.mock.calls[0][0]).toBe(
-      '/api/v1/player/library/items?content_types=album&content_types=playlist&provider=mpd',
+      '/api/v1/library/items?content_types=album&content_types=playlist&provider=mpd',
     );
     expect(global.fetch.mock.calls[0][1].method).toBe('GET');
   });

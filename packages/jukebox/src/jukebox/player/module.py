@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from pydantic import BaseModel
 
 import jukebox.legacy_actions as legacy_actions
-from jukebox.contract import CoreModule, action, event, extension_point, query
+from jukebox.contract import CoreModule, OperationError, action, event, extension_point, query
 from jukebox.player.backend import PlayerBackend
 from jukebox.player.coordinator import PlayerCoordinator
 from jukebox.player.status import PlayerStatus, status_from_backend
@@ -22,10 +22,6 @@ class VolumeLevel(BaseModel):
     volume: int
 
 
-class CoverArt(BaseModel):
-    cover_url: Optional[str] = None
-
-
 class BackendName(BaseModel):
     name: Optional[str] = None
 
@@ -36,6 +32,7 @@ class Player(CoreModule):
     name = 'player'
     interface_version = '1.0'
     concurrency = 'threadsafe'
+    requires = ('library',)
 
     status = event('status', PlayerStatus)
     backends = extension_point('backends', PlayerBackend)
@@ -44,6 +41,9 @@ class Player(CoreModule):
         self._ctx = None
         self._coordinator = PlayerCoordinator()
         self._configured_backend = DEFAULT_BACKEND
+        self._metadata_lock = threading.Lock()
+        self._metadata_file: Optional[str] = None
+        self._metadata: Dict[str, Any] = {}
 
     # -- lifecycle ------------------------------------------------------------------------------
 
@@ -63,7 +63,32 @@ class Player(CoreModule):
             self._coordinator.set_default_backend(name)
 
     def _publish_status(self, provider: str, raw: Mapping[str, Any]) -> None:
-        self._ctx.publish(self.status, status_from_backend(raw, provider))
+        self._ctx.publish(self.status, self._with_metadata(status_from_backend(raw, provider)))
+
+    def _song_metadata(self, file: str) -> Dict[str, Any]:
+        """Library metadata and cover of ``file``, looked up once per song."""
+        with self._metadata_lock:
+            if file == self._metadata_file:
+                return self._metadata
+        library = self._ctx.modules.library
+        metadata: Dict[str, Any] = {}
+        try:
+            song = library.get_song(file)
+            if song is not None:
+                metadata = song.model_dump(include={'title', 'artist', 'album', 'albumartist', 'track', 'duration'})
+            metadata['cover_url'] = library.get_song_cover(file).cover_url
+        except Exception as error:
+            logger.debug(f"No library metadata for '{file}': {error}")
+        with self._metadata_lock:
+            self._metadata_file, self._metadata = file, metadata
+        return metadata
+
+    def _with_metadata(self, status: PlayerStatus) -> PlayerStatus:
+        if not status.file:
+            return status
+        missing = {key: value for key, value in self._song_metadata(status.file).items()
+                   if value is not None and getattr(status, key) is None}
+        return status.model_copy(update=missing) if missing else status
 
     def ready(self) -> None:
         if self._configured_backend not in self.backends:
@@ -185,18 +210,19 @@ class Player(CoreModule):
     @action(path='/album')
     def play_album(self, albumartist: str, album: str, content_uri: Optional[str] = None,
                    provider: Optional[str] = None) -> None:
-        """Play an album."""
-        self._coordinator.play_album(albumartist, album, content_uri, provider)
+        """Play an album of the library or of a backend's own catalog (``provider``)."""
+        if provider and provider in self.backends:
+            self._coordinator.play_album(albumartist, album, content_uri, provider)
+            return
+        songs = self._ctx.modules.library.list_songs(albumartist, album, content_uri, provider)
+        if not songs:
+            raise OperationError(404, 'unknown_album', f"No songs found for '{album}' by '{albumartist}'")
+        self._coordinator.play_files([song.file for song in songs])
 
     @action(path='/queue')
     def queue_load(self, folder: str) -> None:
         """Load a folder into the queue without playing it."""
         self._coordinator.queue_load(folder)
-
-    @action(path='/coverart/flush')
-    def flush_coverart_cache(self) -> None:
-        """Delete all cached cover art."""
-        self._coordinator.flush_coverart_cache()
 
     @action(path='/update')
     def update(self) -> Any:
@@ -214,7 +240,7 @@ class Player(CoreModule):
     def playerstatus(self) -> PlayerStatus:
         """Current player status."""
         name = self._coordinator.get_active_backend()
-        return status_from_backend(self._coordinator.playerstatus(), name or '')
+        return self._with_metadata(status_from_backend(self._coordinator.playerstatus(), name or ''))
 
     @query(path='/volume')
     def get_volume(self) -> VolumeLevel:
@@ -240,56 +266,6 @@ class Player(CoreModule):
     def get_player_type_and_version(self) -> str:
         """Type and version of the active backend."""
         return self._coordinator.get_player_type_and_version()
-
-    # -- library --------------------------------------------------------------------------------
-
-    @query(path='/coverart/song')
-    def get_single_coverart(self, song_url: str, provider: Optional[str] = None) -> CoverArt:
-        """Cover art of a song."""
-        return CoverArt(cover_url=self._coordinator.get_single_coverart(song_url, provider))
-
-    @query(path='/coverart/album')
-    def get_album_coverart(self, albumartist: str, album: str, content_uri: Optional[str] = None,
-                           provider: Optional[str] = None) -> CoverArt:
-        """Cover art of an album."""
-        return CoverArt(cover_url=self._coordinator.get_album_coverart(albumartist, album, content_uri, provider))
-
-    @query(path='/dirs')
-    def list_all_dirs(self) -> List[Any]:
-        """All files of the music library."""
-        return self._coordinator.list_all_dirs()
-
-    @query(path='/folder-content')
-    def get_folder_content(self, folder: str) -> List[Any]:
-        """Playable content of a folder."""
-        return self._coordinator.get_folder_content(folder)
-
-    @query(path='/albums')
-    def list_albums(self, provider: Optional[str] = None) -> List[Any]:
-        """All albums."""
-        return self._coordinator.list_albums(provider)
-
-    @query(path='/library/sources')
-    def list_library_sources(self) -> List[Any]:
-        """Library sources with their views."""
-        return self._coordinator.list_library_sources()
-
-    @query(path='/library/items')
-    def list_library_items(self, provider: Optional[str] = None,
-                           content_types: Optional[List[str]] = None) -> List[Any]:
-        """Library items, optionally filtered by source and content type."""
-        return self._coordinator.list_library_items(provider, content_types)
-
-    @query(path='/songs')
-    def list_songs_by_artist_and_album(self, albumartist: str, album: str, content_uri: Optional[str] = None,
-                                       provider: Optional[str] = None) -> List[Any]:
-        """Songs of an album."""
-        return self._coordinator.list_songs_by_artist_and_album(albumartist, album, content_uri, provider)
-
-    @query(path='/song-lookup')
-    def get_song_by_url(self, song_url: str, provider: Optional[str] = None) -> Any:
-        """Details of a song by its URL."""
-        return self._coordinator.get_song_by_url(song_url, provider)
 
     # -- backends -------------------------------------------------------------------------------
 

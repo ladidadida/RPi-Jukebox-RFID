@@ -20,6 +20,7 @@ class OperationSpec:
     path: Optional[str]
     exclusive: bool
     name: Optional[str] = None
+    status_code: Optional[int] = None
 
 
 def _decorate(func, spec: OperationSpec):
@@ -28,15 +29,16 @@ def _decorate(func, spec: OperationSpec):
 
 
 def action(func: Optional[Callable] = None, *, method: str = 'POST', path: Optional[str] = None,
-           exclusive: bool = True, name: Optional[str] = None):
+           exclusive: bool = True, name: Optional[str] = None, status_code: Optional[int] = None):
     """Declare a state-changing operation: REST route, card action and in-process call.
 
     ``name`` overrides the operation name (default: the method name), e.g. where the method name
-    would clash with the lifecycle methods ``start``/``stop``/``ready``."""
+    would clash with the lifecycle methods ``start``/``stop``/``ready``. ``status_code`` replaces
+    the default HTTP status of a successful call (200, or 204 without a result)."""
     method = method.upper()
     if method not in ('POST', 'PUT', 'DELETE'):
         raise ContractError(f"@action method must be POST, PUT or DELETE, not '{method}'")
-    spec = OperationSpec('action', method, path, exclusive, name)
+    spec = OperationSpec('action', method, path, exclusive, name, status_code)
     if func is not None:
         return _decorate(func, spec)
     return lambda f: _decorate(f, spec)

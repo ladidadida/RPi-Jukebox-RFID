@@ -86,12 +86,6 @@ def test_playlist(client, player_ctrl):
     assert response.json() == [{'file': 'a.mp3'}]
 
 
-def test_flush_coverart_cache(client, player_ctrl):
-    response = client.post('/api/v1/player/coverart/flush')
-    assert response.status_code == 204
-    player_ctrl.flush_coverart_cache.assert_called_once_with()
-
-
 def test_list_backends(client, player_ctrl):
     response = client.get('/api/v1/player/backends')
     assert response.status_code == 200

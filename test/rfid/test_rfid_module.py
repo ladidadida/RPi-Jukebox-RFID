@@ -64,9 +64,17 @@ def setup(tmp_path):
     driver = FakeDriver()
 
     class TestPlayer(Player):
+        requires = ()
+
         def start(self, ctx):
             self._ctx = ctx
             self._coordinator = ctrl
+
+        def ready(self):
+            pass
+
+        def stop(self):
+            return []
 
     class TestRfid(Rfid):
         def start(self, ctx):

@@ -1,5 +1,6 @@
 const PUBSUB_ENDPOINT = '/api/v1/events';
 
+const LOCAL_LIBRARY_SOURCE = 'local';
 const PLAYER_STATUS_TOPIC = 'player.status';
 const CARD_DETECTED_TOPIC = 'rfid.card_detected';
 const SYSTEM_INFO_TOPIC = 'system.info';
@@ -57,6 +58,7 @@ const TIMER_STEPS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 120, 180, 240];
 export {
   CARD_DETECTED_TOPIC,
   JUKEBOX_ACTIONS_MAP,
+  LOCAL_LIBRARY_SOURCE,
   PLAYER_STATUS_TOPIC,
   PUBSUB_ENDPOINT,
   ROOT_DIR,

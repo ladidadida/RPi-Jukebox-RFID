@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Safe file operations within the configured MPD music library."""
+"""Safe file operations within the music library."""
 
 import errno
 import os
 import shutil
 import tempfile
 from pathlib import Path, PurePosixPath
+
+from jukebox.contract import OperationError
 
 
 MAX_UPLOAD_SIZE = 1024 * 1024 * 1024
@@ -34,14 +36,8 @@ TEXT_FILE_ENDINGS = ('livestream.txt', 'podcast.txt')
 SUPPORTED_EXTENSIONS = AUDIO_EXTENSIONS | PLAYLIST_EXTENSIONS | COVER_EXTENSIONS
 
 
-class LibraryError(Exception):
+class LibraryError(OperationError):
     """An expected library operation failure suitable for an HTTP response."""
-
-    def __init__(self, status, code, message):
-        super().__init__(message)
-        self.status = status
-        self.code = code
-        self.message = message
 
 
 def _contains_path(root, path):
@@ -382,10 +378,3 @@ class MusicLibrary:
             return self._update_callback()
         except Exception as error:
             raise LibraryError(502, 'mpd_update_failed', f'Could not update the MPD library: {error}') from error
-
-
-def create_music_library(update_callback):
-    """Create the production library service; ``update_callback`` rescans the player's library."""
-    import jukebox.player
-
-    return MusicLibrary(jukebox.player.get_music_library_path, update_callback)

@@ -593,6 +593,18 @@ class PlayerMPD:
 
             self.mpd_client.play()
 
+    def play_files(self, paths):
+        """Replace the queue with ``paths`` and play (absolute paths below the library are shortened)."""
+        with self.mpd_lock:
+            self.mpd_client.clear()
+            for path in paths:
+                try:
+                    self.mpd_client.addid(self.harmonize_mpd_url(path))
+                except mpd.base.CommandError as e:
+                    logger.error(f"{e.__class__.__qualname__}: {e} at uri {path}")
+            self.music_player_status['player_status']['last_played_folder'] = ''
+            self.mpd_client.play()
+
     def play_album(self, albumartist: str, album: str):
         """
         Playback a album found in MPD database.

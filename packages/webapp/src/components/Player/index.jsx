@@ -12,6 +12,7 @@ import AppSettingsContext from '../../context/appsettings/context';
 import PlayerContext from '../../context/player/context';
 import { PLAYER_STATUS_TOPIC } from '../../config';
 import request from '../../utils/request';
+import { coverSrc } from '../../utils/utils';
 
 const Player = () => {
   const { state: { [PLAYER_STATUS_TOPIC]: playerstatus } } = useContext(PlayerContext);
@@ -34,7 +35,7 @@ const Player = () => {
       });
       const coverUrl = result?.cover_url;
       if (coverUrl) {
-        const cover = coverUrl.startsWith('http') ? coverUrl : `/cover-cache/${coverUrl}`;
+        const cover = coverSrc(coverUrl);
         setCoverImage(cover);
         setBackgroundImage([
           'linear-gradient(to bottom, rgba(18, 18, 18, 0.5), rgba(18, 18, 18, 1))',

@@ -4,11 +4,12 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
+import { LOCAL_LIBRARY_SOURCE } from '../../../../config';
 
 const FolderLink = forwardRef((props, ref) => {
   const { search: urlSearch } = useLocation();
   const {
-    provider = 'mpd',
+    provider = LOCAL_LIBRARY_SOURCE,
     view = 'folders',
   } = useParams();
   const { data, ...linkProps } = props;

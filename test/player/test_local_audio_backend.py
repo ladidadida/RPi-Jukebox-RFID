@@ -43,6 +43,7 @@ def local_audio_backend(**attrs):
     backend._queue = []
     backend._index = -1
     backend._position = 0.0
+    backend._duration = None
     backend._state = 'stop'
     backend._random = False
     backend._repeat_mode = 'off'
@@ -183,7 +184,7 @@ def test_play_second_swipe_ignores_action_return_value():
 
 def test_playerstatus_shape():
     backend = local_audio_backend(
-        _queue=['a.mp3', 'b.mp3'], _index=1, _position=12.5, _state='play', _volume=42)
+        _queue=['a.mp3', 'b.mp3'], _index=1, _position=12.5, _duration=180.0, _state='play', _volume=42)
     status = backend.playerstatus()
     assert status == {
         'state': 'play',
@@ -191,6 +192,7 @@ def test_playerstatus_shape():
         'pos': '1',
         'file': 'b.mp3',
         'elapsed': '12.500',
+        'duration': 180.0,
         'playlistlength': '2',
         'volume': '42',
         'random': '0',

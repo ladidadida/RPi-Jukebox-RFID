@@ -208,33 +208,16 @@ class PlayerCoordinator:
                 return self._call_backend(backend, 'play_second_swipe')
             return self._call_backend(backend, 'play_folder', folder, recursive)
 
-    def get_single_coverart(self, song_url, provider=None):
-        return self._call_named(
-            self._content_backend_name(provider),
-            'get_single_coverart',
-            song_url,
-        )
-
-    def get_album_coverart(
-            self,
-            albumartist: str,
-            album: str,
-            content_uri=None,
-            provider=None):
-        backend_name = self._content_backend_name(provider)
-        args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
-        return self._call_named(backend_name, 'get_album_coverart', *args)
-
-    def flush_coverart_cache(self):
-        return self._call_default('flush_coverart_cache')
-
-    def get_folder_content(self, folder: str):
-        return self._call_default('get_folder_content', folder)
-
     def play_folder(self, folder: str, recursive: bool = False) -> None:
         with self._lock:
             backend = self._content_backend()
             return self._call_backend(backend, 'play_folder', folder, recursive)
+
+    def play_files(self, paths):
+        """Play a list of songs (paths below the music library, absolute or relative)."""
+        with self._lock:
+            backend = self._content_backend()
+            return self._call_backend(backend, 'play_files', list(paths))
 
     def play_album(
             self,
@@ -255,82 +238,6 @@ class PlayerCoordinator:
 
     def playlistinfo(self):
         return self._call_active('playlistinfo')
-
-    def list_all_dirs(self):
-        return self._call_default('list_all_dirs')
-
-    def list_albums(self, provider=None):
-        with self._lock:
-            if provider:
-                return self._call_backend(
-                    self._get_backend(provider),
-                    'list_albums',
-                )
-            if len(self._backends) == 1:
-                return self._call_backend(
-                    next(iter(self._backends.values())),
-                    'list_albums',
-                )
-
-            result = []
-            for name, backend in self._backends.items():
-                try:
-                    result.extend(self._call_backend(backend, 'list_albums') or [])
-                except Exception as error:
-                    logger.warning("Could not read '%s' player catalog: %s", name, error)
-            return result
-
-    def list_library_sources(self):
-        with self._lock:
-            result = []
-            for backend in self._backends.values():
-                source = getattr(backend, 'library_source', None)
-                if callable(source):
-                    source_metadata = source()
-                    if source_metadata:
-                        result.append(source_metadata)
-            return result
-
-    def list_library_items(self, provider=None, content_types=None):
-        with self._lock:
-            backend_names = [provider] if provider else list(self._backends)
-            result = []
-            for name in backend_names:
-                backend = self._get_backend(name)
-                try:
-                    result.extend(
-                        self._call_backend(
-                            backend,
-                            'list_library_items',
-                            content_types,
-                        ) or []
-                    )
-                except Exception as error:
-                    if provider:
-                        raise
-                    logger.warning("Could not read '%s' player catalog: %s", name, error)
-            return result
-
-    def list_songs_by_artist_and_album(
-            self,
-            albumartist,
-            album,
-            content_uri=None,
-            provider=None):
-        backend_name = self._content_backend_name(provider)
-        args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
-        return self._call_named(
-            backend_name,
-            'list_songs_by_artist_and_album',
-            *args,
-        )
-
-    def get_song_by_url(self, song_url, provider=None):
-        return self._call_named(
-            self._content_backend_name(provider),
-            'get_song_by_url',
-            song_url,
-        )
 
     def get_volume(self):
         return self._call_active('get_volume')

@@ -22,9 +22,10 @@ import SelectorHeader from "../selector-header";
 
 import { buildActionData } from '../../Cards/utils';
 import request from '../../../utils/request';
+import { LOCAL_LIBRARY_SOURCE } from '../../../config';
 
 const LOCAL_SOURCE = {
-  id: 'mpd',
+  id: LOCAL_LIBRARY_SOURCE,
   label: 'Local',
   views: [
     {
@@ -136,7 +137,7 @@ const LegacyAlbumRedirect = () => {
   const { artist, album } = useParams();
   return (
     <RedirectWithSearch
-      to={`/library/mpd/albums/${encodeURIComponent(artist)}/${encodeURIComponent(album)}`}
+      to={`/library/${LOCAL_LIBRARY_SOURCE}/albums/${encodeURIComponent(artist)}/${encodeURIComponent(album)}`}
     />
   );
 };
@@ -145,7 +146,7 @@ const LegacyFolderRedirect = () => {
   const { dir } = useParams();
   return (
     <RedirectWithSearch
-      to={`/library/mpd/folders/${encodeURIComponent(dir)}`}
+      to={`/library/${LOCAL_LIBRARY_SOURCE}/folders/${encodeURIComponent(dir)}`}
     />
   );
 };
@@ -255,7 +256,7 @@ const LibraryLists = () => {
             />
             <Route
               path="albums"
-              element={<RedirectWithSearch to="/library/mpd/albums" />}
+              element={<RedirectWithSearch to={`/library/${LOCAL_LIBRARY_SOURCE}/albums`} />}
             />
             <Route
               path="albums/:artist/:album"
@@ -263,7 +264,7 @@ const LibraryLists = () => {
             />
             <Route
               path="folders"
-              element={<RedirectWithSearch to="/library/mpd/folders/.%2F" />}
+              element={<RedirectWithSearch to={`/library/${LOCAL_LIBRARY_SOURCE}/folders/.%2F`} />}
             />
             <Route
               path="folders/:dir"

@@ -1,0 +1,815 @@
+{
+  "events": {
+    "scanned": {
+      "properties": {
+        "added": {
+          "type": "integer"
+        },
+        "removed": {
+          "type": "integer"
+        },
+        "songs": {
+          "type": "integer"
+        },
+        "updated": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "songs",
+        "added",
+        "updated",
+        "removed"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {
+    "sources": {
+      "cover": "(self, song_url: str) -> str | None",
+      "describe": "(self) -> Dict[str, Any]",
+      "get_song": "(self, song_url: str) -> Dict[str, Any] | None",
+      "list_items": "(self, content_types: List[str] | None) -> List[Dict[str, Any]]",
+      "list_songs": "(self, albumartist: str, album: str, content_uri: str | None) -> List[Dict[str, Any]]",
+      "refresh": "(self) -> None"
+    }
+  },
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "library",
+  "operations": {
+    "create_folder": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parent": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parent",
+          "name"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/library/folders",
+      "returns": {
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
+      }
+    },
+    "delete_entries": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "DELETE",
+      "path": "/api/v1/library/entries",
+      "returns": {
+        "properties": {
+          "deleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      }
+    },
+    "flush_covers": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/library/covers/flush",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "get_album_cover": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "albumartist": {
+            "type": "string"
+          },
+          "content_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "albumartist",
+          "album"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/cover/album",
+      "returns": {
+        "properties": {
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_song": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "song_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "song_url"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/song",
+      "returns": {
+        "anyOf": [
+          {
+            "properties": {
+              "album": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "albumartist": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "artist": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "cover_url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "duration": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "file": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "track": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "required": [
+              "provider",
+              "file"
+            ],
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "get_song_cover": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "song_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "song_url"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/cover/song",
+      "returns": {
+        "properties": {
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "list_entries": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/entries",
+      "returns": {
+        "properties": {
+          "entries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      }
+    },
+    "list_items": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "content_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/items",
+      "returns": {
+        "items": {
+          "properties": {
+            "album": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "albumartist": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "content_type": {
+              "default": "album",
+              "type": "string"
+            },
+            "content_uri": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "cover_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "provider": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "list_songs": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "albumartist": {
+            "type": "string"
+          },
+          "content_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "albumartist",
+          "album"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/songs",
+      "returns": {
+        "items": {
+          "properties": {
+            "album": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "albumartist": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "artist": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "cover_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "duration": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "file": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "track": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "provider",
+            "file"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "list_sources": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/sources",
+      "returns": {
+        "items": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "views": {
+              "items": {
+                "properties": {
+                  "content_types": {
+                    "default": [],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "items",
+                      "folders"
+                    ],
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "kind"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "views"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "refresh": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/library/refresh",
+      "returns": {
+        "properties": {
+          "scanning": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "scanning"
+        ],
+        "type": "object"
+      }
+    },
+    "search": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/library/search",
+      "returns": {
+        "items": {
+          "properties": {
+            "album": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "albumartist": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "artist": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "cover_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "duration": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "file": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "track": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "provider",
+            "file"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    }
+  },
+  "requires": {}
+}

@@ -119,6 +119,7 @@ class PlayerLocalAudio:
         self._queue: list[str] = []
         self._index = -1
         self._position = 0.0
+        self._duration = None
         self._state = 'stop'           # 'play' | 'pause' | 'stop'
         self._random = False
         self._repeat_mode = 'off'      # 'off' | 'repeat' | 'single'
@@ -204,6 +205,7 @@ class PlayerLocalAudio:
         except Exception as e:
             logger.error(f"Could not open '{path}': {e.__class__.__name__}: {e}")
             return True
+        self._duration = container.duration / 1_000_000 if container.duration else None
         try:
             try:
                 return self._decode_loop(container, start_position)
@@ -290,6 +292,7 @@ class PlayerLocalAudio:
             'pos': str(index),
             'file': current_file,
             'elapsed': f'{position:.3f}',
+            'duration': self._duration,
             'playlistlength': str(queue_len),
             'volume': str(self._volume),
             'random': '1' if self._random else '0',
@@ -444,6 +447,22 @@ class PlayerLocalAudio:
                 self._index = -1
                 self._state = 'stop'
         self._status_store.save_to_json()
+
+    def play_files(self, paths):
+        root = os.path.expanduser(jukebox.player.get_music_library_path() or '')
+        queue = [p if os.path.isabs(p) or '://' in p else os.path.join(root, p) for p in paths]
+        with self._cv:
+            self._queue = queue
+            self._last_played_folder = ''
+            if queue:
+                self._index = 0
+                self._position = 0.0
+                self._state = 'play'
+                self._abort.set()
+                self._cv.notify_all()
+            else:
+                self._index = -1
+                self._state = 'stop'
 
     def queue_load(self, folder):
         pass

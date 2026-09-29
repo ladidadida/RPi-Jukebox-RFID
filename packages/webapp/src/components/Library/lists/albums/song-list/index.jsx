@@ -15,6 +15,7 @@ import SongListHeader from './song-list-header';
 import SongListHeadline from './song-list-headline';
 import SongListControls from './song-list-controls';
 import SongListItem from './song-list-item';
+import { LOCAL_LIBRARY_SOURCE } from '../../../../../config';
 
 const SongList = ({
   isSelecting,
@@ -25,7 +26,7 @@ const SongList = ({
   const { t } = useTranslation();
   const { artist, album, provider: routeProvider, view: routeView } = useParams();
   const [searchParams] = useSearchParams();
-  const provider = providerProperty || routeProvider || 'mpd';
+  const provider = providerProperty || routeProvider || LOCAL_LIBRARY_SOURCE;
   const view = viewProperty || routeView || 'albums';
   const contentUri = searchParams.get('content_uri') || undefined;
   const [songs, setSongs] = useState([]);

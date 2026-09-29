@@ -6,6 +6,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 
 from jukebox.contract.declarations import Operation
@@ -30,7 +31,9 @@ async def _run(executor, handle: ModuleHandle, op: Operation, kwargs: Dict[str, 
     except ActionError as error:
         return _error(422, 'invalid_action', str(error))
     if result is None and op.returns_nothing:
-        return Response(status_code=204)
+        return Response(status_code=op.spec.status_code or 204)
+    if op.spec.status_code is not None:
+        return JSONResponse(status_code=op.spec.status_code, content=jsonable_encoder(result))
     return result
 
 
@@ -113,7 +116,7 @@ def build_router(manager: ModuleManager, executor) -> APIRouter:
                 path,
                 _endpoint(executor, handle, op),
                 methods=[op.spec.method],
-                status_code=204 if op.returns_nothing else 200,
+                status_code=op.spec.status_code or (204 if op.returns_nothing else 200),
                 response_model=response_model,
                 response_class=Response if op.returns_nothing else JSONResponse,
                 tags=[handle.name],

@@ -6,6 +6,7 @@
   "name": "mpd",
   "operations": {},
   "requires": {
+    "library": ">=1.0,<2",
     "player": ">=1.0,<2"
   }
 }

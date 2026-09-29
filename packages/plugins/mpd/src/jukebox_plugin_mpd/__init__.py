@@ -41,12 +41,41 @@ def _setting(ctx, *keys):
     return value
 
 
+class MpdLibrarySource:
+    """The mpd database as library source ``mpd``."""
+
+    def __init__(self, backend):
+        self._backend = backend
+
+    def describe(self):
+        return {'id': 'mpd', 'label': 'MPD', 'views': [
+            {'id': 'albums', 'label': 'Albums', 'kind': 'items', 'content_types': ['album']},
+        ]}
+
+    def list_items(self, content_types):
+        return self._backend.list_library_items(content_types)
+
+    def list_songs(self, albumartist, album, content_uri):
+        return self._backend.list_songs_by_artist_and_album(albumartist, album)
+
+    def get_song(self, song_url):
+        songs = self._backend.get_song_by_url(song_url)
+        return songs[0] if songs else None
+
+    def cover(self, song_url):
+        name = self._backend.get_single_coverart(song_url)
+        return name if name and name != 'CACHE_PENDING' else None
+
+    def refresh(self):
+        self._backend.update()
+
+
 class Mpd(Plugin):
-    """Registers the ``mpd`` player backend."""
+    """Registers the ``mpd`` player backend and its database as library source."""
 
     name = 'mpd'
     interface_version = '1.0'
-    requires = {'player': '>=1.0,<2'}
+    requires = {'player': '>=1.0,<2', 'library': '>=1.0,<2'}
 
     def start(self, ctx) -> None:
         from jukebox_plugin_mpd.backend import PlayerMPD
@@ -60,3 +89,4 @@ class Mpd(Plugin):
                 logger.info(f"Change user rights for {music_library_path}")
                 misc.recursive_chmod(music_library_path, mode_files=0o666, mode_dirs=0o777)
         ctx.modules.player.backends.register('mpd', backend)
+        ctx.modules.library.sources.register('mpd', MpdLibrarySource(backend))

@@ -413,7 +413,15 @@ original is kept as `cards.yaml.bak-<timestamp>`:
    of the readers it configures. Snapshots of bundled plugins live in `<package>/interfaces/`.
 4. **Remove the old mechanism** -- *done together with step 2*: registry, command aliases, RPC
    helpers, hand-written routes and the player backend import table are gone.
-5. **Library**: index, metadata, cover art, library-source extension point (see "Library").
+5. **Library** -- *done*: `jukebox.library` core module with a SQLite index (`mutagen` tags and
+   durations, incremental rescans on start-up, refresh, upload and delete), album/song/search
+   queries, cover art (embedded pictures or folder images, cached, served at
+   `/api/v1/library/covers/<name>`), and the `library.sources` extension point (the `mpd` plugin
+   registers its database there). The player plays library albums through the new backend
+   operation `play_files` and fills title/artist/album/duration/cover of `player.status` from the
+   index. The library's routes moved from `/api/v1/player/*` to `/api/v1/library/*`; the local
+   source id is `local`. Streaming uploads stay a hand-written route (`extra_routes`); an ASGI
+   middleware limits all other request bodies to 1 MiB.
 6. **Remaining core modules**: volume, timers, jingle, system info, input devices, with their
    webapp controls restored.
 7. **`raspberry-pi` plugin**: power, GPIO, battery monitor, health. Autohotspot moves to the

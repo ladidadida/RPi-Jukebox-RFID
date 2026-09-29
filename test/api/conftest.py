@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 
@@ -8,6 +10,7 @@ from jukebox.api.events import EventBroker
 from jukebox.api.fastapi_server import create_app
 from jukebox.cfghandler import ConfigHandler
 from jukebox.contract.manager import ModuleManager
+from jukebox.library.module import Library
 from jukebox.player.module import Player
 from jukebox.publishing.bus import EventBus
 
@@ -19,13 +22,26 @@ def _mocked_player(ctrl):
             self._ctx = ctx
             self._coordinator = ctrl
 
+        def ready(self):
+            pass
+
+        def stop(self):
+            return []
+
     return MockedPlayer
 
 
 @contextmanager
 def _api_client(core_modules, config=None):
+    """A test client for ``core_modules``; a library with temporary storage is added if missing."""
+    tmp = tempfile.mkdtemp()
+    config = dict(config or {})
+    config.setdefault('library', {'index': f'{tmp}/library.sqlite', 'cover_cache': f'{tmp}/covers',
+                                  'scan_on_startup': False})
+    if not any(issubclass(m, Library) for m in core_modules):
+        core_modules = [Library, *core_modules]
     cfg = ConfigHandler('test')
-    cfg.config_dict(config or {})
+    cfg.config_dict(config)
     manager = ModuleManager(core_modules, cfg, EventBus(), plugins={}, strict=True)
     manager.load()
     manager.start()
@@ -39,6 +55,7 @@ def _api_client(core_modules, config=None):
     finally:
         manager.stop()
         executor.shutdown(wait=False, cancel_futures=True)
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 @pytest.fixture

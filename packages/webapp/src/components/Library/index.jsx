@@ -6,13 +6,14 @@ import {
 } from 'react-router-dom';
 
 import LibraryLists from './lists';
+import { LOCAL_LIBRARY_SOURCE } from '../../config';
 
 const Library = () => {
   const { search: urlSearch } = useLocation();
   const storedView = localStorage.getItem('libraryLastListView');
   const migratedView = {
-    albums: 'mpd/albums',
-    folders: 'mpd/folders/.%2F',
+    albums: `${LOCAL_LIBRARY_SOURCE}/albums`,
+    folders: `${LOCAL_LIBRARY_SOURCE}/folders/.%2F`,
   }[storedView] || storedView || 'overview';
   const lastListView = `${migratedView}${urlSearch}`;
 

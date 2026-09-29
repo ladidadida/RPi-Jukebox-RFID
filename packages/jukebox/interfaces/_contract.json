@@ -46,7 +46,7 @@
   },
   "contract_version": "1.0",
   "functions": {
-    "action": "(func: Callable | None = None, *, method: str = 'POST', path: str | None = None, exclusive: bool = True, name: str | None = None)",
+    "action": "(func: Callable | None = None, *, method: str = 'POST', path: str | None = None, exclusive: bool = True, name: str | None = None, status_code: int | None = None)",
     "event": "(name: str, model: Type[pydantic.main.BaseModel]) -> jukebox.contract.declarations.EventSpec",
     "extension_point": "(name: str, protocol: type) -> jukebox.contract.declarations.ExtensionPointSpec",
     "query": "(func: Callable | None = None, *, path: str | None = None, exclusive: bool = True, name: str | None = None)"

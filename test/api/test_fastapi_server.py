@@ -1,10 +1,8 @@
 import json
 import socket
-import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
@@ -12,7 +10,7 @@ from starlette.testclient import TestClient
 from jukebox.contract import CoreModule, query
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE
 from jukebox.api.fastapi_server import FastApiServer, create_app
-from jukebox.library import MusicLibrary
+from jukebox.library.module import Library
 from jukebox.publishing.bus import EventBus
 
 
@@ -80,22 +78,44 @@ def test_broker_subscribe_all_unsubscribe_and_revoke():
     assert bus.cache_snapshot()['volume.level'] == 13
 
 
+class RecordingSource:
+    def __init__(self):
+        self.refreshed = 0
+
+    def describe(self):
+        return {'id': 'recording', 'label': 'Recording', 'views': []}
+
+    def list_items(self, content_types):
+        return []
+
+    def list_songs(self, albumartist, album, content_uri):
+        return []
+
+    def get_song(self, song_url):
+        return None
+
+    def cover(self, song_url):
+        return None
+
+    def refresh(self):
+        self.refreshed += 1
+
+
 @pytest.fixture
-def library_client():
-    executor = ThreadPoolExecutor(max_workers=1)
-    library_directory = tempfile.TemporaryDirectory()
-    library_updates = []
-    library = MusicLibrary(
-        lambda: library_directory.name,
-        lambda: library_updates.append('update') or 'update-1',
-    )
-    app = create_app(EventBroker(), executor, library=library)
-    client = TestClient(app)
-    try:
-        yield client, Path(library_directory.name), library_updates
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
-        library_directory.cleanup()
+def library_client(api_client, tmp_path):
+    source = RecordingSource()
+
+    class LibraryWithSource(Library):
+        def start(self, ctx):
+            super().start(ctx)
+            self.sources.register('recording', source)
+
+    music = tmp_path / 'music'
+    music.mkdir()
+    config = {'library': {'path': str(music), 'index': str(tmp_path / 'index.sqlite'),
+                          'cover_cache': str(tmp_path / 'covers'), 'scan_on_startup': False}}
+    with api_client([LibraryWithSource], config) as client:
+        yield client, music, source
 
 
 def test_health():
@@ -157,7 +177,7 @@ def test_events_websocket_allows_same_origin_and_no_origin_header():
 
 
 def test_library_upload_create_delete_and_refresh(library_client):
-    client, library_directory, library_updates = library_client
+    client, library_directory, source = library_client
 
     folder_response = client.post(
         '/api/v1/library/folders',
@@ -193,8 +213,8 @@ def test_library_upload_create_delete_and_refresh(library_client):
 
     refresh_response = client.post('/api/v1/library/refresh', content=b'')
     assert refresh_response.status_code == 200
-    assert refresh_response.json() == {'update_id': 'update-1'}
-    assert library_updates == ['update']
+    assert refresh_response.json() == {'scanning': True}
+    assert source.refreshed == 1
 
     delete_response = client.request(
         'DELETE',
@@ -208,7 +228,7 @@ def test_library_upload_create_delete_and_refresh(library_client):
 
 
 def test_library_endpoints_reject_invalid_types_and_paths(library_client):
-    client, _library_directory, _library_updates = library_client
+    client, _library_directory, _source = library_client
 
     unsupported = client.put(
         '/api/v1/library/files',
@@ -237,7 +257,7 @@ def test_library_endpoints_reject_invalid_types_and_paths(library_client):
 
 
 def test_library_folder_create_rejects_oversized_body(library_client):
-    client, _library_directory, _library_updates = library_client
+    client, _library_directory, _source = library_client
 
     response = client.post(
         '/api/v1/library/folders',

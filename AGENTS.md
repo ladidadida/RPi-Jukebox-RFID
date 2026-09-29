@@ -19,7 +19,7 @@ packages/          uv workspace members
   jukebox/         Python core application ("Jukebox Core") — the daemon that runs on the Pi
     pyproject.toml Real [project] table (package=true), runtime dependencies, hatchling backend
     src/jukebox/   The installable package: the core/plugin contract (contract/), the core
-                   modules (core_modules.py: system, player, cards, rfid), FastAPI API bridge
+                   modules (core_modules.py: system, library, player, cards, rfid), FastAPI API bridge
                    (api/), in-process event bus (publishing/), config handling. Removed former
                    components come back as core modules (volume, timers, jingle, system info,
                    input devices) or plugins (raspberry-pi, mqtt, card sync) -- see
@@ -88,6 +88,10 @@ ci/                CI helper scripts (e.g. installation testing)
   PortAudio, no external process); `mpd` (an external mpd server, via `python-mpd2`) is an opt-in
   alternative. Backends implement `jukebox.player.backend.PlayerBackend`; the player module turns
   their raw status into the typed `player.status` event (`jukebox.player.status.PlayerStatus`).
+- **Library** (`jukebox.library`): owns the music library -- file management, a SQLite index of
+  tags/durations (`shared/settings/library.sqlite`), cover art (`shared/cache/covers`), and the
+  `library.sources` extension point for further catalogs (mpd, streaming). Browsing routes are
+  `/api/v1/library/*`; the local source id is `local`.
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.
 - **Bundled plugins** live in `packages/plugins/*` (uv workspace members, installed by `uv sync`

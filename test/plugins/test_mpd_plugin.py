@@ -8,6 +8,7 @@ import jukebox_plugin_mpd
 import jukebox_plugin_mpd.backend
 from jukebox.cfghandler import ConfigHandler
 from jukebox.contract.manager import ModuleManager
+from jukebox.library.module import Library
 from jukebox.player.backend import PlayerBackend
 from jukebox.player.module import Player
 from jukebox.publishing.bus import EventBus
@@ -36,15 +37,17 @@ def fake_backend_class(created):
     ({'plugins': {'mpd': {'host': 'music.local'}}}, 'music.local'),
     ({'plugins': {'mpd': {}}, 'playermpd': {'host': 'legacy.local'}}, 'legacy.local'),
 ])
-def test_mpd_plugin_registers_its_backend(monkeypatch, config, expected_host):
+def test_mpd_plugin_registers_its_backend(monkeypatch, tmp_path, config, expected_host):
     created = []
     monkeypatch.setattr(jukebox_plugin_mpd.backend, 'PlayerMPD', fake_backend_class(created))
     monkeypatch.setattr(jukebox_plugin_mpd, 'cfg_main', _cfg(config))
-    config = {**config, 'player': {'backend': 'mpd'}}
+    config = {**config, 'player': {'backend': 'mpd'},
+              'library': {'path': str(tmp_path), 'index': str(tmp_path / 'index.sqlite'),
+                          'cover_cache': str(tmp_path / 'covers'), 'scan_on_startup': False}}
     config['plugins']['mpd'].setdefault('library', {'update_on_startup': False, 'check_user_rights': False})
 
     cfg = _cfg(config)
-    manager = ModuleManager([PlayerWithoutLocalAudio], cfg, EventBus(),
+    manager = ModuleManager([Library, PlayerWithoutLocalAudio], cfg, EventBus(),
                             plugins={'mpd': lambda: jukebox_plugin_mpd.Mpd}, strict=True)
     manager.load()
     manager.start()
@@ -54,6 +57,9 @@ def test_mpd_plugin_registers_its_backend(monkeypatch, config, expected_host):
     assert created == [(expected_host, 'shared/settings/music_player_status.json')]
     player = manager.instance('player')
     assert player.get_active_backend().name == 'mpd'
+    sources = manager.handle('library').invoke('list_sources')
+    assert [s.id for s in sources] == ['local', 'mpd']
+    manager.stop()
 
 
 def _cfg(data):

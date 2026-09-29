@@ -35,6 +35,9 @@ class PlayerBackend(Protocol):
 
     def play_folder(self, folder: str, recursive: bool = False) -> None: ...
 
+    def play_files(self, paths: List[str]) -> None:
+        """Replace the queue with ``paths`` (absolute or relative to the music library) and play."""
+
     def is_second_swipe(self, folder: str) -> bool: ...
 
     def play_second_swipe(self) -> None: ...

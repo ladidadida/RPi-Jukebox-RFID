@@ -148,6 +148,7 @@
       "next": "(self) -> None",
       "pause": "(self, state: int = 1) -> None",
       "play": "(self) -> None",
+      "play_files": "(self, paths: List[str]) -> None",
       "play_folder": "(self, folder: str, recursive: bool = False) -> None",
       "play_second_swipe": "(self) -> None",
       "play_single": "(self, song_url: str) -> None",
@@ -168,19 +169,6 @@
   "kind": "core",
   "name": "player",
   "operations": {
-    "flush_coverart_cache": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {},
-        "type": "object"
-      },
-      "kind": "action",
-      "method": "POST",
-      "path": "/api/v1/player/coverart/flush",
-      "returns": {
-        "type": "null"
-      }
-    },
     "get_active_backend": {
       "args": {
         "additionalProperties": false,
@@ -193,65 +181,6 @@
       "returns": {
         "properties": {
           "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "type": "object"
-      }
-    },
-    "get_album_coverart": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "album": {
-            "type": "string"
-          },
-          "albumartist": {
-            "type": "string"
-          },
-          "content_uri": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "required": [
-          "albumartist",
-          "album"
-        ],
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/coverart/album",
-      "returns": {
-        "properties": {
-          "cover_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -315,27 +244,6 @@
         "type": "object"
       }
     },
-    "get_folder_content": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "folder": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "folder"
-        ],
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/folder-content",
-      "returns": {
-        "items": {},
-        "type": "array"
-      }
-    },
     "get_player_type_and_version": {
       "args": {
         "additionalProperties": false,
@@ -348,79 +256,6 @@
       "returns": {
         "type": "string"
       }
-    },
-    "get_single_coverart": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "song_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "song_url"
-        ],
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/coverart/song",
-      "returns": {
-        "properties": {
-          "cover_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "type": "object"
-      }
-    },
-    "get_song_by_url": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "song_url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "song_url"
-        ],
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/song-lookup",
-      "returns": {}
     },
     "get_volume": {
       "args": {
@@ -443,46 +278,6 @@
         "type": "object"
       }
     },
-    "list_albums": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/albums",
-      "returns": {
-        "items": {},
-        "type": "array"
-      }
-    },
-    "list_all_dirs": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {},
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/dirs",
-      "returns": {
-        "items": {},
-        "type": "array"
-      }
-    },
     "list_backends": {
       "args": {
         "additionalProperties": false,
@@ -496,107 +291,6 @@
         "items": {
           "type": "string"
         },
-        "type": "array"
-      }
-    },
-    "list_library_items": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "content_types": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/library/items",
-      "returns": {
-        "items": {},
-        "type": "array"
-      }
-    },
-    "list_library_sources": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {},
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/library/sources",
-      "returns": {
-        "items": {},
-        "type": "array"
-      }
-    },
-    "list_songs_by_artist_and_album": {
-      "args": {
-        "additionalProperties": false,
-        "properties": {
-          "album": {
-            "type": "string"
-          },
-          "albumartist": {
-            "type": "string"
-          },
-          "content_uri": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          }
-        },
-        "required": [
-          "albumartist",
-          "album"
-        ],
-        "type": "object"
-      },
-      "kind": "query",
-      "method": "GET",
-      "path": "/api/v1/player/songs",
-      "returns": {
-        "items": {},
         "type": "array"
       }
     },
@@ -1186,5 +880,7 @@
       "returns": {}
     }
   },
-  "requires": {}
+  "requires": {
+    "library": null
+  }
 }

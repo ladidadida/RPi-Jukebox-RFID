@@ -93,6 +93,12 @@ player:
   # Playback volume in percent (0-100). Only used by the local_audio backend -- mpd keeps its
   # own volume (see mpd_client.setvol), unrelated to this.
   volume: 80
+library:
+  # Index of the music library (tags, durations) and extracted cover art. The music itself is in
+  # player.music_library_path.
+  index: shared/settings/library.sqlite
+  cover_cache: shared/cache/covers
+  scan_on_startup: true
 playermpd:
   # Only read by jukebox.player to find the music library in mpd.conf when player.music_library_path
   # is not set. The mpd plugin's own settings live under plugins.mpd.

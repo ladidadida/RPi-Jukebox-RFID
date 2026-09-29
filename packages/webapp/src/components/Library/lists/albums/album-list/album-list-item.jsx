@@ -17,6 +17,8 @@ import noCover from '../../../../../assets/noCover.jpg';
 
 import AppSettingsContext from '../../../../../context/appsettings/context';
 import request from '../../../../../utils/request';
+import { coverSrc } from '../../../../../utils/utils';
+import { LOCAL_LIBRARY_SOURCE } from '../../../../../config';
 
 const AlbumListItem = ({
   albumartist,
@@ -24,7 +26,7 @@ const AlbumListItem = ({
   content_uri,
   cover_url,
   isButton = true,
-  provider = 'mpd',
+  provider = LOCAL_LIBRARY_SOURCE,
   view = 'albums',
 }) => {
   const { t } = useTranslation();
@@ -50,7 +52,7 @@ const AlbumListItem = ({
       const coverUrl = result?.cover_url;
       if (coverUrl) {
         if(coverUrl !== 'CACHE_PENDING') {
-          setCoverImage(coverUrl.startsWith('http') ? coverUrl : `/cover-cache/${coverUrl}`);
+          setCoverImage(coverSrc(coverUrl));
         }
       };
     }

@@ -1,0 +1,69 @@
+{
+  "events": {
+    "key_pressed": {
+      "properties": {
+        "device": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "device",
+        "key"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "input",
+  "operations": {
+    "list_devices": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/input/devices",
+      "returns": {
+        "items": {
+          "properties": {
+            "connected": {
+              "type": "boolean"
+            },
+            "device_name": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "name",
+            "device_name",
+            "connected"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    }
+  },
+  "requires": {}
+}

@@ -1,0 +1,30 @@
+{
+  "events": {},
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "jingle",
+  "operations": {
+    "play": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "sound": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sound"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/jingle/play",
+      "returns": {
+        "type": "null"
+      }
+    }
+  },
+  "requires": {}
+}

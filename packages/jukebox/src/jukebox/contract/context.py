@@ -1,5 +1,6 @@
 """What a module sees of the rest of the system."""
 
+import contextlib
 import logging
 import os
 import threading
@@ -103,6 +104,13 @@ class Context:
     @property
     def name(self) -> str:
         return self._handle.name
+
+    @property
+    def lock(self):
+        """The module's own lock, for work outside operations (e.g. background threads).
+
+        A no-op context manager for ``concurrency = 'threadsafe'`` modules."""
+        return self._handle.lock if self._handle.lock is not None else contextlib.nullcontext()
 
     def _own_event(self, spec: EventSpec) -> EventSpec:
         declared = self._handle.cls.events().get(getattr(spec, 'name', ''))

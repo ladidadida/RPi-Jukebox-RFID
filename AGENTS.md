@@ -19,7 +19,8 @@ packages/          uv workspace members
   jukebox/         Python core application ("Jukebox Core") — the daemon that runs on the Pi
     pyproject.toml Real [project] table (package=true), runtime dependencies, hatchling backend
     src/jukebox/   The installable package: the core/plugin contract (contract/), the core
-                   modules (core_modules.py: system, library, player, cards, rfid), FastAPI API bridge
+                   modules (core_modules.py: system, library, player, volume, timers, jingle,
+                   input, cards, rfid), FastAPI API bridge
                    (api/), in-process event bus (publishing/), config handling. Removed former
                    components come back as core modules (volume, timers, jingle, system info,
                    input devices) or plugins (raspberry-pi, mqtt, card sync) -- see

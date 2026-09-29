@@ -1,5 +1,35 @@
 {
   "events": {
+    "health": {
+      "properties": {
+        "cpu_temperature": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "disk_free": {
+          "type": "integer"
+        },
+        "disk_total": {
+          "type": "integer"
+        },
+        "disk_used": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "disk_total",
+        "disk_used",
+        "disk_free"
+      ],
+      "type": "object"
+    },
     "info": {
       "properties": {
         "git_state": {
@@ -55,6 +85,46 @@
         "type": "object"
       }
     },
+    "get_health": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/system/health",
+      "returns": {
+        "properties": {
+          "cpu_temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "disk_free": {
+            "type": "integer"
+          },
+          "disk_total": {
+            "type": "integer"
+          },
+          "disk_used": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "disk_total",
+          "disk_used",
+          "disk_free"
+        ],
+        "type": "object"
+      }
+    },
     "get_info": {
       "args": {
         "additionalProperties": false,
@@ -80,6 +150,30 @@
           "version",
           "git_state",
           "started_at"
+        ],
+        "type": "object"
+      }
+    },
+    "get_ip_addresses": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/system/ip-addresses",
+      "returns": {
+        "properties": {
+          "addresses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "addresses"
         ],
         "type": "object"
       }
@@ -120,6 +214,32 @@
       "kind": "action",
       "method": "POST",
       "path": "/api/v1/system/noop",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "restart_service": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/system/restart_service",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "say_my_ip": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/system/say_my_ip",
       "returns": {
         "type": "null"
       }

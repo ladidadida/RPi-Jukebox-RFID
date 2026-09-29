@@ -1,0 +1,277 @@
+{
+  "events": {
+    "changed": {
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "remaining_seconds": {
+          "type": "number"
+        },
+        "wait_seconds": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "action",
+        "available",
+        "enabled",
+        "wait_seconds",
+        "remaining_seconds"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "timers",
+  "operations": {
+    "cancel": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "timer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "timer"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/timers/cancel",
+      "returns": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "args": {
+            "additionalProperties": true,
+            "default": {},
+            "type": "object"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "remaining_seconds": {
+            "type": "number"
+          },
+          "wait_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "action",
+          "available",
+          "enabled",
+          "wait_seconds",
+          "remaining_seconds"
+        ],
+        "type": "object"
+      }
+    },
+    "list_timers": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/timers",
+      "returns": {
+        "items": {
+          "properties": {
+            "action": {
+              "type": "string"
+            },
+            "args": {
+              "additionalProperties": true,
+              "default": {},
+              "type": "object"
+            },
+            "available": {
+              "type": "boolean"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "remaining_seconds": {
+              "type": "number"
+            },
+            "wait_seconds": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "name",
+            "action",
+            "available",
+            "enabled",
+            "wait_seconds",
+            "remaining_seconds"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "start": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "timer": {
+            "type": "string"
+          },
+          "wait_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "timer"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/timers/start",
+      "returns": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "args": {
+            "additionalProperties": true,
+            "default": {},
+            "type": "object"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "remaining_seconds": {
+            "type": "number"
+          },
+          "wait_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "action",
+          "available",
+          "enabled",
+          "wait_seconds",
+          "remaining_seconds"
+        ],
+        "type": "object"
+      }
+    },
+    "toggle": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "timer": {
+            "type": "string"
+          },
+          "wait_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "timer"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/timers/toggle",
+      "returns": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "args": {
+            "additionalProperties": true,
+            "default": {},
+            "type": "object"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "remaining_seconds": {
+            "type": "number"
+          },
+          "wait_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "action",
+          "available",
+          "enabled",
+          "wait_seconds",
+          "remaining_seconds"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "requires": {}
+}

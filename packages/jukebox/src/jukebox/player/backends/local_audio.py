@@ -14,15 +14,14 @@ interrupt whatever the worker is currently doing; the worker reopens/seeks the c
 whenever it's told to (re)start one. This keeps the state machine in one place instead of trying
 to signal a live decode loop with finer-grained commands.
 """
-import array
 import logging
 import os
 import random
 import threading
 
 import av
-from av.audio.resampler import AudioResampler
 import sounddevice as sd
+from av.audio.resampler import AudioResampler
 
 import jukebox.player
 import jukebox.cfghandler
@@ -30,74 +29,11 @@ import jukebox.utils as utils
 import jukebox.multitimer as multitimer
 import jukebox.playlistgenerator as playlistgenerator
 
+from jukebox.audio_output import CHANNELS, SAMPLE_RATE, PortAudioSink, scale_volume
 from jukebox.nv_manager import nv_manager
 
 logger = logging.getLogger('jb.PlayerLocalAudio')
 cfg = jukebox.cfghandler.get_handler('jukebox')
-
-SAMPLE_RATE = 44100
-CHANNELS = 2
-
-
-def _scale_volume(data: bytes, volume: int) -> bytes:
-    """Scale packed s16 PCM by volume (0-100). No-op at full volume (the common case)."""
-    if volume >= 100:
-        return data
-    factor = max(0, volume) / 100.0
-    samples = array.array('h')
-    samples.frombytes(data)
-    for i, s in enumerate(samples):
-        samples[i] = int(s * factor)
-    return samples.tobytes()
-
-
-class AudioSink:
-    """What a decoded track is written to. Exists so tests don't need a real audio device."""
-
-    def open(self, samplerate: int, channels: int) -> None:
-        raise NotImplementedError
-
-    def write(self, data: bytes) -> None:
-        raise NotImplementedError
-
-    def close(self) -> None:
-        raise NotImplementedError
-
-
-class PortAudioSink(AudioSink):
-    """Real output via sounddevice/PortAudio. Falls back to silent (no-op) if no device is
-    available -- e.g. the no-audio docker dev stack, or a CI box -- rather than raising and
-    killing the daemon."""
-
-    def __init__(self):
-        self._stream = None
-
-    def open(self, samplerate, channels):
-        try:
-            self._stream = sd.RawOutputStream(samplerate=samplerate, channels=channels, dtype='int16')
-            self._stream.start()
-        except Exception as e:
-            logger.warning(f"No audio output device available ({e.__class__.__name__}: {e}); playing silently")
-            self._stream = None
-
-    def write(self, data):
-        if self._stream is None:
-            return
-        try:
-            self._stream.write(data)
-        except Exception as e:
-            logger.warning(f"Audio output error, playing silently for the rest of this track: {e}")
-            self._stream = None
-
-    def close(self):
-        if self._stream is not None:
-            try:
-                self._stream.stop()
-                self._stream.close()
-            except Exception:
-                pass
-            self._stream = None
-
 
 class PlayerLocalAudio:
     """Decode-and-output player backend. See module docstring for the state machine."""
@@ -235,7 +171,7 @@ class PlayerLocalAudio:
                         return False
                     n = rframe.samples * CHANNELS * 2
                     data = bytes(rframe.planes[0])[:n]
-                    self._sink.write(_scale_volume(data, self._volume))
+                    self._sink.write(scale_volume(data, self._volume))
                     self._position += rframe.samples / SAMPLE_RATE
             return True
         finally:

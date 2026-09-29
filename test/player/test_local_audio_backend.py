@@ -4,11 +4,8 @@ import wave
 from unittest.mock import Mock
 
 import jukebox.player
-from jukebox.player.backends.local_audio import (
-    PlayerLocalAudio,
-    PortAudioSink,
-    _scale_volume,
-)
+from jukebox.audio_output import PortAudioSink, scale_volume
+from jukebox.player.backends.local_audio import PlayerLocalAudio
 
 
 class RecordingSink:
@@ -70,24 +67,24 @@ def write_wav(path, duration_s=0.2, rate=44100, channels=2, freq=440):
         f.writeframes(samples.tobytes())
 
 
-# -- _scale_volume -----------------------------------------------------------------------------
+# -- scale_volume ------------------------------------------------------------------------------
 
 def test_scale_volume_is_noop_at_full_volume():
     data = array.array('h', [1000, -1000]).tobytes()
-    assert _scale_volume(data, 100) == data
+    assert scale_volume(data, 100) == data
 
 
 def test_scale_volume_scales_and_clamps():
     data = array.array('h', [1000, -1000]).tobytes()
     scaled = array.array('h')
-    scaled.frombytes(_scale_volume(data, 50))
+    scaled.frombytes(scale_volume(data, 50))
     assert list(scaled) == [500, -500]
 
 
 def test_scale_volume_zero_produces_silence():
     data = array.array('h', [1000, -1000]).tobytes()
     scaled = array.array('h')
-    scaled.frombytes(_scale_volume(data, 0))
+    scaled.frombytes(scale_volume(data, 0))
     assert list(scaled) == [0, 0]
 
 
@@ -231,12 +228,12 @@ def test_repeat_cycles_off_repeat_single():
 # -- PortAudioSink falls back silently without a real device --------------------------------------
 
 def test_portaudio_sink_falls_back_when_no_device(monkeypatch):
-    import jukebox.player.backends.local_audio as local_audio_module
+    import jukebox.audio_output as audio_output_module
 
     def raise_error(*args, **kwargs):
         raise RuntimeError("no output device")
 
-    monkeypatch.setattr(local_audio_module.sd, 'RawOutputStream', raise_error)
+    monkeypatch.setattr(audio_output_module.sd, 'RawOutputStream', raise_error)
     sink = PortAudioSink()
 
     sink.open(44100, 2)  # must not raise

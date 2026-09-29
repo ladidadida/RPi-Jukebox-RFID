@@ -24,6 +24,13 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 #: Repository-root-relative, same convention as every other path in this codebase.
 DEFAULT_CONFIG_TEMPLATE = 'resources/default-settings/jukebox.default.yaml'
 
+_SHUTDOWN_SIGNAL: Optional[int] = None
+
+
+def shutdown_signal() -> Optional[int]:
+    """The signal that started the shutdown (e.g. ``signal.SIGINT`` for Ctrl-C), None before."""
+    return _SHUTDOWN_SIGNAL
+
 
 @atexit.register
 def log_active_threads():
@@ -74,6 +81,9 @@ class JukeBox:
         """
         # systemd: By default, a SIGTERM is sent, followed by 90 seconds of waiting followed by a SIGKILL.
         # Pressing Ctrl-C gives SIGINT
+        global _SHUTDOWN_SIGNAL
+        if _SHUTDOWN_SIGNAL is None:
+            _SHUTDOWN_SIGNAL = esignal
         self._signal_cnt += 1
         # A further signal can interrupt this handler; decide on the count this call started with.
         count = self._signal_cnt

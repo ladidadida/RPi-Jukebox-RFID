@@ -1,0 +1,427 @@
+{
+  "events": {
+    "level": {
+      "properties": {
+        "mute": {
+          "type": "boolean"
+        },
+        "soft_max_volume": {
+          "type": "integer"
+        },
+        "volume": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "volume",
+        "mute",
+        "soft_max_volume"
+      ],
+      "type": "object"
+    },
+    "outputs": {
+      "properties": {
+        "active": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outputs": {
+          "items": {
+            "properties": {
+              "active": {
+                "type": "boolean"
+              },
+              "alias": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "alias",
+              "active"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "outputs"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "volume",
+  "operations": {
+    "change_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "step": {
+            "default": 5,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/volume/change",
+      "returns": {
+        "properties": {
+          "mute": {
+            "type": "boolean"
+          },
+          "soft_max_volume": {
+            "type": "integer"
+          },
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume",
+          "mute",
+          "soft_max_volume"
+        ],
+        "type": "object"
+      }
+    },
+    "fade_out": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "seconds": {
+            "default": 10.0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/volume/fade-out",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "get_outputs": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/volume/outputs",
+      "returns": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "outputs": {
+            "items": {
+              "properties": {
+                "active": {
+                  "type": "boolean"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "alias",
+                "active"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "outputs"
+        ],
+        "type": "object"
+      }
+    },
+    "get_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/volume",
+      "returns": {
+        "properties": {
+          "mute": {
+            "type": "boolean"
+          },
+          "soft_max_volume": {
+            "type": "integer"
+          },
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume",
+          "mute",
+          "soft_max_volume"
+        ],
+        "type": "object"
+      }
+    },
+    "mute": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "mute": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/volume/mute",
+      "returns": {
+        "properties": {
+          "mute": {
+            "type": "boolean"
+          },
+          "soft_max_volume": {
+            "type": "integer"
+          },
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume",
+          "mute",
+          "soft_max_volume"
+        ],
+        "type": "object"
+      }
+    },
+    "set_output": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/volume/outputs/active",
+      "returns": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "outputs": {
+            "items": {
+              "properties": {
+                "active": {
+                  "type": "boolean"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "alias",
+                "active"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "outputs"
+        ],
+        "type": "object"
+      }
+    },
+    "set_soft_max_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "max_volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_volume"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/volume/soft-max",
+      "returns": {
+        "properties": {
+          "mute": {
+            "type": "boolean"
+          },
+          "soft_max_volume": {
+            "type": "integer"
+          },
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume",
+          "mute",
+          "soft_max_volume"
+        ],
+        "type": "object"
+      }
+    },
+    "set_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/volume",
+      "returns": {
+        "properties": {
+          "mute": {
+            "type": "boolean"
+          },
+          "soft_max_volume": {
+            "type": "integer"
+          },
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume",
+          "mute",
+          "soft_max_volume"
+        ],
+        "type": "object"
+      }
+    },
+    "toggle_output": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/volume/outputs/toggle",
+      "returns": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "outputs": {
+            "items": {
+              "properties": {
+                "active": {
+                  "type": "boolean"
+                },
+                "alias": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "alias",
+                "active"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "outputs"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "requires": {
+    "player": null
+  }
+}

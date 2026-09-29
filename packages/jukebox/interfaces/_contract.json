@@ -3,6 +3,7 @@
     "__init__": "(self, handle: 'ModuleHandle', *, bus, config: jukebox.contract.context.ModuleConfig, modules: jukebox.contract.context.ModulesView, actions: 'ActionCatalog', strict: bool)",
     "close": "(self) -> None",
     "executor": "(self, name: str, workers: int = 1) -> concurrent.futures.thread.ThreadPoolExecutor",
+    "lock": "property",
     "name": "property",
     "publish": "(self, spec: jukebox.contract.declarations.EventSpec, payload) -> None",
     "revoke": "(self, spec: jukebox.contract.declarations.EventSpec) -> None",

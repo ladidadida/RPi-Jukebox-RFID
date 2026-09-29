@@ -422,8 +422,15 @@ original is kept as `cards.yaml.bak-<timestamp>`:
    index. The library's routes moved from `/api/v1/player/*` to `/api/v1/library/*`; the local
    source id is `local`. Streaming uploads stay a hand-written route (`extra_routes`); an ASGI
    middleware limits all other request bodies to 1 MiB.
-6. **Remaining core modules**: volume, timers, jingle, system info, input devices, with their
-   webapp controls restored.
+6. **Remaining core modules** -- *done*: `volume` (PulseAudio/PipeWire via pulsectl, falling
+   back to the player backend's volume; soft maximum, mute, outputs with per-output volume limit,
+   fade-out), `timers` (named countdowns that run an action; `shutdown` only works with the
+   `raspberry-pi` plugin), `jingle` (startup/shutdown sound through the same PortAudio output as
+   `local_audio`, `jingle.play` for cards), system info in `system` (IP addresses, disk usage, CPU
+   temperature, periodic `system.health`, `say_my_ip`, `restart_service`), and `input` (evdev
+   devices by name with key -> action mappings, optional media keys). Old `pulse:` settings are
+   still read. Not carried over: the idle-shutdown timer (belongs to the `raspberry-pi` plugin)
+   and the separate `evdev.yaml` file (device mappings now live under `input:`).
 7. **`raspberry-pi` plugin**: power, GPIO, battery monitor, health. Autohotspot moves to the
    installer/`jukebox setup` track instead.
 

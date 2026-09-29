@@ -1,13 +1,27 @@
-from dotenv import load_dotenv
+import os
+from pathlib import Path
 
-# Must run before app() is invoked below: JUKEBOX_CONF/JUKEBOX_LOGGER_CONF (typer.Option
-# `envvar`s in jukebox_cli.run) are only read from os.environ when the command actually runs,
-# not at import time -- but populating them any later than this would be too late. Searches for
-# a `.env` file starting from the current directory and walking up, same convention this
-# project already uses everywhere else (repo root as working directory).
-load_dotenv()
+from dotenv import dotenv_values, find_dotenv
 
-from pathlib import Path  # noqa: E402
+
+def load_env() -> None:
+    """``JUKEBOX_*`` defaults from the nearest ``.env`` above this file (a source checkout's).
+
+    Relative paths in it are relative to the ``.env`` file. The environment wins over the file.
+    Runs at import: typer reads ``envvar`` options from os.environ.
+    """
+    path = find_dotenv()
+    if not path:
+        return
+    for key, value in dotenv_values(path).items():
+        if key.startswith('JUKEBOX_') and key not in os.environ and value is not None:
+            if key in ('JUKEBOX_HOME', 'JUKEBOX_WEBAPP_DIR', 'JUKEBOX_CONF', 'JUKEBOX_LOGGER_CONF'):
+                value = str(Path(path).parent / Path(value).expanduser())
+            os.environ[key] = value
+
+
+load_env()
+
 from typing import Optional  # noqa: E402
 
 import typer  # noqa: E402

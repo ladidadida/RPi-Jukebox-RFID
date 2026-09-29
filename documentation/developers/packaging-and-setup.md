@@ -33,7 +33,8 @@ $JUKEBOX_HOME/
 - Default: `$XDG_DATA_HOME/jukebox` (usually `~/.local/share/jukebox`); override with the
   `JUKEBOX_HOME` environment variable or `jukebox --home`.
 - A source checkout's `.env` sets `JUKEBOX_HOME=shared`, so development keeps using the repository's
-  `shared/` directory exactly as today.
+  `shared/` directory exactly as today. `jukebox` finds that `.env` from its own location (not the
+  working directory) and resolves relative paths in it against the file's directory.
 - Relative paths in the configuration are resolved against `JUKEBOX_HOME`, not against the working
   directory. Existing configurations (`shared/settings/cards.yaml` style values from a checkout
   install) keep working: a relative path starting with `shared/` is resolved against the home's
@@ -48,7 +49,7 @@ $JUKEBOX_HOME/
   top-level `resources/` into the `jukebox` package (`jukebox/resources/`), read with
   `importlib.resources`. Source and package installs use the same files.
 - The web app build is included in the wheel (`jukebox/webapp/`). A source checkout serves
-  `packages/webapp/build` instead, via `api.webapp_dir` / `JUKEBOX_WEBAPP_DIR` set in `.env`.
+  `packages/webapp/build` instead; `api.webapp_dir` / `JUKEBOX_WEBAPP_DIR` override both.
 - Configuration values that point at packaged files use the value `default` (e.g.
   `jingle.startup_sound: default`); any other value is a path.
 
@@ -83,7 +84,7 @@ optimisation. Steps needing root run their commands through `sudo`.
 
 ## Install script
 
-`install.sh` (hosted in the repository, run via `curl ... | bash`):
+`install.sh` (in the repository's `main` branch, run via `curl ... | bash`):
 
 1. Checks the OS, installs base packages (`python3`, `curl`, build tools).
 2. Installs `uv`.
@@ -121,7 +122,15 @@ optimisation. Steps needing root run their commands through `sudo`.
    - `rfid` runs the interactive reader configuration and is skipped with `--yes`.
    - Runtime packages only: the default player needs neither ffmpeg nor mpg123; the PipeWire
      stack is installed on a Pi only (desktops bring their own sound server).
-5. **Install script** for package and source installs; CI runs it in the Debian containers.
+5. **Install script** -- *done*: `install.sh` (options in its header and in
+   `documentation/builders/installation.md`). Package mode: `uv tool install` of the release
+   wheels (or `--wheels DIR`) with the system `python3`. Source mode: clone (or reuse) a checkout,
+   `uv sync --no-dev --frozen`, web app built with npm if available, else taken from the latest
+   release wheel; `~/.local/bin/jukebox` links to the checkout's venv. `JUKEBOX_HOME` (Pi:
+   `~/jukebox`, source: `<checkout>/shared`) and `~/.local/bin` on `PATH` go into `~/.profile` and
+   `~/.bashrc`. `ci/test_install.sh` runs it in a fresh `debian:<codename>-slim` container and
+   starts the jukebox; the wheels workflow does that for the wheels (trixie, bookworm) and the
+   checkout (trixie). No systemd in those containers, so the `service` step is not covered there.
 6. **`jukebox update`** and configuration migrations.
 7. Remove `migrate_to_cli/` once everything is ported.
 

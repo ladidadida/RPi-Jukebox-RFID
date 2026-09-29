@@ -45,11 +45,14 @@ migrate_to_cli/    Working area for everything slated to become CLI functionalit
                    hostif redesign; not yet ported to the CLI. run_jukebox.py/run_publicity_sniffer.py
                    were replaced by `jukebox run`/`jukebox debug sniff` and removed from here.
 docker/            Dockerfiles + compose files for a non-Pi development environment
+install.sh         Installer (curl | bash): base packages, uv, jukebox (release wheels or --source),
+                   then `jukebox setup`
 shared/            JUKEBOX_HOME when running from this checkout (see .env): settings, audiofolders,
                    playlists, logs, cache
 documentation/     Project docs: builders/ (end users/installers) and developers/ (contributors)
 test/              Python unit tests (pytest)
-ci/                CI helper scripts (e.g. installation testing)
+ci/                CI helper scripts: build_wheels.sh, test_install.sh (install.sh in a Debian
+                   container), ci-debian.Dockerfile + installation/ (old Bash installer tests)
 ```
 
 ## Architecture essentials
@@ -99,7 +102,8 @@ ci/                CI helper scripts (e.g. installation testing)
   the configuration resolve against it (a legacy leading `shared/` is dropped); never resolve paths
   against the working directory or the checkout. Packaged files (default settings, sounds, service
   templates) live in `jukebox/resources/`, read via `jukebox.paths.resource()`. The web app is
-  served from `api.webapp_dir` / `$JUKEBOX_WEBAPP_DIR` (set in `.env`), else from the package.
+  served from `api.webapp_dir` / `$JUKEBOX_WEBAPP_DIR`, else from the package, else (source checkout) from
+  `packages/webapp/build`.
   See `documentation/developers/packaging-and-setup.md`.
 - **Bundled plugins** live in `packages/plugins/*` (uv workspace members, installed by `uv sync`
   but only loaded when enabled under `plugins:`): `raspberry-pi` (shutdown/reboot, GPIO, battery,

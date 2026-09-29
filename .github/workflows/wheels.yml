@@ -1,4 +1,4 @@
-name: Wheels
+name: Wheels and install
 
 on:
   push:
@@ -55,8 +55,39 @@ jobs:
           path: dist/*.whl
           if-no-files-found: error
 
-  release:
+  install:
+    name: 'install.sh (package, ${{ matrix.codename }})'
     needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        codename: [trixie, bookworm]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
+
+      - name: Install from the wheels in a fresh Debian container and start the jukebox
+        run: ci/test_install.sh ${{ matrix.codename }} --wheels dist
+
+  install-source:
+    name: 'install.sh (source, trixie)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Web App
+        uses: ./.github/actions/build-webapp
+
+      - name: Install from this checkout in a fresh Debian container and start the jukebox
+        run: ci/test_install.sh trixie --source
+
+  release:
+    needs: [build, install, install-source]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

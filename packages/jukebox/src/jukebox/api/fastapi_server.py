@@ -38,11 +38,16 @@ WEBAPP_DIR_ENV = 'JUKEBOX_WEBAPP_DIR'
 
 
 def default_webapp_build_dir() -> Path:
-    """``api.webapp_dir``, else ``$JUKEBOX_WEBAPP_DIR``, else the web app shipped in the package."""
+    """``api.webapp_dir``, else ``$JUKEBOX_WEBAPP_DIR``, else the web app shipped in the package,
+    else the build directory of a source checkout."""
     configured = cfg.getn('api', 'webapp_dir', default=None) or os.environ.get(WEBAPP_DIR_ENV)
     if configured:
         return Path(configured).expanduser().resolve()
-    return Path(__file__).resolve().parent.parent / 'webapp'
+    package = Path(__file__).resolve().parent.parent
+    checkout_build = package.parents[3] / 'packages' / 'webapp' / 'build'
+    if not (package / 'webapp').is_dir() and checkout_build.is_dir():
+        return checkout_build
+    return package / 'webapp'
 
 
 def default_logs_dir() -> Path:

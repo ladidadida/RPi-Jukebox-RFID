@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Runs install.sh from this checkout in a fresh Debian container (as user pi), then starts the
+# jukebox and checks the API and the web app.
+#
+#   ci/test_install.sh <debian codename> <install.sh options...>
+#   ci/test_install.sh trixie --wheels dist      (wheels built into ./dist)
+#   ci/test_install.sh trixie --source           (this checkout; web app built into packages/webapp/build)
+
+set -euo pipefail
+
+CODENAME="$1"
+shift
+
+tar -C "$(dirname "$0")/.." --exclude=./.venv --exclude=./packages/webapp/node_modules --exclude=./shared \
+    -cf - . | docker run --rm -i -e INSTALL_ARGS="$*" "debian:${CODENAME}-slim" bash -euo pipefail -c '
+apt-get -qq update && apt-get -qq install -y sudo procps curl >/dev/null
+useradd -m -s /bin/bash pi && echo "pi ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/pi
+mkdir /home/pi/checkout && tar -C /home/pi/checkout -xf - && chown -R pi:pi /home/pi/checkout
+args="${INSTALL_ARGS/--source/--source /home/pi/checkout}"
+args="${args/--wheels /--wheels /home/pi/checkout/}"
+su - pi -c "bash ~/checkout/install.sh --yes ${args}"
+su - pi -c "
+    set -e
+    cd /tmp && source ~/.profile
+    jukebox home
+    jukebox setup --check --yes
+    (jukebox run > /tmp/run.log 2>&1 &)
+    for i in \$(seq 1 120); do curl -fsS localhost:5556/api/v1/health 2>/dev/null && break; sleep 1; done
+    echo
+    curl -fsS localhost:5556/ | grep -q \"<div id=\\\"root\\\">\" || { tail -50 /tmp/run.log; exit 1; }
+    curl -fsS localhost:5556/api/v1/modules > /dev/null
+    echo \"The jukebox runs and serves the web app.\"
+"
+'

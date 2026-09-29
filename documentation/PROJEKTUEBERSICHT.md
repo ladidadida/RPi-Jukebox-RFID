@@ -41,8 +41,8 @@ Architektur. Es existiert parallel weiter die stabile Version 2 im `main`-Zweig 
 │   │                           umgebaut ist (siehe Roadmap, "Packaging/install overhaul") — bewusst
 │   │                           hierher verschoben, damit klar als provisorisch erkennbar; läuft
 │   │                           aber unverändert weiter, nur der Pfad hat sich geändert:
-│   ├── installation/           Bash-Installationsroutinen (install-jukebox.sh, routines/, …) —
-│   │                           Ziel: `jukebox setup ...`-Subcommands
+│   ├── installation/           Alte Bash-Installationsroutinen (install-jukebox.sh, routines/, …),
+│   │                           nach `jukebox setup` portiert; fliegt raus, sobald install.sh sie ersetzt
 │   └── scripts/                 RFID-Registrierung und Audio-Config — beide aktuell kaputt
 │                                  (importieren jukebox.hostif, mit dem alten Plugin-System entfernt),
 │                                  blockiert auf einem hostif-Redesign, noch nicht in die CLI portiert.
@@ -145,16 +145,17 @@ Es gibt zwei grundsätzliche Wege:
 
 1. Raspberry Pi OS Lite (Legacy, 32-bit) mit dem Raspberry Pi Imager aufspielen (SSH + WLAN direkt
    beim Flashen konfigurieren).
-2. Auf dem Pi einloggen und den Installer ausführen — Details in
-   `documentation/builders/installation.md`. Kernstück ist `migrate_to_cli/installation/install-jukebox.sh`,
-   das über `migrate_to_cli/installation/routines/*.sh` u. a. folgende Schritte orchestriert:
-   - System-Pakete installieren (`packages-core.txt`, per `apt-get`)
-   - Python-`.venv` anlegen und Dependencies aus `pyproject.toml` per `uv sync` installieren
-   - MPD, Audio (PulseAudio/ALSA), RFID-Reader, Autohotspot/WLAN, Samba, Kiosk-Modus (Webapp im
-     Vollbild) einrichten
-   - systemd-Services registrieren
-3. Konfiguration erfolgt über YAML-Dateien in `shared/settings` (Vorlage:
-   `resources/default-settings/jukebox.default.yaml`).
+2. Auf dem Pi einloggen und `install.sh` ausführen (Details in
+   `documentation/builders/installation.md`):
+   `curl -fsSL https://raw.githubusercontent.com/ladidadida/RPi-Jukebox-RFID/main/install.sh | bash`.
+   Das Skript installiert Basis-Pakete und uv, dann die Jukebox (Release-Wheels per
+   `uv tool install`, oder mit `--source` als Git-Checkout) und startet `jukebox setup`. Die
+   Setup-Schritte (`packages/cli/src/jukebox_cli/setup/`) richten u. a. System-Pakete, den
+   systemd-User-Service, MPD, Samba, Kiosk-Modus, Autohotspot, RFID-Reader und
+   Boot-Optimierung ein; jeder Schritt prüft zuerst und ändert nur, was fehlt.
+3. Alle Daten liegen in `JUKEBOX_HOME` (auf dem Pi `~/jukebox`): `settings/jukebox.yaml`
+   (Vorlage: `packages/jukebox/src/jukebox/resources/default-settings/jukebox.default.yaml`),
+   Musik in `audiofolders/`.
 
 ### 2. Lokale Entwicklungsumgebung (Docker, ohne Pi-Hardware)
 

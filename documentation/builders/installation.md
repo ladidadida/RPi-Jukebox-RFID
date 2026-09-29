@@ -29,74 +29,53 @@ This instruction uses the official [Raspberry Pi Imager](https://www.raspberrypi
 
 ## Install Phoniebox software
 
-Choose a version, run the corresponding install command in your SSH terminal and follow the instructions.
+Run the install script in your SSH terminal and follow the questions:
 
-* [Stable Release](#stable-release)
-* [Pre-Release](#pre-release)
-* [Development](#development)
+```bash
+curl -fsSL https://raw.githubusercontent.com/ladidadida/RPi-Jukebox-RFID/main/install.sh | bash
+```
+
+It installs a few base packages and [uv](https://docs.astral.sh/uv/), then the jukebox from the
+latest release, and finally runs `jukebox setup`, which asks what to set up on this machine
+(Samba, WiFi hotspot, kiosk mode, RFID reader, boot optimisation, ...).
+
+On a Raspberry Pi all jukebox data -- music, settings, logs -- lives in `~/jukebox`
+(`JUKEBOX_HOME`); `jukebox home` shows where it is.
 
 After a successful installation, [configure your Phoniebox](configuration.md).
 
 > [!TIP]
-> Depending on your hardware, this installation might last around 60 minutes (usually it's faster, 20-30 min). It refreshes the package index, installs Phoniebox dependencies and applies settings. Be patient and don't let your computer go to sleep. It might disconnect your SSH connection causing the interruption of the installation process. Consider starting the installation in a terminal multiplexer like 'screen' or 'tmux' to avoid this.
+> Depending on your hardware, this can take a while. Don't let your computer go to sleep, and
+> consider running the installation in `screen` or `tmux`, so a dropped SSH connection doesn't
+> interrupt it.
 
-The Web App can upload files or complete folder trees, organize the audio
-library, and delete files or folders, so Samba is disabled by default during
-installation. Choose Samba when you also want direct network access to the
-complete `shared` directory, including configuration files. See
-[Samba](samba.md) for details.
+The Web App can upload files or complete folder trees, organize the audio library, and delete
+files or folders, so Samba is off by default. Choose Samba when you also want direct network
+access to the complete jukebox home, including configuration files. See [Samba](samba.md).
 
-Current Raspberry Pi OS images normally do not need a full operating system upgrade immediately after imaging, so the installer skips it by default. To opt in to `apt-get full-upgrade` and `autoremove`, prefix an installation command with:
+### Options
 
-```bash
-UPDATE_RASPI_OS=true
-```
+Pass options to the script with `bash -s --`, e.g.
+`curl -fsSL .../install.sh | bash -s -- --source`:
 
-### Stable Release
+| Option | Meaning |
+| --- | --- |
+| `--source [DIR]` | Install from a git checkout (default `~/RPi-Jukebox-RFID`) instead of the release packages |
+| `--branch NAME` | Branch for `--source` (default `main`) |
+| `--version TAG` | Install a specific release instead of the latest |
+| `--repo OWNER/NAME` | Install from a fork |
+| `--home DIR` | Where the jukebox keeps its data |
+| `--yes` | Don't ask; use the defaults |
+| `--no-setup` | Only install; run `jukebox setup` later |
 
-This will install the latest **stable release** from the *future3/main* branch.
+### Changing the setup later
 
-```bash
-cd; bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/main/migrate_to_cli/installation/install-jukebox.sh)
-```
-
-### Pre-Release
-
-This will install the latest **pre-release** from the *future3/develop* branch.
-
-```bash
-cd; GIT_BRANCH='future3/develop' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
-```
-
-### Development
-
-You can also install a specific branch and/or a fork repository. Update the variables to refer to your desired location. (The URL must not necessarily be updated, unless you have actually updated the file being downloaded.)
-
-> [!IMPORTANT]
-> A fork repository must be named '*RPi-Jukebox-RFID*' like the official
-> repository.
+`jukebox setup` can be run again at any time; every step checks first and only changes what is
+missing. Your earlier answers are remembered (`settings/setup.yaml` in the jukebox home).
 
 ```bash
-cd; GIT_USER='your-github-user' GIT_BRANCH='feature/my-change' bash <(wget -qO- https://raw.githubusercontent.com/MiczFlor/RPi-Jukebox-RFID/future3/develop/migrate_to_cli/installation/install-jukebox.sh)
-```
-
-The installer uses HTTPS and fetches only the selected branch with shallow history. Set `GIT_USE_SSH=true` to opt in to SSH access. The installed checkout remains a normal tracking branch, so `git pull` works as usual.
-
-Developers who later need all branches, history and tags can fetch them explicitly:
-
-```bash
-git fetch --unshallow origin
-git fetch origin --tags
-```
-
-> [!NOTE]
-> The installer deploys a pre-built Web App bundle matching the exact checked-out commit.
-> It never compiles the Web App on the Raspberry Pi and never falls back to a bundle from another commit. If a bundle is unavailable, publish or rerun the Web App CI workflow for that commit before retrying the installation. See the developers [Web App](../developers/webapp.md) documentation for details.
-
-### Logs
-
-To follow the installation closely, use this command in another terminal.
-
-```bash
-cd; tail -f INSTALL-<fullname>.log
+jukebox setup --check      # what is set up, what is missing
+jukebox setup samba        # run a single step (see: jukebox setup --list)
+jukebox setup rfid         # configure an RFID reader
+jukebox plugin list        # installed plugins; enable/disable them
 ```

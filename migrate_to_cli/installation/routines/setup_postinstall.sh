@@ -1,6 +1,6 @@
 _setup_login_message() {
     local login_message_welcome_file="/etc/update-motd.d/99-rpi-jukebox-rfid-welcome"
-    sudo cp -f "${INSTALLATION_PATH}/resources/system/99-rpi-jukebox-rfid-welcome" "$login_message_welcome_file"
+    sudo cp -f "${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/system/99-rpi-jukebox-rfid-welcome" "$login_message_welcome_file"
     sudo chmod +x "$login_message_welcome_file"
 }
 

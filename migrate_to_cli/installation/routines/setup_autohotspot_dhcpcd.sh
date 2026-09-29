@@ -12,7 +12,7 @@ AUTOHOTSPOT_DHCPCD_CONF_NOHOOK_WPA_SUPPLICANT="nohook wpa_supplicant"
 AUTOHOTSPOT_SERVICE_DAEMON="autohotspot-daemon.service"
 AUTOHOTSPOT_SERVICE_DAEMON_PATH="${SYSTEMD_PATH}/${AUTOHOTSPOT_SERVICE_DAEMON}"
 
-AUTOHOTSPOT_DHCPCD_RESOURCES_PATH="${INSTALLATION_PATH}/resources/autohotspot/dhcpcd"
+AUTOHOTSPOT_DHCPCD_RESOURCES_PATH="${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/autohotspot/dhcpcd"
 
 _prepare_services_dhcpcd() {
     # disable services. We want to start them manually

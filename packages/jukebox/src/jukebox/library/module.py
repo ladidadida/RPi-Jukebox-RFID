@@ -3,12 +3,14 @@
 import asyncio
 import logging
 import threading
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Protocol
 
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.requests import Request
 
+import jukebox.paths
 import jukebox.player
 from jukebox.contract import CoreModule, OperationError, action, event, extension_point, query
 from jukebox.library.covers import CoverCache
@@ -19,8 +21,8 @@ logger = logging.getLogger('jb.library')
 
 LOCAL_SOURCE = 'local'
 COVER_ROUTE = '/api/v1/library/covers'
-DEFAULT_INDEX = 'shared/settings/library.sqlite'
-DEFAULT_COVER_CACHE = 'shared/cache/covers'
+DEFAULT_INDEX = 'settings/library.sqlite'
+DEFAULT_COVER_CACHE = 'cache/covers'
 
 
 class LibrarySource(Protocol):
@@ -147,10 +149,15 @@ class Library(CoreModule):
     def start(self, ctx) -> None:
         self._ctx = ctx
         path = ctx.config.get('path', default=None)
-        root_provider = (lambda: path) if path else jukebox.player.get_music_library_path
-        self._index = LibraryIndex(ctx.config.setdefault('index', value=DEFAULT_INDEX), root_provider)
-        self._covers = CoverCache(ctx.config.setdefault('cover_cache', value=DEFAULT_COVER_CACHE))
+        root_provider = (lambda: str(jukebox.paths.resolve(path))) if path else jukebox.player.get_music_library_path
+        self._index = LibraryIndex(str(jukebox.paths.resolve(ctx.config.setdefault('index', value=DEFAULT_INDEX))),
+                                   root_provider)
+        self._covers = CoverCache(str(jukebox.paths.resolve(ctx.config.setdefault('cover_cache',
+                                                                                  value=DEFAULT_COVER_CACHE))))
         self._files = MusicLibrary(root_provider, self._refresh_all)
+        root = root_provider()
+        if root:
+            Path(root).expanduser().mkdir(parents=True, exist_ok=True)
         self._executor = ctx.executor('scan')
         self._file_executor = ctx.executor('files')
 

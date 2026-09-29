@@ -13,13 +13,14 @@ from pydantic import BaseModel
 
 import jukebox.cfghandler
 import jukebox.legacy_actions as legacy_actions
+import jukebox.paths
 from jukebox.contract import CoreModule, event, extension_point, query
 
 log = logging.getLogger('jb.rfid')
 
 cfg_rfid = jukebox.cfghandler.get_handler('rfid')
 
-DEFAULT_READER_CONFIG = 'shared/settings/rfid.yaml'
+DEFAULT_READER_CONFIG = 'settings/rfid.yaml'
 
 
 class ReaderDriver(Protocol):
@@ -140,7 +141,7 @@ class Rfid(CoreModule):
 
     def start(self, ctx) -> None:
         self._ctx = ctx
-        path = ctx.config.setdefault('reader_config', value=DEFAULT_READER_CONFIG)
+        path = str(jukebox.paths.resolve(ctx.config.setdefault('reader_config', value=DEFAULT_READER_CONFIG)))
         try:
             jukebox.cfghandler.load_yaml(cfg_rfid, path)
         except FileNotFoundError:

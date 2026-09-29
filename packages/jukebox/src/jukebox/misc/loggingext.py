@@ -34,6 +34,7 @@ import sys
 import logging
 import logging.config
 import logging.handlers
+import jukebox.paths
 import jukebox.publishing as publishing
 import jukebox.misc.simplecolors as sc
 from ruamel.yaml import YAML
@@ -157,6 +158,11 @@ def configure_from_file(filename=None):
     try:
         with open(filename) as stream:
             cfg = yaml.load(stream)
+        for handler in (cfg.get('handlers') or {}).values():
+            if 'filename' in handler:
+                path = jukebox.paths.resolve(handler['filename'])
+                path.parent.mkdir(parents=True, exist_ok=True)
+                handler['filename'] = str(path)
         logging.config.dictConfig(cfg)
         logger = logging.getLogger('jb')
     except Exception as e:

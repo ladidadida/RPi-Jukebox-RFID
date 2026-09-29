@@ -8,6 +8,7 @@ import logging
 from queue import Queue
 from threading import Thread
 import jukebox.cfghandler
+import jukebox.paths
 
 COVER_PREFIX = 'cover'
 NO_COVER_ART_EXTENSION = 'no-art'
@@ -20,8 +21,9 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 
 class CoverartCacheManager:
     def __init__(self):
-        coverart_cache_path = cfg.setndefault('webapp', 'coverart_cache_path', value='packages/webapp/build/cover-cache')
-        self.cache_folder_path = Path(coverart_cache_path).expanduser()
+        coverart_cache_path = cfg.setndefault('webapp', 'coverart_cache_path', value='cache/mpd-covers')
+        self.cache_folder_path = jukebox.paths.resolve(coverart_cache_path)
+        self.cache_folder_path.mkdir(parents=True, exist_ok=True)
         self.write_queue = Queue()
         self.worker_thread = Thread(target=self.process_write_requests)
         self.worker_thread.daemon = True  # Ensure the thread closes with the program

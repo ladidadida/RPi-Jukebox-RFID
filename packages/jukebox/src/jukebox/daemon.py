@@ -9,6 +9,7 @@ import time
 import atexit
 from typing import (Optional)
 
+import jukebox.paths
 import jukebox.utils
 import jukebox.publishing as publishing
 from jukebox.api import FastApiServer
@@ -21,8 +22,7 @@ logger = logging.getLogger('jb.daemon')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
 #: Template a missing configuration_file is created from on first run (see JukeBox.__init__).
-#: Repository-root-relative, same convention as every other path in this codebase.
-DEFAULT_CONFIG_TEMPLATE = 'resources/default-settings/jukebox.default.yaml'
+DEFAULT_CONFIG_TEMPLATE = str(jukebox.paths.resource('default-settings', 'jukebox.default.yaml'))
 
 _SHUTDOWN_SIGNAL: Optional[int] = None
 
@@ -156,7 +156,7 @@ class JukeBox:
         logger.info(f"Start-up time: {((time.time_ns() - time_start) / 1000000.0):.3f} ms")
 
         if self.write_artifacts:
-            artifacts_dir = 'shared/artifacts/'
+            artifacts_dir = jukebox.paths.home() / 'artifacts'
             os.makedirs(artifacts_dir, exist_ok=True)
             with open(os.path.join(artifacts_dir, 'card_actions.json'), 'w') as stream:
                 json.dump(self.modules.catalog.describe(), stream, indent=2)

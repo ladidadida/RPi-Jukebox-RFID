@@ -5,7 +5,7 @@ Enable with ``player.backend: mpd`` and::
     plugins:
       mpd:
         host: localhost
-        status_file: shared/settings/music_player_status.json
+        status_file: settings/music_player_status.json
         library:
           update_on_startup: true
           check_user_rights: true
@@ -15,6 +15,7 @@ import logging
 
 import jukebox.cfghandler
 import jukebox.misc as misc
+import jukebox.paths
 import jukebox.player
 from jukebox.contract import Plugin
 
@@ -23,7 +24,7 @@ cfg_main = jukebox.cfghandler.get_handler('jukebox')
 
 DEFAULTS = {
     'host': 'localhost',
-    'status_file': 'shared/settings/music_player_status.json',
+    'status_file': 'settings/music_player_status.json',
     'library': {'update_on_startup': True, 'check_user_rights': True},
 }
 
@@ -39,6 +40,9 @@ def _setting(ctx, *keys):
         for key in keys:
             value = value[key]
     return value
+
+
+COVER_ROUTE = '/api/v1/mpd/covers'
 
 
 class MpdLibrarySource:
@@ -64,7 +68,7 @@ class MpdLibrarySource:
 
     def cover(self, song_url):
         name = self._backend.get_single_coverart(song_url)
-        return name if name and name != 'CACHE_PENDING' else None
+        return f'{COVER_ROUTE}/{name}' if name and name != 'CACHE_PENDING' else None
 
     def refresh(self):
         self._backend.update()
@@ -80,7 +84,8 @@ class Mpd(Plugin):
     def start(self, ctx) -> None:
         from jukebox_plugin_mpd.backend import PlayerMPD
 
-        backend = PlayerMPD(host=_setting(ctx, 'host'), status_file=_setting(ctx, 'status_file'))
+        backend = PlayerMPD(host=_setting(ctx, 'host'),
+                            status_file=str(jukebox.paths.resolve(_setting(ctx, 'status_file'))))
         if _setting(ctx, 'library', 'update_on_startup'):
             backend.update()
         if _setting(ctx, 'library', 'check_user_rights'):
@@ -90,3 +95,14 @@ class Mpd(Plugin):
                 misc.recursive_chmod(music_library_path, mode_files=0o666, mode_dirs=0o777)
         ctx.modules.player.backends.register('mpd', backend)
         ctx.modules.library.sources.register('mpd', MpdLibrarySource(backend))
+        self._backend = backend
+
+    def extra_routes(self, router) -> None:
+        from fastapi.responses import FileResponse, JSONResponse
+
+        @router.get(COVER_ROUTE + '/{name}', tags=['mpd'])
+        async def mpd_cover(name: str):
+            path = self._backend.coverart_cache_manager.cache_folder_path / name
+            if '/' in name or name.startswith('.') or not path.is_file():
+                return JSONResponse(status_code=404, content={'error': {'code': 'unknown_cover', 'message': name}})
+            return FileResponse(path)

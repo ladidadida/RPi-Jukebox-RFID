@@ -4,6 +4,7 @@ import pytest
 
 pytest.importorskip('jukebox_plugin_mpd', reason="the mpd plugin package is not installed")
 
+import jukebox.paths
 import jukebox_plugin_mpd
 import jukebox_plugin_mpd.backend
 from jukebox.cfghandler import ConfigHandler
@@ -54,7 +55,7 @@ def test_mpd_plugin_registers_its_backend(monkeypatch, tmp_path, config, expecte
     manager.ready()
 
     assert manager.failed == {}
-    assert created == [(expected_host, 'shared/settings/music_player_status.json')]
+    assert created == [(expected_host, str(jukebox.paths.resolve('settings/music_player_status.json')))]
     player = manager.instance('player')
     assert player.get_active_backend().name == 'mpd'
     sources = manager.handle('library').invoke('list_sources')

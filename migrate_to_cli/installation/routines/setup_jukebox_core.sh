@@ -47,16 +47,16 @@ _jukebox_core_install_python_requirements() {
 
 _jukebox_core_install_settings() {
   print_lc "  Register Jukebox settings"
-  cp -f "${INSTALLATION_PATH}/resources/default-settings/jukebox.default.yaml" "${SETTINGS_PATH}/jukebox.yaml"
+  cp -f "${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/default-settings/jukebox.default.yaml" "${SETTINGS_PATH}/jukebox.yaml"
   # Enable the Raspberry Pi hardware control plugin
   sed -i 's/^plugins: {}$/plugins:\n  raspberry_pi: {}/' "${SETTINGS_PATH}/jukebox.yaml"
-  cp -f "${INSTALLATION_PATH}/resources/default-settings/logger.default.yaml" "${SETTINGS_PATH}/logger.yaml"
+  cp -f "${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/default-settings/logger.default.yaml" "${SETTINGS_PATH}/logger.yaml"
 }
 
 _jukebox_core_register_as_service() {
   print_lc "  Register Jukebox Core user service"
 
-  sudo cp -f "${INSTALLATION_PATH}/resources/default-services/jukebox-daemon.service" "${JUKEBOX_SERVICE_NAME}"
+  sudo cp -f "${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/default-services/jukebox-daemon.service" "${JUKEBOX_SERVICE_NAME}"
   sudo sed -i "s|%%INSTALLATION_PATH%%|${INSTALLATION_PATH}|g" "${JUKEBOX_SERVICE_NAME}"
   sudo chmod 644 "${JUKEBOX_SERVICE_NAME}"
 

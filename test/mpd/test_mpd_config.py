@@ -1,14 +1,10 @@
 import re
-from pathlib import Path
+
+import jukebox.paths
 
 
 def test_mpd_uses_native_pulse_output():
-    config_path = (
-        Path(__file__).parents[2]
-        / 'resources'
-        / 'default-settings'
-        / 'mpd.default.conf'
-    )
+    config_path = jukebox.paths.resource('default-settings', 'mpd.default.conf')
     config = config_path.read_text()
     output_blocks = re.findall(
         r'^audio_output\s*\{(.*?)^\}',

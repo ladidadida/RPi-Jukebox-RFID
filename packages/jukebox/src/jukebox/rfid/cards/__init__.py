@@ -15,13 +15,14 @@ from pydantic import BaseModel
 
 import jukebox.cfghandler
 import jukebox.legacy_actions as legacy_actions
+import jukebox.paths
 from jukebox.contract import ActionError, CoreModule, OperationError, action, event, query
 
 log = logging.getLogger('jb.cards')
 cfg_cards = jukebox.cfghandler.get_handler('cards')
 cfg_main = jukebox.cfghandler.get_handler('jukebox')
 
-DEFAULT_DATABASE = 'shared/settings/cards.yaml'
+DEFAULT_DATABASE = 'settings/cards.yaml'
 
 
 class CardEntry(BaseModel):
@@ -61,7 +62,7 @@ class Cards(CoreModule):
     def start(self, ctx) -> None:
         self._ctx = ctx
         legacy_path = cfg_main.getn('rfid', 'card_database', default=None)
-        self._path = ctx.config.setdefault('database', value=legacy_path or DEFAULT_DATABASE)
+        self._path = str(jukebox.paths.resolve(ctx.config.setdefault('database', value=legacy_path or DEFAULT_DATABASE)))
         try:
             cfg_cards.load(self._path)
         except FileNotFoundError:

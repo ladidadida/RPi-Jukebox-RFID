@@ -5,12 +5,24 @@ import signal
 import threading
 from pathlib import Path
 
+import jukebox.paths
 from jukebox.audio_output import play_file
 from jukebox.contract import CoreModule, OperationError, action
 
 logger = logging.getLogger('jb.jingle')
 
 SHUTDOWN_SOUND_TIMEOUT = 3.0
+DEFAULT_SOUNDS = {'startup_sound': 'startupsound.wav', 'shutdown_sound': 'shutdownsound.wav'}
+
+
+def sound_path(value: str, key: str = 'startup_sound') -> Path:
+    """``default`` or ``resources/audio/<file>``: a packaged sound; anything else: a path below the home."""
+    if value == 'default':
+        return jukebox.paths.resource('audio', DEFAULT_SOUNDS[key])
+    parts = Path(value).parts
+    if parts[:2] == ('resources', 'audio'):
+        return jukebox.paths.resource('audio', *parts[2:])
+    return jukebox.paths.resolve(value)
 
 
 class Jingle(CoreModule):
@@ -33,22 +45,22 @@ class Jingle(CoreModule):
         volume = self._ctx.config.get('volume', default=None)
         return 100 if volume is None else max(0, min(100, int(volume)))
 
-    def _play(self, sound: str) -> None:
+    def _play(self, sound: str, key: str = 'startup_sound') -> None:
         try:
-            play_file(sound, self._volume(), should_stop=self._stopping.is_set)
+            play_file(str(sound_path(sound, key)), self._volume(), should_stop=self._stopping.is_set)
         except Exception as error:
             logger.error(f"Could not play '{sound}': {error.__class__.__name__}: {error}")
 
     def ready(self) -> None:
-        sound = self._ctx.config.get('startup_sound', default=None)
+        sound = self._ctx.config.get('startup_sound', default='default')
         if sound:
             self._executor.submit(self._play, sound)
 
     def stop(self):
-        sound = self._ctx.config.get('shutdown_sound', default=None)
+        sound = self._ctx.config.get('shutdown_sound', default='default')
         from jukebox.daemon import shutdown_signal
         if sound and shutdown_signal() != signal.SIGINT:
-            done = threading.Thread(target=self._play, args=(sound,), name='jingle.shutdown', daemon=True)
+            done = threading.Thread(target=self._play, args=(sound, 'shutdown_sound'), name='jingle.shutdown', daemon=True)
             done.start()
             done.join(SHUTDOWN_SOUND_TIMEOUT)
         self._stopping.set()
@@ -57,6 +69,6 @@ class Jingle(CoreModule):
     @action()
     def play(self, sound: str) -> None:
         """Play a sound file (path relative to the jukebox directory or absolute)."""
-        if not Path(sound).expanduser().is_file():
+        if not sound_path(sound).is_file():
             raise OperationError(404, 'unknown_sound', f"Sound file '{sound}' not found")
-        self._executor.submit(self._play, str(Path(sound).expanduser()))
+        self._executor.submit(self._play, sound)

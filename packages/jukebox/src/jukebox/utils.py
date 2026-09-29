@@ -2,6 +2,7 @@
 Common utility functions
 """
 import logging
+import os
 import subprocess
 
 
@@ -22,25 +23,17 @@ def get_config_action(cfg, section, option, default, valid_actions_dict, logger)
 
 
 def get_git_state():
-    """Return git state information for the current branch"""
+    """Git state of the checkout the jukebox runs from, or a note that it isn't one (package install)."""
+    source_dir = os.path.dirname(os.path.abspath(__file__))
 
-    gitlog = "No git log info"
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=source_dir, capture_output=True, text=True,
+                              check=True, timeout=5).stdout.strip()
+
     try:
-        sub = subprocess.run("git log --pretty='%h [%cs] %s %d' -n 1 --no-color",
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             check=True)
-        gitlog = sub.stdout.decode('utf-8').strip()
-    except Exception as e:
-        log.error(f"{e.__class__.__name__}: {e}")
-
-    describe = "No git describe info"
-    try:
-        sub = subprocess.run("git describe --always --dirty",
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             check=True)
-        if sub.returncode == 0:
-            describe = sub.stdout.decode('utf-8').strip()
-    except Exception as e:
-        log.error(f"{e.__class__.__name__}: {e}")
-
+        gitlog = git('log', '--pretty=%h [%cs] %s %d', '-n', '1', '--no-color')
+        describe = git('describe', '--always', '--dirty')
+    except (OSError, subprocess.SubprocessError) as error:
+        log.debug(f"No git state: {error}")
+        return "not a git checkout"
     return f"{gitlog} [{describe}]"

@@ -15,7 +15,10 @@ import logging
 import argparse
 import subprocess
 
+from dotenv import load_dotenv
+
 import jukebox.cfghandler
+import jukebox.paths
 import jukebox.misc.inputminus as pyil
 import jukebox_rfid_readers.configure as rfid_configure
 
@@ -49,10 +52,9 @@ def enable_driver_plugins(jukebox_config: str, config_dict: dict) -> None:
 
 
 def main():
-    # The default config file relative to this files location and independent of working directory
-    script_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    cfg_file_default = os.path.abspath(os.path.join(script_path, '../../shared/settings/rfid.yaml'))
-    jukebox_cfg_default = os.path.abspath(os.path.join(script_path, '../../shared/settings/jukebox.yaml'))
+    load_dotenv()
+    cfg_file_default = str(jukebox.paths.settings_dir() / 'rfid.yaml')
+    jukebox_cfg_default = str(jukebox.paths.settings_dir() / 'jukebox.yaml')
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force",

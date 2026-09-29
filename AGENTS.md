@@ -44,8 +44,8 @@ migrate_to_cli/    Working area for everything slated to become CLI functionalit
                    hostif redesign; not yet ported to the CLI. run_jukebox.py/run_publicity_sniffer.py
                    were replaced by `jukebox run`/`jukebox debug sniff` and removed from here.
 docker/            Dockerfiles + compose files for a non-Pi development environment
-resources/         Default settings, systemd services, sample audio, autohotspot configs
-shared/            Runtime data: audiofolders, playlists, settings, logs (mounted/shared at runtime)
+shared/            JUKEBOX_HOME when running from this checkout (see .env): settings, audiofolders,
+                   playlists, logs, cache
 documentation/     Project docs: builders/ (end users/installers) and developers/ (contributors)
 test/              Python unit tests (pytest)
 ci/                CI helper scripts (e.g. installation testing)
@@ -90,11 +90,16 @@ ci/                CI helper scripts (e.g. installation testing)
   alternative. Backends implement `jukebox.player.backend.PlayerBackend`; the player module turns
   their raw status into the typed `player.status` event (`jukebox.player.status.PlayerStatus`).
 - **Library** (`jukebox.library`): owns the music library -- file management, a SQLite index of
-  tags/durations (`shared/settings/library.sqlite`), cover art (`shared/cache/covers`), and the
+  tags/durations (`$JUKEBOX_HOME/settings/library.sqlite`), cover art (`$JUKEBOX_HOME/cache/covers`), and the
   `library.sources` extension point for further catalogs (mpd, streaming). Browsing routes are
   `/api/v1/library/*`; the local source id is `local`.
-- Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
-  what gets mounted into Docker containers and is where user-editable YAML config sits.
+- **Paths** (`jukebox.paths`): all runtime data lives in `JUKEBOX_HOME` (`--home`, `$JUKEBOX_HOME`,
+  default `$XDG_DATA_HOME/jukebox`; this checkout's `.env` sets it to `shared/`). Relative paths in
+  the configuration resolve against it (a legacy leading `shared/` is dropped); never resolve paths
+  against the working directory or the checkout. Packaged files (default settings, sounds, service
+  templates) live in `jukebox/resources/`, read via `jukebox.paths.resource()`. The web app is
+  served from `api.webapp_dir` / `$JUKEBOX_WEBAPP_DIR` (set in `.env`), else from the package.
+  See `documentation/developers/packaging-and-setup.md`.
 - **Bundled plugins** live in `packages/plugins/*` (uv workspace members, installed by `uv sync`
   but only loaded when enabled under `plugins:`): `raspberry-pi` (shutdown/reboot, GPIO, battery,
   firmware health; the installer enables it), `mpd` (player backend) and `rfid-readers`
@@ -111,7 +116,7 @@ ci/                CI helper scripts (e.g. installation testing)
   conventions" section) — this is a deliberate v2→v3 break, follow it strictly.
 - **JavaScript/React** (`packages/webapp`): Create React App (`react-scripts`), MUI v5, i18next for
   translations (`de`/`en` under `packages/webapp/public/locales`), Ramda, react-router-dom.
-- **Config format**: YAML (`ruamel.yaml`), defaults in `resources/default-settings/`.
+- **Config format**: YAML (`ruamel.yaml`), defaults in `packages/jukebox/src/jukebox/resources/default-settings/`.
 - Everything under any `scratch*`-named folder is git- and ruff-ignored — safe scratch space,
   never a place for real code.
 
@@ -125,10 +130,10 @@ The old `run_*.sh` wrapper scripts are gone.
 uv sync --group dev             # install/update the .venv (runtime + dev dependencies, core and
                                  # bundled plugins); reader drivers with extra dependencies need
                                  # --extra <driver-extra> (see "Bundled plugins" above)
-uv run jukebox run              # start the Jukebox core -- creates shared/settings/jukebox.yaml
-                                 # and logger.yaml from the default templates on first run if
-                                 # missing. Override the paths with -c/-l or $JUKEBOX_CONF/
-                                 # $JUKEBOX_LOGGER_CONF.
+uv run jukebox run              # start the Jukebox core -- creates $JUKEBOX_HOME/settings/
+                                 # jukebox.yaml and logger.yaml from the packaged templates on
+                                 # first run if missing (here: shared/settings/, via .env).
+uv run jukebox home             # show JUKEBOX_HOME and the config file in use
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)

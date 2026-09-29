@@ -105,9 +105,8 @@ optimisation. Steps needing root run their commands through `sudo`.
 6. **`jukebox update`** and configuration migrations.
 7. Remove `migrate_to_cli/` once everything is ported.
 
-## Open questions
+## Decisions
 
-- Should the default `JUKEBOX_HOME` on a Pi be a visible directory (e.g. `~/jukebox`), so the music
-  library is easy to find via Samba? The install script could set it for the service.
-- Where does the install script live for `curl | bash` (raw GitHub URL of the main branch, or a
-  release asset)?
+- On a Raspberry Pi the install script sets `JUKEBOX_HOME=~/jukebox` (visible, easy to reach via
+  Samba); the code's default stays `$XDG_DATA_HOME/jukebox`.
+- The install script lives in the repository's `main` branch.

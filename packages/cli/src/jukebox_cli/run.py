@@ -1,40 +1,28 @@
 import logging
-import os
 from pathlib import Path
+from typing import Optional
 
 import typer
 
 import jukebox.cfghandler
 import jukebox.daemon
+import jukebox.paths
 from jukebox.misc import loggingext
 
-#: Template a missing --logger file is created from on first run (see run(), below).
-DEFAULT_LOGGER_CONFIG_TEMPLATE = 'resources/default-settings/logger.default.yaml'
-
-
-def _default_config_dir() -> Path:
-    """XDG-style per-user config directory: $XDG_CONFIG_HOME/jukebox, or ~/.config/jukebox."""
-    xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
-    base = Path(xdg_config_home) if xdg_config_home else Path.home() / '.config'
-    return base / 'jukebox'
-
-
 def run(
-    conf: Path = typer.Option(
-        _default_config_dir() / 'jukebox.yaml', "-c", "--conf",
+    conf: Optional[Path] = typer.Option(
+        None, "-c", "--conf",
         envvar="JUKEBOX_CONF",
         file_okay=True, dir_okay=False,
-        help="Jukebox configuration file. Created from the default template on first run if it "
-             "doesn't exist yet. Default is $XDG_CONFIG_HOME/jukebox/jukebox.yaml (or "
-             "~/.config/jukebox/jukebox.yaml) -- this repo's own .env overrides that to "
-             "shared/settings/jukebox.yaml for development.",
+        help="Jukebox configuration file (default: $JUKEBOX_HOME/settings/jukebox.yaml). Created from "
+             "the default template on first run if it doesn't exist yet.",
     ),
-    logger_conf: Path = typer.Option(
-        _default_config_dir() / 'logger.yaml', "-l", "--logger",
+    logger_conf: Optional[Path] = typer.Option(
+        None, "-l", "--logger",
         envvar="JUKEBOX_LOGGER_CONF",
         file_okay=True, dir_okay=False,
-        help="Logger configuration file. Created from the default template on first run if it "
-             "doesn't exist yet. Same default location as --conf.",
+        help="Logger configuration file (default: $JUKEBOX_HOME/settings/logger.yaml). Created from "
+             "the default template on first run if it doesn't exist yet.",
     ),
     verbose: int = typer.Option(
         0, "-v", "--verbose", count=True,
@@ -53,6 +41,8 @@ def run(
     """Start the Jukebox Daemon."""
     if verbose and quiet:
         raise typer.BadParameter("--verbose and --quiet are mutually exclusive")
+    conf = conf or jukebox.paths.settings_dir() / 'jukebox.yaml'
+    logger_conf = logger_conf or jukebox.paths.settings_dir() / 'logger.yaml'
 
     if verbose:
         logger = loggingext.configure_default({1: logging.INFO, 2: logging.DEBUG}[min(verbose, 2)],
@@ -63,9 +53,10 @@ def run(
         logger = loggingext.configure_default({1: logging.ERROR, 2: logging.CRITICAL}[min(quiet, 2)],
                                                with_publisher=True)
     else:
-        jukebox.cfghandler.ensure_default_config(str(logger_conf), DEFAULT_LOGGER_CONFIG_TEMPLATE)
+        jukebox.cfghandler.ensure_default_config(
+            str(logger_conf), str(jukebox.paths.resource('default-settings', 'logger.default.yaml')))
         logger = loggingext.configure_from_file(str(logger_conf))
 
-    logger.info(f"Using jukebox configuration file '{conf}'")
+    logger.info(f"Jukebox home '{jukebox.paths.home()}', configuration file '{conf}'")
     myjukebox = jukebox.daemon.get_jukebox_daemon(str(conf), artifacts)
     myjukebox.run()

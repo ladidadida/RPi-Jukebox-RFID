@@ -137,7 +137,7 @@ class MpdLock:
 class PlayerMPD:
     """Interface to MPD Music Player Daemon"""
 
-    def __init__(self, host: str = 'localhost', status_file: str = 'shared/settings/music_player_status.json'):
+    def __init__(self, host: str = 'localhost', status_file: str = 'settings/music_player_status.json'):
         self._status_callback = lambda status: None
         self.nvm = nv_manager()
         self.mpd_host = host

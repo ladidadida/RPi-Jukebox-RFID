@@ -2,6 +2,7 @@ import os
 import re
 import logging
 import jukebox.cfghandler
+import jukebox.paths
 from typing import Optional
 
 
@@ -33,10 +34,12 @@ class MusicLibPath:
     configured -- keeps existing mpd installs working without a migration step.
     """
     def __init__(self):
-        self._music_library_path = cfg.getn('player', 'music_library_path', default=None)
-        if self._music_library_path is not None:
+        configured = cfg.getn('player', 'music_library_path', default=None)
+        if configured is not None:
+            self._music_library_path = str(jukebox.paths.resolve(configured))
             return
         if cfg.getn('player', 'backend', default='local_audio') != 'mpd':
+            self._music_library_path = str(jukebox.paths.resolve('audiofolders'))
             return
         mpd_conf_file = cfg.setndefault('playermpd', 'mpd_conf', value='~/.config/mpd/mpd.conf')
         try:

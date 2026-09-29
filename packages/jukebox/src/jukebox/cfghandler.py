@@ -337,12 +337,7 @@ def ensure_default_config(filename: str, template: str) -> None:
     if os.path.exists(filename):
         return
     if not os.path.exists(template):
-        raise FileNotFoundError(
-            f"Cannot create default config '{filename}': template '{template}' not found. "
-            f"jukebox currently must be run with the repository root as the working directory "
-            f"(template paths are relative to it) -- current working directory is "
-            f"'{os.getcwd()}'."
-        )
+        raise FileNotFoundError(f"Cannot create default config '{filename}': template '{template}' not found.")
     logger.info(f"Config file '{filename}' not found, creating it from default template '{template}'")
     os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
     shutil.copyfile(template, filename)

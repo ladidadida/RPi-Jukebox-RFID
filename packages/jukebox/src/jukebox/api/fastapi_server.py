@@ -13,6 +13,7 @@ model), so a slow call doesn't serialize the rest of the API.
 import asyncio
 import json
 import logging
+import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -22,6 +23,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 import jukebox.cfghandler
+import jukebox.paths
 import jukebox.publishing
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
 from jukebox.api.webapp_static import register_webapp_routes
@@ -32,16 +34,19 @@ cfg = jukebox.cfghandler.get_handler('jukebox')
 
 API_EXECUTOR_WORKERS = 4
 
-# packages/jukebox/src/jukebox/api/fastapi_server.py -> repo root is 5 levels up.
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+WEBAPP_DIR_ENV = 'JUKEBOX_WEBAPP_DIR'
 
 
 def default_webapp_build_dir() -> Path:
-    return _REPO_ROOT / 'packages' / 'webapp' / 'build'
+    """``api.webapp_dir``, else ``$JUKEBOX_WEBAPP_DIR``, else the web app shipped in the package."""
+    configured = cfg.getn('api', 'webapp_dir', default=None) or os.environ.get(WEBAPP_DIR_ENV)
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return Path(__file__).resolve().parent.parent / 'webapp'
 
 
 def default_logs_dir() -> Path:
-    return _REPO_ROOT / 'shared' / 'logs'
+    return jukebox.paths.home() / 'logs'
 
 
 class _WebSocketClient:

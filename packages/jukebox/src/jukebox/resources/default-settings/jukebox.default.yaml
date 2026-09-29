@@ -1,6 +1,4 @@
-# IMPORTANT:
-# Always use relative path from the repository root (the Jukebox daemon's working directory), but do not use relative paths with `~/`.
-# Sole (!) exception is in playermpd.mpd_conf
+# Relative paths are relative to the jukebox home ($JUKEBOX_HOME, see `jukebox home`).
 system:
   box_name: Jukebox
   # Seconds between system.health events (CPU temperature, disk usage); 0 disables them
@@ -36,7 +34,7 @@ plugins: {}
 # plugins:
 #   mpd:
 #     host: localhost
-#     status_file: shared/settings/music_player_status.json
+#     status_file: settings/music_player_status.json
 #     library:
 #       update_on_startup: true
 #       check_user_rights: true
@@ -62,9 +60,9 @@ volume:
     #   pulse_sink_name: bluez_sink.C4_FB_20_63_CO_FE.a2dp_sink
 jingle:
   # Supported: anything the player can decode (wav, mp3, flac, ...)
-  startup_sound: resources/audio/startupsound.wav
+  startup_sound: default
   # Not played on Ctrl-C
-  shutdown_sound: resources/audio/shutdownsound.wav
+  shutdown_sound: default
   # Playback volume of the jingles in percent of the current output volume
   volume: 30
 player:
@@ -73,9 +71,8 @@ player:
   # 'mpd' delegates to an external mpd server instead (requires the mpd plugin, see plugins: above,
   # and a running mpd instance).
   backend: local_audio
-  # Root of the music library. Relative to the repository root (the Jukebox daemon's working
-  # directory), same convention as everywhere else in this file.
-  music_library_path: shared/audiofolders
+  # Root of the music library
+  music_library_path: audiofolders
   second_swipe_action:
     # One of: 'toggle', 'play', 'skip', 'rewind', 'replay', 'replay_if_stopped', 'none'
     alias: toggle
@@ -94,8 +91,8 @@ player:
 library:
   # Index of the music library (tags, durations) and extracted cover art. The music itself is in
   # player.music_library_path.
-  index: shared/settings/library.sqlite
-  cover_cache: shared/cache/covers
+  index: settings/library.sqlite
+  cover_cache: cache/covers
   scan_on_startup: true
 playermpd:
   # Only read by jukebox.player to find the music library in mpd.conf when player.music_library_path
@@ -108,9 +105,9 @@ api:
   bind_address: 0.0.0.0
   port: 5556
 rfid:
-  reader_config: shared/settings/rfid.yaml
+  reader_config: settings/rfid.yaml
 cards:
-  database: shared/settings/cards.yaml
+  database: settings/cards.yaml
 timers:
   # Named timers run an action when they expire. Defaults (can be overridden here):
   #   stop_player: player.stop, fade_volume: volume.fade_out, shutdown: raspberry_pi.shutdown
@@ -136,9 +133,10 @@ input:
   devices: {}
 sync_rfidcards:
   enable: false
-  config_file: shared/settings/sync_rfidcards.yaml
+  config_file: settings/sync_rfidcards.yaml
 webapp:
-  coverart_cache_path: packages/webapp/build/cover-cache
+  # Cover art cache of the mpd plugin
+  coverart_cache_path: cache/mpd-covers
   # Load cover arts in Webapp. Change to false in case you have performance issue
   # when handling a lot of music
   # Defaults to true

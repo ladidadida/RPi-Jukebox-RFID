@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-AUTOHOTSPOT_NETWORKMANAGER_RESOURCES_PATH="${INSTALLATION_PATH}/resources/autohotspot/NetworkManager"
+AUTOHOTSPOT_NETWORKMANAGER_RESOURCES_PATH="${INSTALLATION_PATH}/packages/jukebox/src/jukebox/resources/autohotspot/NetworkManager"
 AUTOHOTSPOT_NETWORKMANAGER_CONNECTIONS_PATH="/etc/NetworkManager/system-connections"
 
 _install_autohotspot_NetworkManager() {

@@ -27,9 +27,10 @@ packages/          uv workspace members
                    documentation/developers/core-and-plugins.md.
     interfaces/    Interface snapshots of the framework contract and every core module, checked
                    by test/contract/test_snapshots.py (see "Core and plugins" below)
-  cli/             Jukebox CLI (jukebox-cli). Implemented so far: `jukebox run` (start the daemon),
-                   `jukebox debug sniff` (publishing-bus WebSocket sniffer). `jukebox setup ...`
-                   (install routines) is not implemented yet — still in migrate_to_cli/.
+  cli/             Jukebox CLI (jukebox-cli): `jukebox run` (start the daemon), `home`,
+                   `plugin list|enable|disable|install`, `setup` (machine setup steps in
+                   jukebox_cli/setup/, see documentation/developers/packaging-and-setup.md),
+                   `debug sniff` (publishing-bus WebSocket sniffer).
   webapp/          React front-end (the touch/web UI), talks to the core via HTTP/WebSocket
                    (FastAPI, `/api/v1/*`). Not a uv workspace member (npm/Vite project), but lives
                    alongside the Python packages structurally.
@@ -37,8 +38,8 @@ migrate_to_cli/    Working area for everything slated to become CLI functionalit
                    rewritten (see documentation/developers/roadmap-core-architecture.md,
                    "Packaging/install overhaul") — moved here so it's obviously provisional rather
                    than mixed in with permanent code. Runs exactly as before, just relocated:
-  installation/    Bash install routines run on a real Raspberry Pi (install-jukebox.sh +
-                   routines/) — the eventual target is `jukebox setup ...` CLI subcommands
+  installation/    Bash install routines (install-jukebox.sh + routines/), ported to
+                   `jukebox setup`; removed once the new install script replaces them
   scripts/         RFID registration and audio config setup tools -- both currently broken (import
                    jukebox.hostif, removed along with the old plugin system) and blocked on a
                    hostif redesign; not yet ported to the CLI. run_jukebox.py/run_publicity_sniffer.py
@@ -136,6 +137,8 @@ uv run jukebox run              # start the Jukebox core -- creates $JUKEBOX_HOM
 uv run jukebox home             # show JUKEBOX_HOME and the config file in use
 uv run jukebox plugin list      # installed plugins, enabled or not; also enable/disable <name>
                                  # [--with-extras], install <spec> [--enable]
+uv run jukebox setup --check    # what `jukebox setup [<step>...]` would change on this machine
+                                 # (steps: `jukebox setup --list`; answers in settings/setup.yaml)
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)

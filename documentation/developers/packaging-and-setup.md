@@ -105,7 +105,22 @@ optimisation. Steps needing root run their commands through `sudo`.
    (`packages/cli/src/jukebox_cli/plugin.py`). `Plugin.extras` (contract 1.1) names the extras of
    the plugin's package that `enable --with-extras` installs; installs go through `uv pip` into the
    jukebox's own environment, `pip` as fallback.
-4. **Setup framework and steps**, porting the Bash routines one by one.
+4. **Setup framework and steps** -- *done*: `packages/cli/src/jukebox_cli/setup/`. `System` wraps
+   commands, files and machine facts (tests swap in a fake with a temporary root); steps:
+   `packages`, `raspi`, `mpd`, `plugins`, `service`, `samba`, `rfid`, `kiosk`, `autohotspot`,
+   `boot`, `welcome` (`jukebox setup --list`). Missing Debian packages of all chosen steps are
+   installed in one `apt-get` call before the steps run. Differences to the Bash installer:
+   - The service is a user unit in `~/.config/systemd/user/`, generated with the actual
+     `jukebox` executable and `JUKEBOX_HOME`; `loginctl enable-linger` starts it at boot (default
+     on a Pi) instead of relying on autologin. It only wants `mpd.service` if the `mpd` plugin is
+     enabled.
+   - Autologin is only set up for the kiosk mode, which needs it.
+   - Autohotspot supports NetworkManager only (Bookworm and later); dhcpcd systems don't offer
+     the step.
+   - The Samba share is called `jukebox` and shares `JUKEBOX_HOME`.
+   - `rfid` runs the interactive reader configuration and is skipped with `--yes`.
+   - Runtime packages only: the default player needs neither ffmpeg nor mpg123; the PipeWire
+     stack is installed on a Pi only (desktops bring their own sound server).
 5. **Install script** for package and source installs; CI runs it in the Debian containers.
 6. **`jukebox update`** and configuration migrations.
 7. Remove `migrate_to_cli/` once everything is ported.

@@ -1,0 +1,166 @@
+import pytest
+
+import jukebox.paths
+from jukebox_cli import plugin
+from jukebox_cli.setup import run_setup
+from jukebox_cli.setup.base import Answers, Context
+from jukebox_cli.setup.system import System
+
+
+class FakeSystem(System):
+    def __init__(self, root, pi=False):
+        super().__init__(root)
+        self.use_sudo = False
+        self.commands = []
+        self.enabled = set()
+        self.enabled_user = set()
+        self.installed = {'build-essential', 'python3-dev', 'libffi-dev', 'alsa-utils', 'libportaudio2'}
+        self.outputs = {
+            ('ip', 'route', 'get', '8.8.8.8'): '8.8.8.8 via 192.168.1.1 dev wlan0 src 192.168.1.50 uid 1000',
+            ('hostname',): 'jukebox',
+        }
+        (self.root / 'usr/bin').mkdir(parents=True)
+        (self.root / 'usr/bin/apt-get').touch()
+        if pi:
+            (self.root / 'proc/device-tree').mkdir(parents=True)
+            (self.root / 'proc/device-tree/model').write_text('Raspberry Pi 4 Model B Rev 1.4')
+            (self.root / 'boot/firmware').mkdir(parents=True)
+            (self.root / 'boot/firmware/config.txt').write_text('dtparam=audio=on\n')
+            (self.root / 'boot/firmware/cmdline.txt').write_text('console=tty1 root=PARTUUID=1234 rootwait\n')
+            self.enabled |= {'bluetooth.service', 'apt-daily.timer', 'dhcpcd.service'}
+
+    @property
+    def user(self):
+        return 'pi'
+
+    def architecture(self):
+        return 'arm64'
+
+    def which(self, command):
+        return f'/usr/bin/{command}'
+
+    def run(self, *args, root=False, check=True, input=None, quiet=False):
+        self.commands.append(args)
+        if 'install' in args and 'apt-get' in args:
+            self.installed |= {a for a in args[args.index('install') + 1:] if not a.startswith('-')}
+        units = self.enabled_user if '--user' in args else self.enabled
+        if args[0] == 'systemctl' and 'enable' in args:
+            units |= set(a for a in args[args.index('enable') + 1:] if not a.startswith('-'))
+        if args[0] == 'systemctl' and 'disable' in args:
+            units -= set(args[args.index('disable') + 1:])
+        if args[0] == 'loginctl':
+            self.write(f'/var/lib/systemd/linger/{args[-1]}', '')
+        if args[0] == 'smbpasswd':
+            self.outputs[('pdbedit', '-L')] = f'{args[-1]}:1000:'
+
+    def output(self, *args):
+        return self.outputs.get(tuple(args), '')
+
+    def unit_enabled(self, unit, user=False):
+        return unit in (self.enabled_user if user else self.enabled)
+
+    def missing_packages(self, packages):
+        return [p for p in packages if p not in self.installed]
+
+
+@pytest.fixture
+def home(tmp_path):
+    jukebox.paths.set_home(tmp_path / 'home')
+    yield tmp_path / 'home'
+    jukebox.paths.set_home(None)
+
+
+@pytest.fixture
+def extras(monkeypatch):
+    installed = []
+    monkeypatch.setattr(plugin, 'install_requirements', installed.extend)
+    return installed
+
+
+def setup_run(system, home, names=None, answers=None, check_only=False):
+    ctx = Context(system=system, config_path=home / 'settings' / 'jukebox.yaml', assume_yes=True)
+    store = Answers(home / 'settings' / 'setup.yaml')
+    if answers is not None:
+        store.save(answers)
+    return run_setup(names, ctx, store, check_only=check_only), ctx
+
+
+def test_pc_setup_installs_packages_and_service(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root')
+    failed, ctx = setup_run(system, home)
+    assert failed == 0
+    assert any('install' in c and 'espeak' in c for c in system.commands)
+    unit = system.read('~/.config/systemd/user/jukebox-daemon.service')
+    assert f'Environment=JUKEBOX_HOME={home}' in unit
+    assert 'jukebox-daemon.service' in system.enabled_user
+    assert not system.exists('/var/lib/systemd/linger/pi')
+    assert ctx.enabled_plugins() == {}
+    assert extras == []
+
+
+def test_second_run_changes_nothing(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    assert setup_run(system, home)[0] == 0
+    system.commands.clear()
+    assert setup_run(system, home)[0] == 0
+    assert system.commands == []
+
+
+def test_pi_setup(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    failed, ctx = setup_run(system, home, answers={'disable_onboard_audio': True, 'samba': True})
+    assert failed == 0
+    assert 'raspberry_pi' in ctx.enabled_plugins()
+    assert extras == ['jukebox-plugin-raspberry-pi[gpio]']
+    assert system.exists('/var/lib/systemd/linger/pi')
+    assert 'audio=off' in system.read('/boot/firmware/config.txt')
+    assert 'disable_splash=1' in system.read('/boot/firmware/config.txt')
+    cmdline = system.read('/boot/firmware/cmdline.txt')
+    assert cmdline.startswith('console=tty1 root=PARTUUID=1234 rootwait ')
+    assert 'ipv6.disable=1' in cmdline and cmdline.count('quiet') == 1
+    assert 'bluetooth.service' not in system.enabled
+    assert 'static ip_address=192.168.1.50/24' in system.read('/etc/dhcpcd.conf')
+    smb = system.read('/etc/samba/smb.conf')
+    assert f'path={home}' in smb and smb.count('## Jukebox Samba Config') == 1
+    assert system.exists('/etc/update-motd.d/99-rpi-jukebox-rfid-welcome')
+
+
+def test_answers_are_stored_without_secrets(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    setup_run(system, home, answers={'samba': True, 'samba_password': 'secret'})
+    stored = Answers(home / 'settings' / 'setup.yaml').load()
+    assert stored['samba'] is True
+    assert stored['optimize_boot'] is True
+    assert 'samba_password' not in stored
+
+
+def test_check_changes_nothing(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    failed, _ = setup_run(system, home, check_only=True)
+    assert failed > 0
+    assert system.commands == []
+    assert not (home / 'settings' / 'setup.yaml').exists()
+    assert 'audio=on' in system.read('/boot/firmware/config.txt')
+
+
+def test_single_step_and_irrelevant_steps(tmp_path, home, extras, capsys):
+    system = FakeSystem(tmp_path / 'root')
+    failed, _ = setup_run(system, home, names=['boot', 'service'])
+    assert failed == 0
+    assert "Skipping 'boot'" in capsys.readouterr().out
+    assert not any('apt-get' in c for c in system.commands)
+
+
+def test_mpd_and_hotspot(tmp_path, home, extras):
+    system = FakeSystem(tmp_path / 'root', pi=True)
+    system.enabled.add('NetworkManager.service')
+    system.outputs[('iw', 'dev')] = 'phy#0\n\tInterface wlan0\n'
+    failed, ctx = setup_run(system, home, answers={'mpd': True, 'autohotspot': True})
+    assert failed == 0
+    assert 'mpd' in ctx.enabled_plugins()
+    assert 'mpd.service' in system.read('~/.config/systemd/user/jukebox-daemon.service')
+    assert str(home / 'audiofolders') in system.read('~/.config/mpd/mpd.conf')
+    script = system.read('/usr/bin/autohotspot')
+    assert "ap_ssid='Phoniebox_Hotspot_jukebox'" in script and "wdev0='wlan0'" in script
+    assert 'autohotspot.timer' in system.enabled
+    assert not system.exists('/etc/dhcpcd.conf')

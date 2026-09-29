@@ -56,6 +56,27 @@ def install_requirements(requirements: List[str]) -> None:
     subprocess.run(command, check=True)
 
 
+def plugin_extras(name: str) -> List[str]:
+    """Requirements for the extras plugin ``name`` declares, e.g. ``['pkg[gpio]']``."""
+    ep = _installed().get(name)
+    if ep is None or ep.dist is None:
+        return []
+    cls, _ = _load(ep)
+    extras = tuple(getattr(cls, 'extras', ()) or ()) if cls is not None else ()
+    return [f"{ep.dist.name}[{','.join(extras)}]"] if extras else []
+
+
+def add_to_config(path: Path, names: List[str]) -> List[str]:
+    """Add ``names`` to ``plugins:`` in the configuration at ``path``; returns the newly added ones."""
+    cfg, _ = _config(path)
+    added = [name for name in names if name not in _enabled(cfg)]
+    for name in added:
+        cfg.setndefault('plugins', name, value={})
+    if added:
+        jukebox.cfghandler.write_yaml(cfg, str(path))
+    return added
+
+
 @app.command('list')
 def list_plugins(conf: Optional[Path] = ConfOption) -> None:
     """Installed plugins, whether they are enabled, and why one can't be loaded."""
@@ -84,21 +105,18 @@ def enable(name: str, conf: Optional[Path] = ConfOption,
     if ep is None:
         typer.echo(f"Plugin '{name}' is not installed. Installed: {', '.join(sorted(_installed())) or 'none'}", err=True)
         raise typer.Exit(1)
-    cls, problem = _load(ep)
-    extras = tuple(getattr(cls, 'extras', ()) or ()) if cls is not None else ()
-    if with_extras and extras and ep.dist is not None:
-        install_requirements([f"{ep.dist.name}[{','.join(extras)}]"])
+    extras = plugin_extras(name)
+    if with_extras and extras:
+        install_requirements(extras)
     elif extras:
-        typer.echo(f"Note: '{name}' uses the extras {', '.join(extras)} of {ep.dist.name if ep.dist else 'its package'}; "
-                   f"install them with --with-extras if they are missing.")
+        typer.echo(f"Note: '{name}' needs {', '.join(extras)}; install it with --with-extras if it is missing.")
+    _, problem = _load(ep)
     if problem and not with_extras:
         typer.echo(f"Warning: '{name}' can't be loaded right now: {problem}", err=True)
-    cfg, path = _config(conf)
-    if name in _enabled(cfg):
+    _, path = _config(conf)
+    if not add_to_config(path, [name]):
         typer.echo(f"'{name}' is already enabled in {path}")
         return
-    cfg.setndefault('plugins', name, value={})
-    jukebox.cfghandler.write_yaml(cfg, str(path))
     typer.echo(f"Enabled '{name}' in {path}. Restart the jukebox to load it.")
 
 

@@ -8,6 +8,8 @@ breaking (major bump). See documentation/developers/core-and-plugins.md, "Versio
 import copy
 import inspect
 import json
+import types
+import typing
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Type
 
@@ -53,6 +55,42 @@ def type_schema(tp) -> Dict[str, Any]:
     return normalize_schema(TypeAdapter(tp).json_schema())
 
 
+class _Rendered:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __repr__(self) -> str:
+        return self.text
+
+
+def _format_type(tp) -> str:
+    if tp is Ellipsis:
+        return '...'
+    if isinstance(tp, (list, tuple)):
+        return '[' + ', '.join(_format_type(t) for t in tp) + ']'
+    origin, args = typing.get_origin(tp), typing.get_args(tp)
+    if origin is typing.Union or origin is types.UnionType:
+        return ' | '.join('None' if a is type(None) else _format_type(a) for a in args)
+    if origin is typing.Literal:
+        return f"Literal[{', '.join(repr(a) for a in args)}]"
+    if origin is not None and args:
+        name = getattr(tp, '_name', None) or inspect.formatannotation(origin)
+        return f"{name}[{', '.join(_format_type(a) for a in args)}]"
+    return inspect.formatannotation(tp)
+
+
+def format_signature(func) -> str:
+    """``str(inspect.signature(func))``, but rendering unions the same way on every Python version."""
+    sig = inspect.signature(func)
+    empty = inspect.Parameter.empty
+
+    def render(annotation):
+        return annotation if annotation is empty else _Rendered(_format_type(annotation))
+
+    params = [p.replace(annotation=render(p.annotation)) for p in sig.parameters.values()]
+    return str(sig.replace(parameters=params, return_annotation=render(sig.return_annotation)))
+
+
 def describe_module_interface(cls: Type[Module]) -> Dict[str, Any]:
     ops = {}
     for name, op in sorted(cls.operations().items()):
@@ -66,7 +104,7 @@ def describe_module_interface(cls: Type[Module]) -> Dict[str, Any]:
     events = {name: normalize_schema(spec.model.model_json_schema())
               for name, spec in sorted(cls.events().items())}
     extension_points = {
-        name: {m: str(inspect.signature(getattr(spec.protocol, m))) for m in protocol_methods(spec.protocol)}
+        name: {m: format_signature(getattr(spec.protocol, m)) for m in protocol_methods(spec.protocol)}
         for name, spec in sorted(cls.extension_point_specs().items())
     }
     return {
@@ -92,7 +130,7 @@ def describe_contract() -> Dict[str, Any]:
             if isinstance(value, (staticmethod, classmethod)):
                 value = value.__func__
             if inspect.isfunction(value):
-                api[name] = str(inspect.signature(value))
+                api[name] = format_signature(value)
             elif isinstance(value, property):
                 api[name] = 'property'
             elif not callable(value) and not isinstance(value, (dict, list)):
@@ -106,7 +144,7 @@ def describe_contract() -> Dict[str, Any]:
         'Context': public_api(context.Context),
         'ModuleConfig': public_api(context.ModuleConfig),
         'ExtensionPoint': public_api(declarations.ExtensionPoint),
-        'functions': {name: str(inspect.signature(getattr(declarations, name)))
+        'functions': {name: format_signature(getattr(declarations, name))
                       for name in ('action', 'query', 'event', 'extension_point')},
     }
 

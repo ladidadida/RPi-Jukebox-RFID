@@ -1,6 +1,5 @@
 import { forwardRef, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { isNil, reject } from 'ramda';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -32,12 +31,10 @@ const CardsList = ({ cardsList }) => {
     });
     EditCardLink.displayName = 'EditCardLink';
 
-    const description = card.from_alias
-      ? reject(
-          isNil,
-          [card.from_alias, card.action.args]
-        ).join(', ')
-      : card.func
+    const args = Object.values(card.args || {}).join(', ');
+    const description = card.error
+      ? `⚠️ ${card.action || ''} ${card.error}`.trim()
+      : [card.action, args].filter(Boolean).join(': ');
 
     return (
       <ListItem disablePadding key={cardId}>

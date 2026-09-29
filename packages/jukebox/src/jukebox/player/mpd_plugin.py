@@ -2,25 +2,22 @@ import logging
 
 import jukebox.player
 import jukebox.cfghandler
-import jukebox.registry as registry
 import jukebox.misc as misc
 
 from .backends.mpd import PlayerMPD
-from .coordinator import PlayerCoordinator
 
 
 logger = logging.getLogger('jb.player')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
 
-def initialize_mpd_player() -> PlayerCoordinator:
-    """Create the coordinator with MPD as its sole backend and register it as 'player.ctrl'."""
-    player_ctrl = PlayerCoordinator(jukebox.player.play_card_callbacks)
-    player_ctrl.register_backend('mpd', PlayerMPD())
-    registry.register(player_ctrl, name='ctrl', package='player')
-
+def create_mpd_backend() -> PlayerMPD:
+    """Create the MPD backend and apply the playermpd startup options."""
+    backend = PlayerMPD(host=cfg.getn('playermpd', 'host', default='localhost'),
+                        status_file=cfg.getn('playermpd', 'status_file',
+                                             default='shared/settings/music_player_status.json'))
     if cfg.setndefault('playermpd', 'library', 'update_on_startup', value=True):
-        player_ctrl.update()
+        backend.update()
 
     check_user_rights = cfg.setndefault(
         'playermpd', 'library', 'check_user_rights', value=True
@@ -31,8 +28,4 @@ def initialize_mpd_player() -> PlayerCoordinator:
             logger.info(f"Change user rights for {music_library_path}")
             misc.recursive_chmod(music_library_path, mode_files=0o666, mode_dirs=0o777)
 
-    return player_ctrl
-
-
-#: Satisfies the `initialize() -> PlayerCoordinator` contract `player.plugin` dispatches to.
-initialize = initialize_mpd_player
+    return backend

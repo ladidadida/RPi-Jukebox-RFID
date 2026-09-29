@@ -10,10 +10,11 @@ import Volume from './volume';
 
 import AppSettingsContext from '../../context/appsettings/context';
 import PlayerContext from '../../context/player/context';
+import { PLAYER_STATUS_TOPIC } from '../../config';
 import request from '../../utils/request';
 
 const Player = () => {
-  const { state: { playerstatus } } = useContext(PlayerContext);
+  const { state: { [PLAYER_STATUS_TOPIC]: playerstatus } } = useContext(PlayerContext);
   const { cover_url, file, provider } = playerstatus || {};
 
   const [coverImage, setCoverImage] = useState(undefined);

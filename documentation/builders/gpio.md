@@ -45,7 +45,7 @@ Configuring input devices consists of 2 aspects:
 1. Define an input device and configure it's parameters. All available
 input devices can be found in class `components.gpio.gpioz.core.input_devices`.
 2. Assign an action to execute on input state change.
-Actions are defined as [RPC Commands](rpc-commands.md),
+Actions are defined as [Actions](actions.md),
 just the same as for assigning card actions.
 
 ### Button: Toggle Playback
@@ -75,7 +75,7 @@ parameters, which relate directly to the class' initialization parameters.
 > from inside ``kwargs``. The name is automatically assigned from the unique name of configuration entry.
 
 Usually, only the pin(s) are mandatory parameters. In the section ``actions``, the RPC commands are linked,
-either as alias (i.e. shortcut) or full [RPC Commands](rpc-commands.md) specification.
+either as alias (i.e. shortcut) or full [Actions](actions.md) specification.
 
 The default configuration of the Button uses the internal pull-up resistor. So, the physical connection to
 the RPi looks:

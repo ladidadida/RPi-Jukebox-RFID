@@ -3,9 +3,9 @@
 # Sole (!) exception is in playermpd.mpd_conf
 system:
   box_name: Jukebox
-# The `modules` config-driven plugin loader was removed along with the old plugin system (see
-# documentation/developers/roadmap-core-architecture.md). jukebox.daemon now wires the surviving
-# components (publishing, misc, player, rfid) directly instead of reading a list from here.
+# Plugins to load, each with its settings. Installed plugins are only loaded when listed here.
+# See documentation/developers/core-and-plugins.md
+plugins: {}
 pulse:
   # Reset system volume to this level after start. (Comment out disables and volume is not changed)
   startup_volume: 40
@@ -71,9 +71,11 @@ player:
   # directory), same convention as everywhere else in this file.
   music_library_path: shared/audiofolders
   second_swipe_action:
-    # Note: Does not follow the RPC alias convention (yet)
-    # Must be one of: 'toggle', 'play', 'skip', 'rewind', 'replay', 'none'
+    # One of: 'toggle', 'play', 'skip', 'rewind', 'replay', 'replay_if_stopped', 'none'
     alias: toggle
+    # Or any action instead, e.g.:
+    # action: player.next
+    # args: {}
   # Must be one of: 'none', 'stop', 'rewind':
   end_of_playlist_next_action: none
   # Must be one of: 'none', 'prev', 'rewind':
@@ -99,7 +101,8 @@ api:
   port: 5556
 rfid:
   reader_config: shared/settings/rfid.yaml
-  card_database: shared/settings/cards.yaml
+cards:
+  database: shared/settings/cards.yaml
 gpioz:
   enable: false
   config_file: shared/settings/gpio.yaml

@@ -1,106 +1,108 @@
-"""
-Miscellaneous RPC calls, registered explicitly by jukebox.daemon (no plugin system)
-"""
+"""The system core module: version information, logs and web app settings."""
+
+import logging
+import logging.handlers
 import os
 import time
-import logging.handlers
-import jukebox
-import jukebox.registry as registry
-import jukebox.utils
-from jukebox.daemon import get_jukebox_daemon
-import jukebox.cfghandler
+from typing import Literal, Optional
 
-logger = logging.getLogger('jb.misc')
+from pydantic import BaseModel
+
+import jukebox
+import jukebox.cfghandler
+from jukebox.contract import CoreModule, action, event, query
+from jukebox.daemon import get_jukebox_daemon
+
+logger = logging.getLogger('jb.system')
 cfg = jukebox.cfghandler.get_handler('jukebox')
 
-
-def get_start_time():
-    """Time when JukeBox has been started"""
-    return time.ctime(get_jukebox_daemon().start_time)
+LOG_TOPIC = 'system.log'
 
 
-def get_log(handler_name: str):
-    """Get the log file from the loggers (debug_file_handler, error_file_handler)"""
-    # With the correct logger.yaml, there is up to two RotatingFileHandler attached
+class SystemInfo(BaseModel):
+    version: str
+    git_state: str
+    started_at: str
+
+
+class LogMessage(BaseModel):
+    message: str
+
+
+class AppSettings(BaseModel):
+    show_covers: bool = True
+
+
+class AppSettingsUpdate(BaseModel):
+    show_covers: Optional[bool] = None
+
+
+def _read_log(handler_name: str) -> str:
     content = "No file handles configured"
     for h in logging.getLogger('jb').handlers:
-        if isinstance(h, logging.handlers.RotatingFileHandler):
-            content = f"No file handler with name {handler_name} configured"
-            if h.name == handler_name:
-                try:
-                    size = os.path.getsize(h.baseFilename)
-                    if size == 0:
-                        content = f"Log file {h.baseFilename} is empty. (Could be good or bad: " \
-                                  "Is the RotatingFileHandler configured as handler sink for jb in logger.yaml?)"
-                        break
-                    mtime = os.path.getmtime(h.baseFilename)
-                    stime = get_jukebox_daemon().start_time
-                    logger.debug(f"Accessing log file {h.baseFilename} modified time {time.ctime(mtime)} "
-                                 f"(JB start time {time.ctime(stime)})")
-                    # Generous 3 second tolerance between file creation and jukebox start time recording
-                    if mtime - stime < -3:
-                        content = (f"Log file {h.baseFilename} too old for this Jukebox start! "
-                                   f"Is the RotatingFileHandler configured as handler sink for jb in logger.yaml?")
-                        break
-                    with open(h.baseFilename) as stream:
-                        content = stream.read()
-                except Exception as e:
-                    content = f"{e.__class__.__name__}: {e}"
-                    logger.error(content)
-                break
+        if not isinstance(h, logging.handlers.RotatingFileHandler):
+            continue
+        content = f"No file handler with name {handler_name} configured"
+        if h.name != handler_name:
+            continue
+        try:
+            if os.path.getsize(h.baseFilename) == 0:
+                return (f"Log file {h.baseFilename} is empty. (Is the RotatingFileHandler configured as "
+                        f"handler sink for jb in logger.yaml?)")
+            mtime = os.path.getmtime(h.baseFilename)
+            stime = get_jukebox_daemon().start_time
+            # 3 seconds tolerance between file creation and recording the start time
+            if mtime - stime < -3:
+                return (f"Log file {h.baseFilename} too old for this Jukebox start! "
+                        f"Is the RotatingFileHandler configured as handler sink for jb in logger.yaml?")
+            with open(h.baseFilename) as stream:
+                return stream.read()
+        except Exception as e:
+            content = f"{e.__class__.__name__}: {e}"
+            logger.error(content)
+        break
     return content
 
 
-def get_log_debug():
-    """Get the log file (from the debug_file_handler)"""
-    return get_log('debug_file_handler')
+class System(CoreModule):
+    """Version information, log files and web app settings."""
 
+    name = 'system'
+    interface_version = '1.0'
 
-def get_log_error():
-    """Get the log file (from the error_file_handler)"""
-    return get_log('error_file_handler')
+    info = event('info', SystemInfo)
+    #: Published by jukebox.misc.loggingext.PubStreamHandler when configured in logger.yaml
+    log = event('log', LogMessage)
 
+    def start(self, ctx) -> None:
+        self._ctx = ctx
+        ctx.publish(self.info, self.get_info())
 
-def get_version():
-    return jukebox.version()
+    @query(path='/info')
+    def get_info(self) -> SystemInfo:
+        """Version, git state and start time of the jukebox."""
+        daemon = get_jukebox_daemon()
+        return SystemInfo(version=jukebox.version(), git_state=daemon.git_state,
+                          started_at=time.ctime(daemon.start_time))
 
+    @query(path='/log')
+    def get_log(self, kind: Literal['debug', 'error'] = 'debug') -> str:
+        """Content of the debug or error log file of this run."""
+        return _read_log(f'{kind}_file_handler')
 
-def get_git_state():
-    """Return git state information for the current branch"""
-    return get_jukebox_daemon().git_state
+    @query(path='/api/v1/settings')
+    def get_app_settings(self) -> AppSettings:
+        """Web app settings."""
+        return AppSettings(show_covers=cfg.setndefault('webapp', 'show_covers', value=True))
 
+    @action(method='PUT', path='/api/v1/settings')
+    def set_app_settings(self, settings: AppSettingsUpdate) -> None:
+        """Change web app settings; fields left out stay unchanged."""
+        for key, value in settings.model_dump(exclude_none=True).items():
+            cfg.setn('webapp', key, value=value)
 
-def empty_rpc_call(msg: str = ''):
-    """This function does nothing.
-
-    The RPC command alias 'none' is mapped to this function.
-
-    This is also used when configuration errors lead to non existing RPC command alias definitions.
-    When the alias definition is void, we still want to return a valid function to simplify error handling
-    up the module call stack.
-
-    :param msg: If present, this message is send to the logger with severity warning
-    """
-    if msg:
-        logger.warning(msg)
-
-
-def get_app_settings():
-    """Return settings for web app stored in jukebox.yaml"""
-    show_covers = cfg.setndefault('webapp', 'show_covers', value=True)
-
-    return {
-        'show_covers': show_covers
-    }
-
-
-def set_app_settings(settings={}):
-    """Set configuration settings for the web app."""
-    for key, value in settings.items():
-        cfg.setn('webapp', key, value=value)
-
-
-def register():
-    for func in (get_start_time, get_log_debug, get_log_error, get_version, get_git_state,
-                 empty_rpc_call, get_app_settings, set_app_settings):
-        registry.register(func, name=func.__name__, package='misc')
+    @action()
+    def noop(self, message: str = '') -> None:
+        """Do nothing (logs ``message`` as a warning if given)."""
+        if message:
+            logger.warning(message)

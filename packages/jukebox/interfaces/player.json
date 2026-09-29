@@ -1,0 +1,1190 @@
+{
+  "events": {
+    "status": {
+      "properties": {
+        "album": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "albumartist": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "artist": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cover_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "elapsed": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "playlist_length": {
+          "default": 0,
+          "type": "integer"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "provider": {
+          "type": "string"
+        },
+        "random": {
+          "default": false,
+          "type": "boolean"
+        },
+        "repeat": {
+          "default": false,
+          "type": "boolean"
+        },
+        "single": {
+          "default": false,
+          "type": "boolean"
+        },
+        "state": {
+          "default": "stop",
+          "enum": [
+            "play",
+            "pause",
+            "stop"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "track": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {
+    "backends": {
+      "exit": "(self) -> Any",
+      "get_volume": "(self) -> int",
+      "is_second_swipe": "(self, folder: str) -> bool",
+      "next": "(self) -> None",
+      "pause": "(self, state: int = 1) -> None",
+      "play": "(self) -> None",
+      "play_folder": "(self, folder: str, recursive: bool = False) -> None",
+      "play_second_swipe": "(self) -> None",
+      "play_single": "(self, song_url: str) -> None",
+      "playerstatus": "(self) -> Mapping[str, Any]",
+      "playlistinfo": "(self) -> List[Dict[str, Any]]",
+      "prev": "(self) -> None",
+      "repeat": "(self, option: str = 'toggle') -> None",
+      "seek": "(self, new_time: float) -> None",
+      "set_active": "(self, active: bool) -> None",
+      "set_status_callback": "(self, callback: Callable[[Mapping[str, Any]], NoneType]) -> None",
+      "set_volume": "(self, volume: int) -> int",
+      "shuffle": "(self, option: str = 'toggle') -> None",
+      "stop": "(self) -> None",
+      "toggle": "(self) -> None"
+    }
+  },
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "player",
+  "operations": {
+    "flush_coverart_cache": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/coverart/flush",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "get_active_backend": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/backends/active",
+      "returns": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_album_coverart": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "albumartist": {
+            "type": "string"
+          },
+          "content_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "albumartist",
+          "album"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/coverart/album",
+      "returns": {
+        "properties": {
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_current_song": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "param": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/current-song",
+      "returns": {}
+    },
+    "get_default_backend": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/backends/default",
+      "returns": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_folder_content": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/folder-content",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "get_player_type_and_version": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/type",
+      "returns": {
+        "type": "string"
+      }
+    },
+    "get_single_coverart": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "song_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "song_url"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/coverart/song",
+      "returns": {
+        "properties": {
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_song_by_url": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "song_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "song_url"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/song-lookup",
+      "returns": {}
+    },
+    "get_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/volume",
+      "returns": {
+        "properties": {
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume"
+        ],
+        "type": "object"
+      }
+    },
+    "list_albums": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/albums",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "list_all_dirs": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/dirs",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "list_backends": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/backends",
+      "returns": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "list_library_items": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "content_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/library/items",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "list_library_sources": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/library/sources",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "list_songs_by_artist_and_album": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "albumartist": {
+            "type": "string"
+          },
+          "content_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "albumartist",
+          "album"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/songs",
+      "returns": {
+        "items": {},
+        "type": "array"
+      }
+    },
+    "next": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/next",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "pause": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "default": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/pause",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "play": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/play",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "play_album": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "album": {
+            "type": "string"
+          },
+          "albumartist": {
+            "type": "string"
+          },
+          "content_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "albumartist",
+          "album"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/album",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "play_card": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "recursive": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/play_card",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "play_folder": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "recursive": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/folder",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "play_single": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "song_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "song_url"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/song",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "playerstatus": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/status",
+      "returns": {
+        "properties": {
+          "album": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "albumartist": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "artist": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "elapsed": {
+            "default": 0.0,
+            "type": "number"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "playlist_length": {
+            "default": 0,
+            "type": "integer"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provider": {
+            "type": "string"
+          },
+          "random": {
+            "default": false,
+            "type": "boolean"
+          },
+          "repeat": {
+            "default": false,
+            "type": "boolean"
+          },
+          "single": {
+            "default": false,
+            "type": "boolean"
+          },
+          "state": {
+            "default": "stop",
+            "enum": [
+              "play",
+              "pause",
+              "stop"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      }
+    },
+    "playlistinfo": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/player/playlist",
+      "returns": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "prev": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/prev",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "queue_load": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/queue",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "repeat": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "option": {
+            "default": "toggle",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/repeat",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "replay": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/replay",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "replay_if_stopped": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/replay-if-stopped",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "resume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/resume",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "rewind": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/rewind",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "seek": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "position": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "position"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/seek",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "select_backend": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/player/backends/active",
+      "returns": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      }
+    },
+    "set_volume": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/player/volume",
+      "returns": {
+        "properties": {
+          "volume": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume"
+        ],
+        "type": "object"
+      }
+    },
+    "shuffle": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "option": {
+            "default": "toggle",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/shuffle",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "stop": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/stop",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "toggle": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/toggle",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "update": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/update",
+      "returns": {}
+    },
+    "update_wait": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/player/update-wait",
+      "returns": {}
+    }
+  },
+  "requires": {}
+}

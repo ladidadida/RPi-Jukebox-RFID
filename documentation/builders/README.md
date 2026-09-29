@@ -40,7 +40,7 @@
 * [Troubleshooting](./troubleshooting.md)
 * [Concepts](./concepts.md)
 * [System](./system.md)
-* [RPC Commands](./rpc-commands.md)
+* [Actions](./actions.md)
 * [CLI Client for RPC](./cli-client.md)
 * [Feature Status](../developers/status.md)
 * [Known Issues](../developers/known-issues.md)

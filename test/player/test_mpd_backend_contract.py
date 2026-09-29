@@ -6,8 +6,6 @@ import pytest
 
 pytest.importorskip('mpd', reason="python-mpd2 is an optional extra (`uv sync --extra mpd`)")
 
-import jukebox.publishing as publishing
-
 from jukebox.player.backends.mpd import PlayerMPD
 
 
@@ -57,10 +55,10 @@ def test_album_catalog_adds_provider_metadata():
     assert backend.list_library_items(['playlist']) == []
 
 
-def test_inactive_backend_does_not_publish_status(monkeypatch):
-    publisher = Mock()
-    monkeypatch.setattr(publishing, 'get_publisher', Mock(return_value=publisher))
+def test_inactive_backend_does_not_publish_status():
+    publish = Mock()
     backend = mpd_backend()
+    backend.set_status_callback(publish)
     backend.mpd_status = {}
     backend.mpd_client = SimpleNamespace(
         status=sentinel.status,
@@ -78,13 +76,10 @@ def test_inactive_backend_does_not_publish_status(monkeypatch):
 
     backend._mpd_status_poll()
 
-    publisher.send.assert_not_called()
+    publish.assert_not_called()
 
     backend.set_active(True)
-    publisher.reset_mock()
+    publish.reset_mock()
     backend._mpd_status_poll()
 
-    publisher.send.assert_called_once_with(
-        'playerstatus',
-        {'state': 'stop', 'provider': 'mpd'},
-    )
+    publish.assert_called_once_with({'state': 'stop'})

@@ -13,6 +13,7 @@ import RepeatOneRoundedIcon from '@mui/icons-material/RepeatOneRounded';
 
 import PlayerContext from '../../context/player/context';
 import request from '../../utils/request';
+import { PLAYER_STATUS_TOPIC } from '../../config';
 
 // TODO: Should be broken up in sub-modules
 const Controls = () => {
@@ -24,7 +25,7 @@ const Controls = () => {
 
   const {
     isPlaying,
-    playerstatus,
+    [PLAYER_STATUS_TOPIC]: playerstatus,
     isShuffle,
     isRepeat,
     isSingle,
@@ -42,11 +43,11 @@ const Controls = () => {
   useEffect(() => {
     setState(currentState => ({
       ...currentState,
-      isPlaying: playerstatus?.state === 'play' ? true : false,
-      songIsScheduled: playerstatus?.songid ? true : false,
-      isShuffle: playerstatus?.random === '1' ? true : false,
-      isRepeat: playerstatus?.repeat === '1' ? true : false,
-      isSingle: playerstatus?.single === '1' ? true : false,
+      isPlaying: playerstatus?.state === 'play',
+      songIsScheduled: playerstatus?.position != null,
+      isShuffle: Boolean(playerstatus?.random),
+      isRepeat: Boolean(playerstatus?.repeat),
+      isSingle: Boolean(playerstatus?.single),
     }));
   }, [playerstatus, setState]);
 

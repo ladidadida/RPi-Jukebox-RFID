@@ -384,12 +384,8 @@ class MusicLibrary:
             raise LibraryError(502, 'mpd_update_failed', f'Could not update the MPD library: {error}') from error
 
 
-def create_music_library():
-    """Create the production library service after the player component is started."""
+def create_music_library(update_callback):
+    """Create the production library service; ``update_callback`` rescans the player's library."""
     import jukebox.player
-    import jukebox.registry
 
-    return MusicLibrary(
-        jukebox.player.get_music_library_path,
-        lambda: jukebox.registry.call('player', 'ctrl', 'update'),
-    )
+    return MusicLibrary(jukebox.player.get_music_library_path, update_callback)

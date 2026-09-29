@@ -9,10 +9,7 @@ import {
 
 import CardsDeleteDialog from '../dialogs/delete';
 import request from '../../../utils/request';
-import {
-  getActionAndCommand,
-  getArgsValues
-} from '../utils';
+import { buildCardEntry } from '../utils';
 
 const ActionsControls = ({
   actionData,
@@ -24,14 +21,13 @@ const ActionsControls = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleRegisterCard = async () => {
-    const args = getArgsValues(actionData);
-    const { command: cmd_alias } = getActionAndCommand(actionData);
+    const { action, args } = buildCardEntry(actionData);
 
     const kwargs = {
       card_id: cardId.toString(),
-      cmd_alias,
+      action,
+      args,
       overwrite: true,
-      ...(args.length && { args }),
     };
 
     const { error } = await request('registerCard', kwargs);

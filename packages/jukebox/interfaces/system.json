@@ -1,0 +1,162 @@
+{
+  "events": {
+    "info": {
+      "properties": {
+        "git_state": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "git_state",
+        "started_at"
+      ],
+      "type": "object"
+    },
+    "log": {
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "system",
+  "operations": {
+    "get_app_settings": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/settings",
+      "returns": {
+        "properties": {
+          "show_covers": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "get_info": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/system/info",
+      "returns": {
+        "properties": {
+          "git_state": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "git_state",
+          "started_at"
+        ],
+        "type": "object"
+      }
+    },
+    "get_log": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "default": "debug",
+            "enum": [
+              "debug",
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/system/log",
+      "returns": {
+        "type": "string"
+      }
+    },
+    "noop": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "default": "",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/system/noop",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "set_app_settings": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "settings": {
+            "properties": {
+              "show_covers": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "PUT",
+      "path": "/api/v1/settings",
+      "returns": {
+        "type": "null"
+      }
+    }
+  },
+  "requires": {}
+}

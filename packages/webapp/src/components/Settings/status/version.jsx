@@ -11,11 +11,13 @@ import {
 import FavoriteIcon from '@mui/icons-material/Favorite';
 
 import PubSubContext from '../../../context/pubsub/context';
+import { SYSTEM_INFO_TOPIC } from '../../../config';
 
 const StatusVersion = () => {
   const { t } = useTranslation();
 
-  const { state: { 'core.version': coreVersion } } = useContext(PubSubContext);
+  const { state: { [SYSTEM_INFO_TOPIC]: systemInfo } } = useContext(PubSubContext);
+  const coreVersion = systemInfo?.version;
 
   return (
     <ListItem disableGutters>

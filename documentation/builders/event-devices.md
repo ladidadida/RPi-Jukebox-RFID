@@ -117,7 +117,7 @@ Look for entries like `No callback registered for button ...`.
 
 ### Specifying the `{rpc_command_definition}`
 
-The RPC command follows the regular RPC command rules as defined in the [following documentation](./rpc-commands.md).
+The RPC command follows the regular RPC command rules as defined in the [following documentation](./actions.md).
 
 ## Full example config
 

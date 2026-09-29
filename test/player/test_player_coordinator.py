@@ -1,12 +1,11 @@
-import logging
 from types import SimpleNamespace
 from unittest.mock import Mock, call, sentinel
 
 import pytest
 
 from jukebox.player.coordinator import PlayerCoordinator
-from jukebox.player.playcontentcallback import PlayCardState, PlayContentCallbacks
-from jukebox.command_aliases import cmd_alias_definitions
+import jukebox.legacy_actions as legacy_actions
+from jukebox.player.module import Player
 
 
 def backend_with(**methods):
@@ -217,38 +216,15 @@ def test_folder_content_switches_back_to_default_backend():
     assert coordinator.get_active_backend() == 'local'
 
 
-@pytest.mark.parametrize(
-    ('is_second_swipe', 'expected_state', 'expected_action'),
-    [
-        (False, PlayCardState.firstSwipe, 'play_folder'),
-        (True, PlayCardState.secondSwipe, 'second_swipe'),
-    ],
-)
-def test_play_card_callbacks_run_before_backend_action(
-        is_second_swipe, expected_state, expected_action):
-    events = []
-    callbacks = PlayContentCallbacks('test_callbacks', logging.getLogger(__name__))
-    callbacks.register(
-        lambda content, state: events.append(call('callback', content, state))
-    )
-    backend = backend_with(
-        is_second_swipe=Mock(return_value=is_second_swipe),
-        play_folder=Mock(
-            side_effect=lambda content, recursive: events.append(call('play_folder'))
-        ),
-        play_second_swipe=Mock(
-            side_effect=lambda: events.append(call('second_swipe'))
-        ),
-    )
-    coordinator = PlayerCoordinator(callbacks)
+@pytest.mark.parametrize('is_second_swipe', [False, True])
+def test_play_card_runs_folder_or_second_swipe(is_second_swipe):
+    backend = backend_with(is_second_swipe=Mock(return_value=is_second_swipe), play_folder=Mock(),
+                           play_second_swipe=Mock())
+    coordinator = PlayerCoordinator()
     coordinator.register_backend('mpd', backend)
 
     coordinator.play_card('stories', recursive=True)
 
-    assert events == [
-        call('callback', 'stories', expected_state),
-        call(expected_action),
-    ]
     backend.is_second_swipe.assert_called_once_with('stories')
     if is_second_swipe:
         backend.play_folder.assert_not_called()
@@ -256,6 +232,18 @@ def test_play_card_callbacks_run_before_backend_action(
     else:
         backend.play_folder.assert_called_once_with('stories', True)
         backend.play_second_swipe.assert_not_called()
+
+
+def test_configured_second_swipe_action_replaces_the_backend_behavior():
+    override = Mock()
+    backend = backend_with(is_second_swipe=Mock(return_value=True), play_second_swipe=Mock())
+    coordinator = PlayerCoordinator(second_swipe_action=override)
+    coordinator.register_backend('mpd', backend)
+
+    coordinator.play_card('stories')
+
+    override.assert_called_once_with()
+    backend.play_second_swipe.assert_not_called()
 
 
 def test_play_second_swipe_ignores_action_return_value():
@@ -351,27 +339,13 @@ def test_combined_catalog_ignores_unavailable_optional_backend():
         coordinator.list_library_items(provider='unavailable')
 
 
-def test_existing_rpc_aliases_still_target_player_ctrl():
-    expected_methods = {
-        'play_card': 'play_card',
-        'play_album': 'play_album',
-        'play_single': 'play_single',
-        'play_folder': 'play_folder',
-        'play': 'play',
-        'pause': 'pause',
-        'next_song': 'next',
-        'prev_song': 'prev',
-        'toggle': 'toggle',
-        'shuffle': 'shuffle',
-        'repeat': 'repeat',
-        'flush_coverart_cache': 'flush_coverart_cache',
-    }
-
-    for alias, method in expected_methods.items():
-        definition = cmd_alias_definitions[alias]
-        assert definition['package'] == 'player'
-        assert definition['plugin'] == 'ctrl'
-        assert definition['method'] == method
+def test_legacy_player_aliases_map_to_existing_player_actions():
+    actions = {op.id for op in Player.operations().values() if op.kind == 'action'}
+    player_aliases = {alias: target for alias, (target, _) in legacy_actions.ALIASES.items()
+                      if target.startswith('player.')}
+    assert player_aliases
+    for alias, target in player_aliases.items():
+        assert target in actions, alias
 
 
 def test_exit_closes_all_backends_in_reverse_registration_order():

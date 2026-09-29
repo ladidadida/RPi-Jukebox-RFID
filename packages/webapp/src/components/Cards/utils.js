@@ -58,6 +58,22 @@ const buildActionData = (action, command = {}, args = {}) => {
   return data;
 };
 
+const findCommandByCardAction = (cardAction) => (
+  Object.keys(commands).find(command => commands[command].cardAction === cardAction)
+);
+
+// The card entry to register for the selected command: `{ action, args }` with named args.
+const buildCardEntry = (actionData) => {
+  const { command } = getActionAndCommand(actionData);
+  const argKeys = getCommandArgKeys(command);
+  const values = getArgsValues(actionData);
+  const args = argKeys.reduce((prev, key, pos) => (
+    values[pos] === undefined ? prev : { ...prev, [key]: values[pos] }
+  ), {});
+
+  return { action: commands[command]?.cardAction, args };
+};
+
 const getArgsValues = (actionData) => {
   const { command } = getActionAndCommand(actionData);
   const argKeys = getCommandArgKeys(command);
@@ -74,7 +90,9 @@ const getArgsValues = (actionData) => {
 
 export {
   buildActionData,
+  buildCardEntry,
   findActionByCommand,
+  findCommandByCardAction,
   getActionAndCommand,
   getArgsValues,
 };

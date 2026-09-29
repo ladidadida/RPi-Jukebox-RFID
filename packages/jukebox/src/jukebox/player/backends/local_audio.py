@@ -15,7 +15,6 @@ whenever it's told to (re)start one. This keeps the state machine in one place i
 to signal a live decode loop with finer-grained commands.
 """
 import array
-import functools
 import logging
 import os
 import random
@@ -27,14 +26,11 @@ import sounddevice as sd
 
 import jukebox.player
 import jukebox.cfghandler
-import jukebox.registry as plugs
 import jukebox.utils as utils
 import jukebox.multitimer as multitimer
-import jukebox.publishing as publishing
 import jukebox.playlistgenerator as playlistgenerator
 
 from jukebox.nv_manager import nv_manager
-from jukebox.player.coordinator import PlayerCoordinator
 
 logger = logging.getLogger('jb.PlayerLocalAudio')
 cfg = jukebox.cfghandler.get_handler('jukebox')
@@ -114,6 +110,7 @@ class PlayerLocalAudio:
         if not self._status_store:
             self._status_store['last_played_folder'] = ''
 
+        self._status_callback = lambda status: None
         self._cv = threading.Condition(threading.RLock())
         self._abort = threading.Event()
         self._closing = False
@@ -262,31 +259,26 @@ class PlayerLocalAudio:
     # -- second-swipe / config ---------------------------------------------------------------
 
     def _decode_2nd_swipe_option(self):
-        action = cfg.setndefault('player', 'second_swipe_action', 'alias', value='none').lower()
+        # A custom action ('action: <module>.<action>') is run by the player module itself.
+        action = str(cfg.getn('player', 'second_swipe_action', 'alias', default='none')).lower()
         if action not in [*self._second_swipe_action_dict, 'none', 'custom']:
             logger.error(f"Config player.second_swipe_action must be one of "
-                         f"{[*self._second_swipe_action_dict, 'none', 'custom']}. Ignore setting.")
-        if action in self._second_swipe_action_dict:
-            self.second_swipe_action = self._second_swipe_action_dict[action]
-        if action == 'custom':
-            custom_action = utils.decode_rpc_call(cfg.getn('player', 'second_swipe_action', default=None))
-            self.second_swipe_action = functools.partial(plugs.call_ignore_errors,
-                                                          custom_action['package'],
-                                                          custom_action['plugin'],
-                                                          custom_action['method'],
-                                                          custom_action['args'],
-                                                          custom_action['kwargs'])
+                         f"{[*self._second_swipe_action_dict, 'none']}. Ignore setting.")
+        self.second_swipe_action = self._second_swipe_action_dict.get(action)
 
     # -- coordinator-facing surface -----------------------------------------------------------
+
+    def set_status_callback(self, callback):
+        self._status_callback = callback
 
     def set_active(self, active):
         self._active = active
         if active:
-            publishing.get_publisher().send('playerstatus', self._status_dict())
+            self._status_callback(self._status_dict())
 
     def _publish_status(self):
         if self._active:
-            publishing.get_publisher().send('playerstatus', self._status_dict())
+            self._status_callback(self._status_dict())
 
     def _status_dict(self):
         with self._cv:
@@ -306,11 +298,9 @@ class PlayerLocalAudio:
             'provider': 'local_audio',
         }
 
-    @plugs.tag
     def get_player_type_and_version(self):
         return f"jukebox-local-audio (pyav {av.__version__}, sounddevice {sd.__version__})"
 
-    @plugs.tag
     def play(self):
         with self._cv:
             if not self._queue:
@@ -319,14 +309,12 @@ class PlayerLocalAudio:
             self._state = 'play'
             self._cv.notify_all()
 
-    @plugs.tag
     def stop(self):
         with self._cv:
             self._state = 'stop'
             self._position = 0.0
             self._abort.set()
 
-    @plugs.tag
     def pause(self, state: int = 1):
         with self._cv:
             if state:
@@ -336,7 +324,6 @@ class PlayerLocalAudio:
                 self._state = 'play'
                 self._cv.notify_all()
 
-    @plugs.tag
     def prev(self):
         with self._cv:
             if self._state == 'stop':
@@ -344,7 +331,6 @@ class PlayerLocalAudio:
             new_index = max(0, self._index - 1)
         self._jump_to(new_index)
 
-    @plugs.tag
     def next(self):
         with self._cv:
             if self._state == 'stop':
@@ -354,36 +340,30 @@ class PlayerLocalAudio:
             new_index = self._index + 1
         self._jump_to(new_index)
 
-    @plugs.tag
     def seek(self, new_time):
         with self._cv:
             self._position = float(new_time)
             self._abort.set()
 
-    @plugs.tag
     def rewind(self):
         """Re-start current playlist from the first track."""
         self._jump_to(0)
 
-    @plugs.tag
     def replay(self):
         """Re-start playing the last-played folder."""
         self.play_folder(self._last_played_folder)
 
-    @plugs.tag
     def toggle(self):
         with self._cv:
             if self._state == 'play':
                 return self.pause(1)
             return self.pause(0)
 
-    @plugs.tag
     def replay_if_stopped(self):
         with self._cv:
             if self._state == 'stop':
                 self.replay()
 
-    @plugs.tag
     def shuffle(self, option='toggle'):
         with self._cv:
             if option == 'toggle':
@@ -395,7 +375,6 @@ class PlayerLocalAudio:
             else:
                 logger.error(f"'{option}' does not exist for 'shuffle'")
 
-    @plugs.tag
     def repeat(self, option='toggle'):
         with self._cv:
             if option == 'toggle':
@@ -413,23 +392,18 @@ class PlayerLocalAudio:
             else:
                 logger.error(f"'{option}' does not exist for 'repeat'")
 
-    @plugs.tag
     def get_current_song(self, param):
         return self._status_dict()
 
-    @plugs.tag
     def map_filename_to_playlist_pos(self, filename):
         raise NotImplementedError
 
-    @plugs.tag
     def remove(self):
         raise NotImplementedError
 
-    @plugs.tag
     def move(self):
         raise NotImplementedError
 
-    @plugs.tag
     def play_single(self, song_url):
         with self._cv:
             self._queue = [song_url]
@@ -443,15 +417,14 @@ class PlayerLocalAudio:
         return self.second_swipe_action is not None and self._last_played_folder == folder
 
     def play_second_swipe(self):
-        self.second_swipe_action()
+        if self.second_swipe_action is not None:
+            self.second_swipe_action()
 
-    @plugs.tag
     def get_folder_content(self, folder: str):
         plc = playlistgenerator.PlaylistCollector(jukebox.player.get_music_library_path())
         plc.get_directory_content(folder)
         return plc.playlist
 
-    @plugs.tag
     def play_folder(self, folder: str, recursive: bool = False) -> None:
         plc = playlistgenerator.PlaylistCollector(jukebox.player.get_music_library_path())
         plc.parse(folder, recursive)
@@ -472,20 +445,16 @@ class PlayerLocalAudio:
                 self._state = 'stop'
         self._status_store.save_to_json()
 
-    @plugs.tag
     def queue_load(self, folder):
         pass
 
-    @plugs.tag
     def playerstatus(self):
         return self._status_dict()
 
-    @plugs.tag
     def playlistinfo(self):
         with self._cv:
             return [{'file': path, 'pos': str(i)} for i, path in enumerate(self._queue)]
 
-    @plugs.tag
     def list_all_dirs(self):
         base = os.path.expanduser(jukebox.player.get_music_library_path())
         result = []
@@ -511,11 +480,3 @@ class PlayerLocalAudio:
             self._cv.notify_all()
         self._status_store.save_to_json()
         return self._worker
-
-
-def initialize():
-    """Create the coordinator with local_audio as its sole backend and register it as 'player.ctrl'."""
-    player_ctrl = PlayerCoordinator(jukebox.player.play_card_callbacks)
-    player_ctrl.register_backend('local_audio', PlayerLocalAudio())
-    plugs.register(player_ctrl, name='ctrl', package='player')
-    return player_ctrl

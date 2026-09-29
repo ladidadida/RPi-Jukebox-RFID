@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { without } from 'ramda';
-
 import PubSubContext from './context';
 import { initSockets } from '../../sockets';
 import { SUBSCRIPTIONS } from '../../config';
@@ -11,7 +9,7 @@ const PubSubProvider = ({ children }) => {
   // Initialize sockets for player context
   useEffect(() => (
     initSockets({
-      events: without(['playerstatus'], SUBSCRIPTIONS),
+      events: SUBSCRIPTIONS,
       setState,
     })
   ), []);

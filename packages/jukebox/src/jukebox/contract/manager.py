@@ -41,7 +41,7 @@ class ModuleHandle:
 
     def invoke(self, op_name: str, *args, **kwargs):
         op = self.cls.operations()[op_name]
-        bound = getattr(self.instance, op_name)
+        bound = getattr(self.instance, op.attr)
         if self.lock is None or not op.spec.exclusive:
             return bound(*args, **kwargs)
         with self.lock:
@@ -204,6 +204,20 @@ class ModuleManager:
                 continue
             handle.started = True
             self.catalog.add_module(handle)
+
+    def ready(self) -> None:
+        for handle in list(self.handles()):
+            try:
+                handle.instance.ready()
+            except Exception as error:
+                if handle.is_core:
+                    raise
+                logger.exception(f"Plugin '{handle.name}' failed in ready()")
+                self.catalog.remove_module(handle.name)
+                handle.started = False
+                if handle.context is not None:
+                    handle.context.close()
+                self._drop(handle.name, f"ready failed: {error.__class__.__name__}: {error}")
 
     def _drop(self, name: str, reason: str) -> None:
         self._fail(name, reason)

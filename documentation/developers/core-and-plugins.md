@@ -1,7 +1,8 @@
-# Core and Plugin Contract (Draft)
+# Core and Plugin Contract
 
-> Status: **draft for review**. First step of the "Advanced plugin system" track in
-> [roadmap-core-architecture.md](roadmap-core-architecture.md). Nothing here is implemented yet.
+> First step of the "Advanced plugin system" track in
+> [roadmap-core-architecture.md](roadmap-core-architecture.md). Implementation status: see
+> "Implementation plan" below.
 
 ## Terms
 
@@ -173,6 +174,18 @@ Core modules subclass `CoreModule` instead of `Plugin`; everything else is ident
 - An operation a backend doesn't support raises `NotImplementedError`; the framework maps it to
   HTTP 501 (as `_run_on_executor` does today).
 - Return values are serialized as JSON; `None` becomes `204 No Content`.
+- `name=` overrides the operation name where the method name can't be used, e.g.
+  `@action(name='stop') def stop_playback(...)` next to the lifecycle method `stop()`.
+- Parameters and return values must be type-annotated; the module fails to load otherwise.
+- `extra_routes(router)` is an escape hatch for routes the declarations can't express (e.g.
+  streaming uploads); they are not part of the versioned interface.
+
+### Lifecycle hooks
+
+- `start(ctx)` - in dependency order; register at extension points here.
+- `ready()` - after every module has started, in the same order. All actions are available now:
+  resolve configured actions, start threads that trigger actions (e.g. RFID readers).
+- `stop()` - in reverse order; returns threads the daemon waits for.
 
 ### Events
 
@@ -383,17 +396,22 @@ original is kept as `cards.yaml.bak-<timestamp>`:
 
 ## Implementation plan
 
-1. **Framework** (`jukebox.contract`): `CoreModule`, `Plugin`, `Context`, `@action`/`@query`/`event`,
-   module manager (entry-point discovery, opt-in, ordering, version checks, lifecycle, locks), route
-   generation, action catalog with validation, interface snapshots and the CI check. Unit tests with dummy modules and a dummy plugin package; no
-   existing code changes yet.
-2. **Migrate the core**: settings/system, cards, player (with the backend extension point), RFID
-   reader framework (with the driver extension point). REST paths stay the same, which the webapp
-   e2e suite verifies. Existing event topics get typed models and the webapp follows. Card dispatch goes through the action catalog; `cards.yaml` migration lands
-   here.
+1. **Framework** (`jukebox.contract`) -- *done*: `CoreModule`, `Plugin`, `Context`,
+   `@action`/`@query`/`event`/`extension_point`, module manager (entry-point discovery, opt-in,
+   ordering, version checks, lifecycle incl. `ready()`, locks), route generation, action catalog
+   with validation, interface snapshots and the CI check (`test/contract/`).
+2. **Migrate the core** -- *done*: `system` (info, logs, web app settings), `cards`, `player`
+   (backend extension point, typed `player.status`), `rfid` (reader framework, driver extension
+   point, `rfid.card_detected`). REST paths the webapp uses stayed the same except
+   `DELETE /api/v1/cards/{card_id}`; topics were renamed (`playerstatus` -> `player.status`,
+   `rfid.card_id` -> `rfid.card_detected`, `core.*` -> `system.info`) and the webapp follows.
+   Card dispatch goes through the action catalog; `cards.yaml` is migrated with a backup.
 3. **First bundled plugins**: `mpd` backend and the RFID reader drivers move to
    `packages/plugins/*`; extras are removed; installer and Docker files enable them via `plugins:`.
-4. **Remove the old mechanism** listed under "What goes away".
+   Until then `player` creates the `mpd` backend itself when configured, and `rfid` loads drivers
+   from `jukebox.rfid.hardware` when no plugin registered them.
+4. **Remove the old mechanism** -- *done together with step 2*: registry, command aliases, RPC
+   helpers, hand-written routes and the player backend import table are gone.
 5. **Library**: index, metadata, cover art, library-source extension point (see "Library").
 6. **Remaining core modules**: volume, timers, jingle, system info, input devices, with their
    webapp controls restored.

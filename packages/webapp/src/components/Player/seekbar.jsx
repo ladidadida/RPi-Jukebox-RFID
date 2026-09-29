@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import PlayerContext from '../../context/player/context';
+import { PLAYER_STATUS_TOPIC } from '../../config';
 import {
   progressToTime,
   timeToProgress,
@@ -17,12 +18,12 @@ import request from '../../utils/request';
 const SeekBar = () => {
   const { t } = useTranslation();
   const { state } = useContext(PlayerContext);
-  const { playerstatus } = state;
+  const { [PLAYER_STATUS_TOPIC]: playerstatus } = state;
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(parseFloat(playerstatus?.elapsed) || 0);
-  const timeTotal = parseFloat(playerstatus?.duration) || 0;
+  const [timeElapsed, setTimeElapsed] = useState(playerstatus?.elapsed || 0);
+  const timeTotal = playerstatus?.duration || 0;
 
   const updateTimeAndProgress = (newTime) => {
     setTimeElapsed(newTime);
@@ -46,7 +47,7 @@ const SeekBar = () => {
     // Avoid updating time and progress when user is seeking to new
     // song position
     if (!isSeeking) {
-      const elapsed = playerstatus?.elapsed;
+      const elapsed = playerstatus?.elapsed || 0;
       setTimeElapsed(elapsed);
       setProgress(timeToProgress(timeTotal, elapsed));
     }

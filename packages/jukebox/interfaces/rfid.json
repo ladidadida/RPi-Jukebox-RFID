@@ -1,0 +1,48 @@
+{
+  "events": {
+    "card_detected": {
+      "properties": {
+        "card_id": {
+          "type": "string"
+        },
+        "registered": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "card_id",
+        "registered"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {
+    "readers": {
+      "create_reader": "(self, reader_cfg_key: str) -> Any"
+    }
+  },
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "rfid",
+  "operations": {
+    "list_readers": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/rfid/readers",
+      "returns": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      }
+    }
+  },
+  "requires": {
+    "cards": null
+  }
+}

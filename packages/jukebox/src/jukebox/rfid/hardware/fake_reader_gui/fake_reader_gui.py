@@ -91,7 +91,7 @@ class ReaderClass(ReaderBaseClass):
         self._lframe3.grid(column=0, row=3, padx=default_padx, pady=default_pady, sticky='NSEW')
 
         # Frame 0
-        self._database_file = f"{jukebox.cfghandler.get_handler('jukebox').getn('rfid', 'card_database')}"
+        self._database_file = cfg_cards.loaded_from or ''
         self._database_label = ttk.Label(self._lframe0, text=f"{self._database_file}", padding=0)
         self._database_label.pack(side='top', padx=default_padx, pady=default_pady, anchor='w')
         # self._btn_database = ttk.Button(self._lframe0, text="Change", width=default_btn_width,

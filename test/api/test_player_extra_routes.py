@@ -1,12 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock
 
 import pytest
-from starlette.testclient import TestClient
 
-import jukebox.registry as registry
-from jukebox.api.events import EventBroker
-from jukebox.api.fastapi_server import create_app
 
 
 @pytest.fixture
@@ -21,18 +16,13 @@ def player_ctrl():
     ctrl.get_active_backend.return_value = 'local_audio'
     ctrl.get_default_backend.return_value = 'local_audio'
     ctrl.select_backend.return_value = 'mpd'
-    registry.register(ctrl, name='ctrl', package='player')
-    yield ctrl
-    registry.unregister('player', 'ctrl')
+    return ctrl
 
 
 @pytest.fixture
-def client():
-    executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(EventBroker(), executor)
-    with TestClient(app) as test_client:
+def client(player_ctrl, api_client, mocked_player):
+    with api_client([mocked_player(player_ctrl)]) as test_client:
         yield test_client
-    executor.shutdown(wait=False, cancel_futures=True)
 
 
 def test_player_type(client, player_ctrl):

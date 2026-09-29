@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import threading
 import os
 import sys
@@ -8,8 +9,6 @@ import time
 import atexit
 from typing import (Optional)
 
-from jukebox.misc import flatten
-import jukebox.registry as registry
 import jukebox.utils
 import jukebox.publishing as publishing
 from jukebox.api import FastApiServer
@@ -50,6 +49,7 @@ class JukeBox:
         self.nvm = nv_manager()
         self._signal_cnt = 0
         self.api_server = None
+        self.modules = None
         jukebox.cfghandler.ensure_default_config(configuration_file, DEFAULT_CONFIG_TEMPLATE)
         jukebox.cfghandler.load_yaml(cfg, configuration_file)
 
@@ -75,12 +75,14 @@ class JukeBox:
         # systemd: By default, a SIGTERM is sent, followed by 90 seconds of waiting followed by a SIGKILL.
         # Pressing Ctrl-C gives SIGINT
         self._signal_cnt += 1
+        # A further signal can interrupt this handler; decide on the count this call started with.
+        count = self._signal_cnt
         timeout: float = 5.0
         time_start = time.time_ns()
-        msg = f"Received signal '{signal.Signals(esignal).name}'. Count = {self._signal_cnt}"
+        msg = f"Received signal '{signal.Signals(esignal).name}'. Count = {count}"
         print(msg)
         logger.debug(msg)
-        if self._signal_cnt == 1:
+        if count == 1:
             # Put the shutdown procedure into a thread, so we can make a time-out on it
             # Cannot use threading.Timer for the timeout, as sys.exit() must be called from main thread
             t = threading.Thread(target=self.exit_gracefully, args=[esignal, timeout], daemon=True, name="ShutdownThread")
@@ -96,48 +98,32 @@ class JukeBox:
                 sys.exit(1)
             logger.info(f"Shutdown time: {((time.time_ns() - time_start) / 1000000.0):.3f} ms")
             sys.exit(0)
-        elif self._signal_cnt == 2:
+        elif count == 2:
             print("Waiting for closing down procedure to complete. Pressing Ctrl-C again will close Jukebox down immediately.")
-        if self._signal_cnt == 3:
+        if count == 3:
             sys.exit(1)
 
     def exit_gracefully(self, esignal, timeout):
-        # Imported lazily: these components import jukebox.daemon.get_jukebox_daemon at module level,
-        # so importing them at daemon.py module scope would be circular.
-        import jukebox.player.plugin
-        import jukebox.rfid.cards
-        import jukebox.rfid.reader
-
         msg = f"Closing down JukeBox {cfg.getn('system', 'box_name', default='Unnamed')}"
         print(msg)
         logger.info(msg)
         # (1) Stop taking commands
         if self.api_server is not None:
             self.api_server.terminate()
-        # (2) Stop the music
-        registry.call_ignore_errors('player', 'ctrl', 'stop')
-        # (3) Shut down the explicitly wired components (see run()) in reverse start-up order,
-        # collecting whatever threads they return so we can wait for them below.
-        # Some functions may return None or nested lists: flatten and filter those.
-        shutdown_results = [
-            jukebox.rfid.reader.stop_readers(signal_id=esignal),
-            jukebox.rfid.cards.stop(signal_id=esignal),
-            jukebox.player.plugin.stop(),
-            publishing.stop(signal_id=esignal),
-        ]
-        thread_list = list(filter(lambda x: x is not None, flatten(shutdown_results)))
-        # (4) Save all nonvolatile data
+        # (2) Stop the music, then the modules in reverse start order
+        thread_list = []
+        if self.modules is not None:
+            self.modules.catalog.call_ignore_errors('player.stop')
+            thread_list = self.modules.stop()
+        # (3) Save all nonvolatile data
         self.nvm.save_all()
         cfg.save(only_if_changed=True)
-        # (5) Wait for open threads to close
-        # Note: Not waiting for ALL open threads, only for those threads returned by the shutdown
-        # calls in (3) above.
-        logger.debug(f"Waiting {timeout}s for component shutdown threads to complete: {thread_list}")
+        # (4) Wait for the threads the modules handed back from stop()
+        logger.debug(f"Waiting {timeout}s for module shutdown threads to complete: {thread_list}")
         for t in thread_list:
             t.join()
 
-        logger.debug("All component shutdown threads closed")
-        # (6) Say goodbye
+        logger.debug("All module shutdown threads closed")
         msg = "All done. Hear you soon!"
         print(msg)
         logger.info(msg)
@@ -145,51 +131,25 @@ class JukeBox:
     def run(self):
         time_start = time.time_ns()
 
-        # Imported lazily: jukebox.system imports jukebox.daemon.get_jukebox_daemon at module level,
-        # so importing them at daemon.py module scope would be circular.
-        import jukebox.system
-        import jukebox.player.plugin
-        import jukebox.rfid.cards
-        import jukebox.rfid.reader
+        # Imported lazily: core modules import jukebox.daemon.get_jukebox_daemon at module level.
+        from jukebox.contract.manager import ModuleManager
+        from jukebox.core_modules import CORE_MODULES
 
-        # Explicitly wire up the components we need (no plugin system, see
-        # documentation/developers/roadmap-core-architecture.md). Order matters: publishing must be
-        # running before anything else sends messages; the card database must be loaded before the
-        # RFID reader starts scanning.
-        publishing.register()
-        publishing.start()
-        jukebox.system.register()
-        jukebox.player.plugin.start()
-        jukebox.rfid.cards.register()
-        jukebox.rfid.cards.start()
-        jukebox.rfid.reader.start_readers()
+        self.modules = ModuleManager(CORE_MODULES, cfg, publishing.get_bus())
+        self.modules.load()
+        self.modules.start()
+        self.modules.ready()
 
-        publishing.get_publisher().send('core.started_at', time.ctime(self._start_time))
-        publishing.get_publisher().send('core.git_state', self._git_state)
-
-        self.api_server = FastApiServer()
+        self.api_server = FastApiServer(modules=self.modules)
         self.api_server.start_and_wait()
 
         logger.info(f"Start-up time: {((time.time_ns() - time_start) / 1000000.0):.3f} ms")
 
         if self.write_artifacts:
-            # This writes out
-            # rpc_command_reference.txt
-            # rpc_command_alias_reference.txt
-
             artifacts_dir = 'shared/artifacts/'
-
-            try:
-                os.mkdir(artifacts_dir)
-            except FileExistsError:
-                pass
-
-            with open(os.path.join(artifacts_dir, 'rpc_command_reference.txt'), 'w') as stream:
-                registry.dump_registry(stream)
-
-            # Write reference of command shortcuts
-            with open(os.path.join(artifacts_dir, 'rpc_command_alias_reference.txt'), 'w') as stream:
-                jukebox.utils.generate_cmd_alias_reference(stream)
+            os.makedirs(artifacts_dir, exist_ok=True)
+            with open(os.path.join(artifacts_dir, 'card_actions.json'), 'w') as stream:
+                json.dump(self.modules.catalog.describe(), stream, indent=2)
 
         # Block the main thread until shutdown (exit_gracefully() calls api_server.terminate(),
         # which stops uvicorn and lets this thread finish).

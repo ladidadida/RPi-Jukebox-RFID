@@ -1,12 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock
 
 import pytest
-from starlette.testclient import TestClient
 
-import jukebox.registry as registry
-from jukebox.api.events import EventBroker
-from jukebox.api.fastapi_server import create_app
 
 
 @pytest.fixture
@@ -14,19 +9,16 @@ def player_ctrl():
     ctrl = Mock()
     ctrl.get_volume.return_value = 42
     ctrl.set_volume.return_value = 55
-    ctrl.playerstatus.return_value = {'state': 'play', 'volume': '42'}
-    registry.register(ctrl, name='ctrl', package='player')
-    yield ctrl
-    registry.unregister('player', 'ctrl')
+    ctrl.playerstatus.return_value = {'state': 'play', 'song': '0', 'file': 'a.mp3', 'elapsed': '1.5',
+                                      'random': '1', 'volume': '42'}
+    ctrl.get_active_backend.return_value = 'local_audio'
+    return ctrl
 
 
 @pytest.fixture
-def client():
-    executor = ThreadPoolExecutor(max_workers=1)
-    app = create_app(EventBroker(), executor)
-    with TestClient(app) as test_client:
+def client(player_ctrl, api_client, mocked_player):
+    with api_client([mocked_player(player_ctrl)]) as test_client:
         yield test_client
-    executor.shutdown(wait=False, cancel_futures=True)
 
 
 def test_play(client, player_ctrl):
@@ -104,13 +96,20 @@ def test_play_folder_recursive_defaults_to_false(client, player_ctrl):
 def test_play_song(client, player_ctrl):
     response = client.post('/api/v1/player/song', json={'song_url': 'Stories/01.mp3'})
     assert response.status_code == 204
-    player_ctrl.play_single.assert_called_once_with('Stories/01.mp3')
+    player_ctrl.play_single.assert_called_once_with('Stories/01.mp3', None)
 
 
 def test_get_status(client, player_ctrl):
     response = client.get('/api/v1/player/status')
     assert response.status_code == 200
-    assert response.json() == {'state': 'play', 'volume': '42'}
+    status = response.json()
+    assert status['provider'] == 'local_audio'
+    assert status['state'] == 'play'
+    assert status['position'] == 0
+    assert status['file'] == 'a.mp3'
+    assert status['elapsed'] == 1.5
+    assert status['random'] is True
+    assert 'volume' not in status
 
 
 def test_get_volume(client, player_ctrl):

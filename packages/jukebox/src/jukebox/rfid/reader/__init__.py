@@ -1,278 +1,225 @@
+"""RFID reader framework: one thread per configured reader, card dispatch, card removal detection.
+
+Hardware drivers register at the ``rfid.readers`` extension point. Readers are configured in the
+reader config file (``rfid.reader_config``), each with the name of its driver under ``module``.
+"""
+
+import importlib
 import logging
 import threading
 import time
-import importlib
-from typing import Callable
-from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Protocol
+
+from pydantic import BaseModel
 
 import jukebox.cfghandler
-import jukebox.utils as utils
-import jukebox.publishing as publishing
-import jukebox.registry as registry
-from jukebox.rfid.cardutils import (decode_card_command)
-
-from jukebox.callingback import CallbackHandler
+import jukebox.legacy_actions as legacy_actions
+from jukebox.contract import CoreModule, event, extension_point, query
 
 log = logging.getLogger('jb.rfid')
 
-_READERS = {}
 cfg_rfid = jukebox.cfghandler.get_handler('rfid')
-cfg_main = jukebox.cfghandler.get_handler('jukebox')
-cfg_cards = jukebox.cfghandler.get_handler('cards')
+
+DEFAULT_READER_CONFIG = 'shared/settings/rfid.yaml'
 
 
-class RfidCardDetectState(Enum):
-    received = 0,
-    isRegistered = 1
-    isUnkown = 2
+class ReaderDriver(Protocol):
+    def create_reader(self, reader_cfg_key: str) -> Any:
+        """Return a reader for the reader config key: a context manager that iterates card ids
+        ('' on timeout) and has ``stop()``."""
 
 
-class RfidCardDetectCallbacks(CallbackHandler):
-    """
-    Callbacks are executed if rfid card is detected
-    """
-
-    def register(self, func: Callable[[str, RfidCardDetectState], None]):
-        """
-        Add a new callback function :attr:`func`.
-
-        Callback signature is
-
-        .. py:function:: func(card_id: str, state: int)
-            :noindex:
-
-        :param card_id: Card ID
-        :param state: See #RfidCardDetectState
-        """
-        super().register(func)
-
-    def run_callbacks(self, card_id: str, state: RfidCardDetectState):
-        """:meta private:"""
-        super().run_callbacks(card_id, state)
+class CardDetected(BaseModel):
+    card_id: str
+    registered: bool
 
 
-#: Callback handler instance for rfid_card_detect_callbacks events.
-#: See #RfidCardDetectCallbacks
-rfid_card_detect_callbacks: RfidCardDetectCallbacks = RfidCardDetectCallbacks('rfid_card_detect_callbacks', log)
+class _BundledDriver:
+    """Loads a driver from ``jukebox.rfid.hardware`` until drivers are shipped as plugins."""
+
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+
+    def create_reader(self, reader_cfg_key: str) -> Any:
+        try:
+            module = importlib.import_module(f'jukebox.rfid.hardware.{self.module_name}.{self.module_name}')
+        except ImportError as exc:
+            raise RuntimeError(
+                f"RFID reader module '{self.module_name}' needs its optional dependencies installed. "
+                f"Install with: uv sync --extra {self.module_name.replace('_', '-')}"
+            ) from exc
+        return module.ReaderClass(reader_cfg_key)
 
 
-class CardRemovalTimerClass(threading.Thread):
-    """
-    A timer watchdog thread that calls timeout_action on time-out
+class CardRemovalTimer(threading.Thread):
+    """Runs ``on_timeout`` once when the card has not been seen for about a second."""
 
-    """
-    def __init__(self, on_timeout_callback, logger: logging.Logger = None):
-        """
-        :param on_timeout_callback: The function to execute on time-out
-        """
-        threading.Thread.__init__(self)
-        self._logger = logger if logger is not None else logging.getLogger('jb.rfid.cardremove')
+    def __init__(self, on_timeout: Callable[[], Any], name: str):
+        super().__init__(name=name, daemon=True)
         self.trigger = threading.Event()
-        self.timeout_action = on_timeout_callback
+        self.on_timeout = on_timeout
 
     def run(self):
-        self._logger.debug("CardRemovalTimerClass watchdog started")
         has_timed_out = True
         while True:
-            # Prevent max CPU by forced loop slow down when self.trigger.is_set() is permanently high
             time.sleep(0.2)
-            # This is the actual timer:
-            # self.trigger.wait() aborts immediately when trigger.is_set becomes True
             self.trigger.wait(1)
             if self.trigger.is_set():
                 has_timed_out = False
             else:
                 if not has_timed_out:
-                    self.timeout_action()
-                # Save that we have timed out before, so time-out event handler is run only on the first time out
+                    self.on_timeout()
                 has_timed_out = True
 
 
 class ReaderRunner(threading.Thread):
-    def __init__(self, reader_cfg_key: str,
-                 logger: logging.Logger = None):
+    def __init__(self, reader_cfg_key: str, driver: ReaderDriver, rfid: 'Rfid'):
         super().__init__(name=f"{reader_cfg_key}Thread", daemon=True)
-        self._logger = logger
-        if logger is None:
-            self._logger = logging.getLogger(f'jb.rfid({reader_cfg_key})')
-        self._reader_cfg_key = reader_cfg_key
-        reader_type = cfg_rfid['rfid']['readers'][reader_cfg_key]['module'].lower()
-        # Load the corresponding module
-        self._logger.info(f"For reader config key '{reader_cfg_key}': loading module '{reader_type}'")
-        try:
-            self._reader_module = importlib.import_module('jukebox.rfid.hardware.' + reader_type + '.' + reader_type,
-                                                          'pkg.subpkg')
-        except ImportError as exc:
-            raise RuntimeError(
-                f"RFID reader module '{reader_type}' needs its optional dependencies installed. "
-                f"Install with: uv sync --extra {reader_type.replace('_', '-')}"
-            ) from exc
+        self._key = reader_cfg_key
+        self._driver = driver
+        self._rfid = rfid
+        self._logger = logging.getLogger(f'jb.rfid({reader_cfg_key})')
         self._reader = None
-        # Get additional configuration
-        self._cfg_same_id_delay = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key,
-                                                       'same_id_delay', value=1.0)
-        self._cfg_place_not_swipe = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key,
-                                                         'place_not_swipe', 'enabled', value=False)
-        self._cfg_log_ignored_cards = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key,
-                                                           'log_ignored_cards', value=False)
-        # Get removal actions:
-        cfg_removal_action = cfg_rfid.getn('rfid', 'readers', reader_cfg_key,
-                                           'place_not_swipe', 'card_removal_action', default=None)
-        self._default_removal_action = utils.decode_rpc_command(cfg_removal_action, self._logger)
-        self._logger.debug(f"Decoded removal action: {utils.rpc_call_to_str(self._default_removal_action)}")
-
-        if self._cfg_place_not_swipe is True and self._default_removal_action is None:
-            self._logger.warning('Option place_not_swipe activated, but no card removal action specified. '
-                                 'Ignoring place_place_not_swipe')
-            self._cfg_place_not_swipe = False
-        self._timer_thread = None
-        if self._cfg_place_not_swipe:
-            self._timer_thread = CardRemovalTimerClass(utils.bind_rpc_command(self._default_removal_action, dereference=False,
-                                                                              logger=self._logger))
-            self._timer_thread.daemon = True
-            self._timer_thread.name = f"{reader_cfg_key}CRemover"
-            self._timer_thread.start()
-        self.publisher = None
-        self.topic = "rfid.card_id"
-        # Ready to go
         self._cancel = threading.Event()
+        self._same_id_delay = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key, 'same_id_delay', value=1.0)
+        self._log_ignored = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key, 'log_ignored_cards',
+                                                 value=False)
+        place_not_swipe = cfg_rfid.setndefault('rfid', 'readers', reader_cfg_key, 'place_not_swipe', 'enabled',
+                                               value=False)
+        removal_entry = cfg_rfid.getn('rfid', 'readers', reader_cfg_key, 'place_not_swipe', 'card_removal_action',
+                                      default=None)
+        self._removal_timer = None
+        if place_not_swipe:
+            removal_action = rfid.resolve_config_action(removal_entry, f"{reader_cfg_key}.card_removal_action")
+            if removal_action is None:
+                self._logger.warning('place_not_swipe is enabled, but there is no valid card removal action. '
+                                     'Ignoring place_not_swipe')
+            else:
+                self._removal_timer = CardRemovalTimer(removal_action, f"{reader_cfg_key}CRemover")
+                self._removal_timer.start()
 
     def stop(self):
         self._cancel.set()
-        self._reader.stop()
+        if self._reader is not None:
+            self._reader.stop()
 
     def run(self):  # noqa: C901
-        self._logger.debug("Start listening!")
-        # Init the reader class
-        # Do it here, such that the reader class is initialized and destroyed in the
-        # actual reader thread
-        self._reader = self._reader_module.ReaderClass(self._reader_cfg_key)
-        self.publisher = publishing.get_publisher()
-        # Previous ID is only stored to prevent repetitive triggers of the same card in case of place-not-swipe scenarios
-        # For command card there is an exception (see below)
+        self._reader = self._driver.create_reader(self._key)
         previous_id = ''
         previous_time = time.time()
-        # This parameter is only relevant for the place-not-swipe case:
-        # We need to store if the last action was a valid action, which triggers the timer for the remove action
-        # So we can decide when a card id comes in, if the timer has to be reset or not without decoding the cards action
+        # Only for place-not-swipe: whether the card on the reader re-arms the removal timer
         valid_for_removal_action = False
-
-        if self._timer_thread is not None:
-            self._logger.debug(f"card_removal_timer_thread.native_id = {self._timer_thread.ident}")
-            self._timer_thread.trigger.clear()
+        timer = self._removal_timer
+        if timer is not None:
+            timer.trigger.clear()
 
         with self._reader as reader:
-            # Raises a StopIteration (if blocking) or simply returns '' (if non-blocking)
             for card_id in reader:
                 if self._cancel.is_set():
                     break
                 if card_id:
-                    # (1) Re-Trigger the timer, to detect card removal
-                    # But: don't trigger the timer just yet if it is a new card id
-                    # First, need to figure out if this card really has is a removal-action card
-                    # Cards w/o removal action are e.g. command card, ignore_removal, unknown cards
-                    # These non-removal actions card can also be placed on the reader. Meaning that only
-                    # on first read-out card_id != previous_id. For further iterations, the
-                    # validity state needs to be saved in valid_for_removal_action
-                    if valid_for_removal_action and self._timer_thread is not None and card_id == previous_id:
-                        self._timer_thread.trigger.set()
-                    if card_id != previous_id or (time.time() - previous_time) >= self._cfg_same_id_delay:
-                        # (2) Log this: do this first to provide log entry in case something does not run through
+                    if valid_for_removal_action and timer is not None and card_id == previous_id:
+                        timer.trigger.set()
+                    if card_id != previous_id or (time.time() - previous_time) >= self._same_id_delay:
                         self._logger.info(f"Received card id = '{card_id}'")
-
                         previous_id = card_id
                         valid_for_removal_action = False
-
-                        # (3) Check if this card is in the card database
-                        # TODO: This card config read is not thread safe
-
-                        # run callbacks on successfull read before card_entry is processed
-                        rfid_card_detect_callbacks.run_callbacks(card_id, RfidCardDetectState.received)
-
-                        card_entry = cfg_cards.get(card_id, default=None)
-                        if card_entry is not None:
-
-                            # (4) Decode card action
-                            card_action = decode_card_command(card_entry, self._logger)
-
-                            # (5) Send status update to PubSub
-                            self.publisher.send(self.topic, card_id)
-
-                            if card_action is not None:
-                                # (6) Override card individual parameters
-                                if card_action.get('ignore_same_id_delay', False):
-                                    # If this is a 'ignore_same_id_delay' card, clear the previous ID:
-                                    # This very neatly allows (without overhead) that the card can trigger the command again
-                                    # without waiting for same_id_delay
-                                    previous_id = ''
-                                elif self._timer_thread is not None:
-                                    # Only activate removal action if ignore_same_id_delay is False
-                                    # Reason: There is no use case for a card with fast-repeat action (e.g. volume incr)
-                                    # and common card removal action. Disallow that to card config a little easier
-                                    valid_for_removal_action = not card_entry.get('ignore_card_removal_action', False)
-                                    if valid_for_removal_action:
-                                        self._timer_thread.trigger.set()
-
-                                # (7) Finally trigger action
-                                #     Option A) plugs.call_ignore_errors(): it is thread safe but blocks, there is no Queue!
-                                #     Option B) Through the RPC client. A little overhead but uses the same
-                                #               communication channel as external IFs
-                                # Retrieve card_action parameters always with default to be error-safe in case of
-                                # dodgy cards database entry
-                                # TODO: This call happens from the reader thread, which is not necessarily what we want ...
-                                # TODO: Change to RPC call to transfer execution into main thread
-                                rfid_card_detect_callbacks.run_callbacks(card_id, RfidCardDetectState.isRegistered)
-                                registry.call_ignore_errors(card_action['package'], card_action['plugin'],
-                                                            card_action['method'], args=card_action['args'],
-                                                            kwargs=card_action['kwargs'])
-
-                        else:
-                            rfid_card_detect_callbacks.run_callbacks(card_id, RfidCardDetectState.isUnkown)
-                            self._logger.info(f"Unknown card: '{card_id}'")
-                            self.publisher.send(self.topic, card_id)
-                    elif self._cfg_log_ignored_cards is True:
-                        self._logger.debug(f"'Ignoring card id {card_id} due to same-card-delay ({self._cfg_same_id_delay}s)")
+                        card = self._rfid.lookup(card_id)
+                        if card is not None:
+                            if card.ignore_same_id_delay:
+                                previous_id = ''
+                            elif timer is not None:
+                                valid_for_removal_action = not card.ignore_card_removal_action
+                                if valid_for_removal_action:
+                                    timer.trigger.set()
+                        self._rfid.dispatch(card_id, card)
+                    elif self._log_ignored:
+                        self._logger.debug(f"Ignoring card id {card_id} due to same-card-delay "
+                                           f"({self._same_id_delay}s)")
                     previous_time = time.time()
-                else:
-                    # Time-out for reader internal error resulting in empty string: to be ignored
-                    pass
-                # Slow down the card reading while loop in case card is placed permanently on reader
                 self._cancel.wait(timeout=0.2)
-                if self._timer_thread is not None:
-                    self._timer_thread.trigger.clear()
-
-        self._logger.debug("Stop listening!")
+                if timer is not None:
+                    timer.trigger.clear()
 
 
-def start_readers():
-    """Load the reader config/database and start a ReaderRunner thread per configured reader.
+class Rfid(CoreModule):
+    """RFID readers: detect cards and run their actions."""
 
-    Called explicitly by jukebox.daemon at start-up (no plugin system, see
-    documentation/developers/roadmap-core-architecture.md).
-    """
-    try:
-        reader_config_file = cfg_main.getn('rfid', 'reader_config')
-        jukebox.cfghandler.load_yaml(cfg_rfid, reader_config_file)
-    except FileNotFoundError:
-        cfg_rfid.config_dict({'rfid': {'readers': {}}})
-        log.warning(f"rfid reader database file not found. Creating empty database: '{reader_config_file}'")
-        # Save the empty rfid reader database, to make sure we can create the file and have access to it
-        cfg_rfid.save(only_if_changed=False)
+    name = 'rfid'
+    interface_version = '1.0'
+    requires = ('cards',)
 
-    if 'rfid' in cfg_rfid and 'readers' in cfg_rfid['rfid']:
-        # Load all the required modules
-        # Start a ReaderRunner-Thread for each Reader
-        for reader_cfg_key in cfg_rfid['rfid']['readers'].keys():
-            _READERS[reader_cfg_key] = ReaderRunner(reader_cfg_key)
-        for reader_cfg_key in cfg_rfid['rfid']['readers'].keys():
-            _READERS[reader_cfg_key].start()
+    card_detected = event('card_detected', CardDetected)
+    readers = extension_point('readers', ReaderDriver)
 
+    def __init__(self):
+        self._ctx = None
+        self._runners: Dict[str, ReaderRunner] = {}
 
-def stop_readers(**ignored_kwargs):
-    # For all parallel readers, call the stop function
-    for reader in _READERS.values():
-        reader.stop()
-    # Do I need to write the config?
-    # Probably yes, in case Readers add default values?
-    # Changed values of buzzer etc through a later user if?
-    return _READERS.values()
+    def start(self, ctx) -> None:
+        self._ctx = ctx
+        path = ctx.config.setdefault('reader_config', value=DEFAULT_READER_CONFIG)
+        try:
+            jukebox.cfghandler.load_yaml(cfg_rfid, path)
+        except FileNotFoundError:
+            cfg_rfid.config_dict({'rfid': {'readers': {}}})
+            log.warning(f"RFID reader config not found. Creating an empty one: '{path}'")
+            cfg_rfid.save(only_if_changed=False)
+
+    def ready(self) -> None:
+        readers = cfg_rfid.getn('rfid', 'readers', default=None) or {}
+        for key, reader_cfg in readers.items():
+            driver_name = str(reader_cfg.get('module', '')).lower()
+            if driver_name in self.readers:
+                driver = self.readers.get(driver_name)
+            else:
+                driver = _BundledDriver(driver_name)
+            log.info(f"Reader '{key}': using driver '{driver_name}'")
+            self._runners[key] = ReaderRunner(key, driver, self)
+        for runner in self._runners.values():
+            runner.start()
+
+    def stop(self) -> List[threading.Thread]:
+        for runner in self._runners.values():
+            runner.stop()
+        return list(self._runners.values())
+
+    # -- used by the reader threads -------------------------------------------------------------
+
+    def lookup(self, card_id: str):
+        return self._ctx.modules.cards.get_card(card_id)
+
+    def dispatch(self, card_id: str, card) -> None:
+        self._ctx.publish(self.card_detected, CardDetected(card_id=card_id, registered=card is not None))
+        if card is None:
+            log.info(f"Unknown card: '{card_id}'")
+            return
+        self._ctx.actions.call_ignore_errors(card.action, card.args)
+
+    def resolve_config_action(self, entry, where: str) -> Optional[Callable[[], Any]]:
+        """Turn a configured action (new or old format) into a callable, or None if invalid."""
+        if not isinstance(entry, dict):
+            return None
+        catalog = self._ctx.actions
+
+        def param_names(action_id):
+            return [p.name for p in catalog.operation(action_id).params] if action_id in catalog else None
+
+        converted, problem = legacy_actions.convert(entry, param_names)
+        if converted is None:
+            log.error(f"{where}: {problem}")
+            return None
+        try:
+            catalog.validate(converted['action'], converted['args'])
+        except Exception as error:
+            log.error(f"{where}: {error}")
+            return None
+        return lambda: catalog.call_ignore_errors(converted['action'], converted['args'])
+
+    # -- operations -----------------------------------------------------------------------------
+
+    @query(path='/readers')
+    def list_readers(self) -> Dict[str, str]:
+        """Configured readers and their driver."""
+        readers = cfg_rfid.getn('rfid', 'readers', default=None) or {}
+        return {key: str(value.get('module', '')) for key, value in readers.items()}

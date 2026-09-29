@@ -55,6 +55,17 @@ describe('request', () => {
     expect(JSON.parse(options.body)).toEqual({ folder: 'Music/Rock' });
   });
 
+  test('fills path parameters from kwargs', async () => {
+    global.fetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await request('deleteCard', { card_id: 'a/b' });
+
+    const [path, options] = global.fetch.mock.calls[0];
+    expect(path).toBe('/api/v1/cards/a%2Fb');
+    expect(options.method).toBe('DELETE');
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+
   test('returns HTTP errors and unknown commands as errors', async () => {
     global.fetch.mockResolvedValue(jsonResponse({ detail: 'nope' }, { ok: false, status: 501 }));
 

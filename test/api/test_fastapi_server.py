@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-import jukebox.registry as registry
+from jukebox.contract import CoreModule, query
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE
 from jukebox.api.fastapi_server import FastApiServer, create_app
 from jukebox.library import MusicLibrary
@@ -248,33 +248,31 @@ def test_library_folder_create_rejects_oversized_body(library_client):
     assert response.json()['error']['code'] == 'request_too_large'
 
 
-def test_blocking_route_does_not_block_health():
+def test_blocking_route_does_not_block_health(api_client):
     started = threading.Event()
     release = threading.Event()
 
-    def blocking_list_cards():
-        started.set()
-        release.wait(1)
-        return {'0001': {}}
+    class Slow(CoreModule):
+        name = 'slow'
 
-    registry.register(blocking_list_cards, name='list_cards', package='cards')
-    executor = ThreadPoolExecutor(max_workers=4)
-    client = TestClient(create_app(EventBroker(), executor))
-    try:
+        @query()
+        def wait(self) -> str:
+            started.set()
+            release.wait(1)
+            return 'done'
+
+    with api_client([Slow]) as client:
         results = {}
-        cards_thread = threading.Thread(target=lambda: results.update(cards=client.get('/api/v1/cards')))
-        cards_thread.start()
+        worker = threading.Thread(target=lambda: results.update(slow=client.get('/api/v1/slow/wait')))
+        worker.start()
         assert started.wait(1)
 
         health = client.get('/api/v1/health')
         assert health.status_code == 200
 
         release.set()
-        cards_thread.join(1)
-        assert results['cards'].json() == {'0001': {}}
-    finally:
-        registry.unregister('cards')
-        executor.shutdown(wait=True, cancel_futures=True)
+        worker.join(1)
+        assert results['slow'].json() == 'done'
 
 
 def test_fastapi_server_thread_lifecycle_and_stable_subscription():

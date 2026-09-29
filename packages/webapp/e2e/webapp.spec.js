@@ -33,31 +33,38 @@ const backendData = {
   ],
   list_cards: {
     '0001234567': {
-      action: { args: [] },
-      from_alias: '',
-      func: 'play',
+      action: 'player.play',
+      args: {},
+      description: 'Start or resume playback.',
+      error: null,
+      ignore_card_removal_action: false,
+      ignore_same_id_delay: false,
     },
   },
 };
 
 const socketEvents = {
   'batt_status': { charging: false, soc: 76 },
-  'core.plugins.loaded': { battmon: true },
-  'core.version': '3.7.0-alpha',
+  'system.info': { version: '3.7.0-alpha', git_state: 'test', started_at: 'today' },
   'host.temperature.cpu': '47.2',
   'host.timer.cputemp': { enabled: true },
-  'playerstatus': {
+  'player.status': {
     album: 'Discovery',
+    albumartist: null,
     artist: 'Daft Punk',
-    duration: '224',
-    elapsed: '42',
+    cover_url: null,
+    duration: 224,
+    elapsed: 42,
     file: 'Daft Punk/Discovery/One More Time.mp3',
-    random: '0',
-    repeat: '0',
-    single: '0',
-    songid: '1',
+    playlist_length: 1,
+    position: 0,
+    provider: 'local_audio',
+    random: false,
+    repeat: false,
+    single: false,
     state: 'play',
     title: 'One More Time',
+    track: null,
   },
   'volume.level': { mute: false, volume: 42 },
 };
@@ -149,7 +156,7 @@ async function mockBackend(
     '/api/v1/player/library/items': libraryItems,
     '/api/v1/player/library/sources': librarySources,
     '/api/v1/player/songs': () => backendData.list_songs_by_artist_and_album,
-    '/api/v1/player/status': () => socketEvents.playerstatus,
+    '/api/v1/player/status': () => socketEvents['player.status'],
     '/api/v1/player/volume': () => backendData.get_volume,
     '/api/v1/settings': () => ({ show_covers: showCovers }),
   };
@@ -477,4 +484,22 @@ test('API failures leave navigation and an error state available', async ({ page
   await expect(page.getByText('An error occurred while loading cards list.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expectStableLayout(page);
+});
+
+test('saving a card sends its action id and named arguments', async ({ page }) => {
+  const consoleErrors = collectConsoleErrors(page);
+  const { apiCalls } = await mockBackend(page);
+  await page.goto('/#/cards/0001234567/edit');
+
+  await page.getByRole('button', { name: 'Save' }).click();
+
+  await expect.poll(() => (
+    apiCalls.find(call => call.method === 'POST' && call.path === '/api/v1/cards')?.body
+  )).toEqual({
+    action: 'player.play',
+    args: {},
+    card_id: '0001234567',
+    overwrite: true,
+  });
+  expect(consoleErrors).toEqual([]);
 });

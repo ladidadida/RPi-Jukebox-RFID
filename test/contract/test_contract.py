@@ -82,6 +82,7 @@ def make_manager(core, plugins=None, enabled=None, strict=True):
     manager = ModuleManager(core, cfg, bus, plugins=plugins or {}, strict=strict)
     manager.load()
     manager.start()
+    manager.ready()
     return manager, bus, cfg
 
 
@@ -353,3 +354,57 @@ def test_modules_endpoint(client):
     assert modules['volume']['extension_points'] == ['speakers']
     actions = {a['id'] for a in http.get('/api/v1/actions').json()}
     assert actions == {'volume.set_volume', 'volume.mute', 'player.play_folder'}
+
+
+def test_ready_runs_after_all_modules_started():
+    calls = []
+
+    class A(CoreModule):
+        name = 'a'
+
+        def start(self, ctx):
+            calls.append('start a')
+
+        def ready(self):
+            calls.append('ready a')
+
+    class B(CoreModule):
+        name = 'b'
+        requires = ('a',)
+
+        def start(self, ctx):
+            calls.append('start b')
+
+        def ready(self):
+            calls.append('ready b')
+
+    make_manager([B, A])
+    assert calls == ['start a', 'start b', 'ready a', 'ready b']
+
+
+def test_extension_point_listeners_see_past_and_future_registrations():
+    manager, _, _ = make_manager([Volume])
+    speakers = manager.instance('volume').speakers
+
+    class Good:
+        def play(self, path):
+            pass
+
+    speakers.register('first', Good())
+    seen = []
+    speakers.on_register(lambda key, impl: seen.append(key))
+    speakers.register('second', Good())
+    assert seen == ['first', 'second']
+
+
+def test_operation_name_can_differ_from_method_name():
+    class Deck(CoreModule):
+        name = 'deck'
+
+        @action(name='stop')
+        def stop_playback(self) -> None:
+            self.stopped = True
+
+    manager, _, _ = make_manager([Deck])
+    manager.catalog.call('deck.stop')
+    assert manager.instance('deck').stopped

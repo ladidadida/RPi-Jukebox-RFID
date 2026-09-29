@@ -3,13 +3,14 @@ import { omit } from 'ramda';
 import { useTranslation } from 'react-i18next';
 
 import PubSubContext from '../../context/pubsub/context';
+import { CARD_DETECTED_TOPIC } from '../../config';
 import CardsForm from './form';
 import { useLocation } from 'react-router-dom';
 
 const CardsRegister = () => {
   const { t } = useTranslation();
   const {
-    state: { 'rfid.card_id': swipedCardId },
+    state: { [CARD_DETECTED_TOPIC]: detectedCard },
     setState
   } = useContext(PubSubContext);
   const { state: locationState } = useLocation();
@@ -19,12 +20,12 @@ const CardsRegister = () => {
   const [actionData, setActionData] = useState(registerCard?.actionData || {});
 
   useEffect(() => {
-    setState(state => (omit(['rfid.card_id'], state)));
+    setState(state => (omit([CARD_DETECTED_TOPIC], state)));
   }, [setState]);
 
   useEffect(() => {
-    setCardId(swipedCardId || registerCard?.cardId);
-  }, [registerCard, swipedCardId])
+    setCardId(detectedCard?.card_id || registerCard?.cardId);
+  }, [registerCard, detectedCard])
 
   return (
     <CardsForm

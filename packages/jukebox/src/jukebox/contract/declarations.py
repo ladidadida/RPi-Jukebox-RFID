@@ -4,7 +4,7 @@ import inspect
 import threading
 import typing
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from pydantic import BaseModel, ConfigDict, create_model
 
@@ -19,6 +19,7 @@ class OperationSpec:
     method: str
     path: Optional[str]
     exclusive: bool
+    name: Optional[str] = None
 
 
 def _decorate(func, spec: OperationSpec):
@@ -27,20 +28,24 @@ def _decorate(func, spec: OperationSpec):
 
 
 def action(func: Optional[Callable] = None, *, method: str = 'POST', path: Optional[str] = None,
-           exclusive: bool = True):
-    """Declare a state-changing operation: REST route, card action and in-process call."""
+           exclusive: bool = True, name: Optional[str] = None):
+    """Declare a state-changing operation: REST route, card action and in-process call.
+
+    ``name`` overrides the operation name (default: the method name), e.g. where the method name
+    would clash with the lifecycle methods ``start``/``stop``/``ready``."""
     method = method.upper()
     if method not in ('POST', 'PUT', 'DELETE'):
         raise ContractError(f"@action method must be POST, PUT or DELETE, not '{method}'")
-    spec = OperationSpec('action', method, path, exclusive)
+    spec = OperationSpec('action', method, path, exclusive, name)
     if func is not None:
         return _decorate(func, spec)
     return lambda f: _decorate(f, spec)
 
 
-def query(func: Optional[Callable] = None, *, path: Optional[str] = None, exclusive: bool = True):
+def query(func: Optional[Callable] = None, *, path: Optional[str] = None, exclusive: bool = True,
+          name: Optional[str] = None):
     """Declare a read-only operation: GET route and in-process call, not card-triggerable."""
-    spec = OperationSpec('query', 'GET', path, exclusive)
+    spec = OperationSpec('query', 'GET', path, exclusive, name)
     if func is not None:
         return _decorate(func, spec)
     return lambda f: _decorate(f, spec)
@@ -77,6 +82,15 @@ class ExtensionPoint:
         self.protocol = protocol
         self._lock = threading.Lock()
         self._items: Dict[str, Any] = {}
+        self._listeners: List[Callable[[str, Any], None]] = []
+
+    def on_register(self, listener: Callable[[str, Any], None]) -> None:
+        """Call ``listener(key, implementation)`` for every current and future registration."""
+        with self._lock:
+            self._listeners.append(listener)
+            current = list(self._items.items())
+        for key, implementation in current:
+            listener(key, implementation)
 
     def register(self, key: str, implementation: Any) -> None:
         missing = [m for m in protocol_methods(self.protocol)
@@ -89,6 +103,9 @@ class ExtensionPoint:
             if key in self._items:
                 raise ContractError(f"'{key}' is already registered at extension point '{self.name}'")
             self._items[key] = implementation
+            listeners = list(self._listeners)
+        for listener in listeners:
+            listener(key, implementation)
 
     def unregister(self, key: str) -> None:
         with self._lock:
@@ -149,31 +166,34 @@ def protocol_methods(protocol: type):
 class Operation:
     """An operation of a module class with its argument model and return type."""
 
-    def __init__(self, module_name: str, name: str, func: Callable, spec: OperationSpec):
+    def __init__(self, module_name: str, attr: str, func: Callable, spec: OperationSpec):
         self.module_name = module_name
-        self.name = name
+        self.attr = attr
+        self.name = spec.name or attr
+        if not self.name.isidentifier():
+            raise ContractError(f"{module_name}.{attr}: invalid operation name {self.name!r}")
         self.func = func
         self.spec = spec
         self.signature = inspect.signature(func)
         try:
             hints = typing.get_type_hints(func, include_extras=True)
         except Exception as error:
-            raise ContractError(f"{module_name}.{name}: cannot resolve type hints ({error})") from error
+            raise ContractError(f"{module_name}.{attr}: cannot resolve type hints ({error})") from error
         self.params = [p for p in self.signature.parameters.values() if p.name != 'self']
         for param in self.params:
             if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
-                raise ContractError(f"{module_name}.{name}: *args/**kwargs are not allowed in operations")
+                raise ContractError(f"{module_name}.{attr}: *args/**kwargs are not allowed in operations")
             if param.name not in hints:
-                raise ContractError(f"{module_name}.{name}: parameter '{param.name}' needs a type annotation")
+                raise ContractError(f"{module_name}.{attr}: parameter '{param.name}' needs a type annotation")
         if 'return' not in hints:
-            raise ContractError(f"{module_name}.{name}: needs a return type annotation")
+            raise ContractError(f"{module_name}.{attr}: needs a return type annotation")
         self.param_types = {p.name: hints[p.name] for p in self.params}
         self.return_type = hints['return']
         fields: Dict[str, Any] = {
             p.name: (hints[p.name], ... if p.default is inspect.Parameter.empty else p.default)
             for p in self.params
         }
-        model_name = ''.join(part.capitalize() for part in f"{module_name}_{name}".split('_')) + 'Args'
+        model_name = ''.join(part.capitalize() for part in f"{module_name}_{self.name}".split('_')) + 'Args'
         self.args_model = create_model(model_name, __config__=ConfigDict(extra='forbid'), **fields)
 
     @property

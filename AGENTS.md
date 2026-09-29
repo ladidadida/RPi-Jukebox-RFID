@@ -18,14 +18,14 @@ pyproject.toml     uv workspace root (virtual: no [project] table); shared dev-t
 packages/          uv workspace members
   jukebox/         Python core application ("Jukebox Core") — the daemon that runs on the Pi
     pyproject.toml Real [project] table (package=true), runtime dependencies, hatchling backend
-    src/jukebox/   The installable package: explicit component registry, FastAPI API bridge
-                   (api/), in-process pub/sub event bus (publishing/), config handling, and the
-                   components explicitly wired by jukebox.daemon at start-up (no plugin/
-                   config-driven loading — see documentation/developers/roadmap-core-architecture.md):
-                   player, rfid, publishing, system (formerly "misc" RPC calls), misc (shared
-                   utility code). Other former components (gpio, mqtt, volume, timers,
-                   battery_monitor, controls, jingle, hostif, synchronisation) were removed and
-                   will come back as new, not-yet-designed components.
+    src/jukebox/   The installable package: the core/plugin contract (contract/), the core
+                   modules (core_modules.py: system, player, cards, rfid), FastAPI API bridge
+                   (api/), in-process event bus (publishing/), config handling. Removed former
+                   components come back as core modules (volume, timers, jingle, system info,
+                   input devices) or plugins (raspberry-pi, mqtt, card sync) -- see
+                   documentation/developers/core-and-plugins.md.
+    interfaces/    Interface snapshots of the framework contract and every core module, checked
+                   by test/contract/test_snapshots.py (see "Core and plugins" below)
   cli/             Jukebox CLI (jukebox-cli). Implemented so far: `jukebox run` (start the daemon),
                    `jukebox debug sniff` (publishing-bus WebSocket sniffer). `jukebox setup ...`
                    (install routines) is not implemented yet — still in migrate_to_cli/.
@@ -52,43 +52,47 @@ ci/                CI helper scripts (e.g. installation testing)
 
 ## Architecture essentials
 
-- **Component registry**: `jukebox.registry` (replacing the old `jukebox.plugs` dynamic plugin
-  system) is a minimal explicit call registry. `jukebox.daemon.run()` wires up each component
-  (currently: publishing, system, player, rfid) directly by calling its `register()`/`start()`
-  functions — nothing is loaded from config anymore. Call addressing (`package`, `plugin`,
-  `method`) is unchanged, so the webapp's RPC call shape didn't need to change.
-- **API**: the webapp talks to `player`/`settings`/`cards` through typed REST endpoints
-  (`/api/v1/player/*`, `/api/v1/settings`, `/api/v1/cards` — see `/docs` on the running daemon,
-  and roadmap-core-architecture.md "Advanced plugin system"). RFID card swipes still dispatch
-  in-process through the older `(package, plugin, method)` call shape
-  (`jukebox.registry.call()`/`command_aliases.py` — read `documentation/builders/rpc-commands.md`
-  before adding a new card-triggerable action) — that mechanism is unrelated to the HTTP API and
-  wasn't touched by the REST migration. The generic HTTP RPC endpoint (`POST /api/v1/rpc`) is
-  gone — new functionality gets a typed REST route, not a generic call. ZeroMQ is gone entirely: the
-  old ZMQ REP server (`jukebox.rpc.server`), the Python RPC CLI (`run_rpc_tool.py`), and the C CLI
-  client (`src/cli_client/pbc.c`) were all removed. A first CLI slice exists (`packages/cli`,
-  `jukebox run`/`jukebox debug sniff`), but a dedicated CLI for the API itself is still not
-  designed.
-- **Publishing event bus** (`jukebox.publishing`, backed by `jukebox.publishing.bus.EventBus`):
-  the status/event channel components publish to (`publishing.get_publisher().send(topic,
-  payload)`) — thread-safe, in-process, no ZMQ involved anymore (see
-  documentation/developers/roadmap-core-architecture.md, "Simplify away ZMQ and nginx"). The
+- **Core and plugins** (`jukebox.contract`, design in `documentation/developers/core-and-plugins.md`):
+  every piece of functionality is a *module*: a `CoreModule` (always shipped, always running,
+  listed in `jukebox/core_modules.py`) or a `Plugin` (separate package, found via the
+  `jukebox.plugins` entry-point group, loaded only when listed under `plugins:` in jukebox.yaml).
+  Start order comes from `requires`. Modules declare operations with `@action` (state-changing:
+  REST route + card action `<module>.<action>` + in-process call) and `@query` (read-only GET),
+  typed events with `event(name, Model)` (topic `<module>.<name>`), and extension points
+  (`player.backends`, `rfid.readers`). Everything must be type-annotated; argument models are
+  built from the signature. Don't hand-write REST routes or card aliases for new functionality --
+  declare them on a module. Per-module lock by default (`concurrency = 'threadsafe'` opts out).
+- **Interface versioning**: each module has an `interface_version`, the framework a
+  `CONTRACT_VERSION`. Snapshots in `packages/jukebox/interfaces/` (and `interface.json` in bundled
+  plugin packages) are compared in CI: a breaking change (removed/renamed operation or field,
+  type change, protocol change) needs a major bump, an addition a minor bump. After bumping, run
+  `uv run python -m jukebox.contract.snapshots --update` and commit the snapshot.
+- **API**: the webapp talks to routes generated from the modules' operations (`/api/v1/player/*`,
+  `/api/v1/settings`, `/api/v1/cards`, ... -- see `/docs` on the running daemon), plus
+  `GET /api/v1/modules` (active modules, their operations/events, skipped plugins) and
+  `GET /api/v1/actions` (card actions with argument schemas). Card entries, card removal actions
+  and the second-swipe action are stored as `action: <module>.<action>` plus named `args`
+  (`documentation/builders/actions.md`); the old alias/package-plugin-method format is converted
+  by `jukebox.legacy_actions` (cards.yaml is migrated on start-up with a backup). ZeroMQ, the
+  generic HTTP RPC endpoint and the old call registry are gone. A first CLI slice exists
+  (`packages/cli`, `jukebox run`/`jukebox debug sniff`), but a dedicated CLI for the API is not
+  designed yet.
+- **Event bus** (`jukebox.publishing.get_bus()`, a `jukebox.publishing.bus.EventBus`): thread-safe,
+  in-process, last-value cached. Modules publish typed events through `ctx.publish(event,
+  payload)` (validated against the event's model; raises with `JUKEBOX_STRICT=1`, logs and drops
+  otherwise), never untyped dicts. The
   webapp subscribes via the FastAPI WebSocket bridge (`/api/v1/events`); `jukebox debug sniff`
   connects there too as a plain WebSocket client.
-- **Player backend**: pluggable, selected via `player.backend` config -- see "Player/RFID backends
-  are pluggable" below. Default is `local_audio` (decodes via PyAV, outputs via sounddevice/
+- **Player backend**: registered at the `player.backends` extension point, selected via
+  `player.backend` config. Default is `local_audio` (decodes via PyAV, outputs via sounddevice/
   PortAudio, no external process); `mpd` (an external mpd server, via `python-mpd2`) is an opt-in
-  alternative. Both implement the same duck-typed surface `player.coordinator.PlayerCoordinator`
-  calls on the active backend.
+  alternative. Backends implement `jukebox.player.backend.PlayerBackend`; the player module turns
+  their raw status into the typed `player.status` event (`jukebox.player.status.PlayerStatus`).
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.
-- **Player/RFID backends are pluggable** (first slice of the "Advanced plugin system" track, see
-  `documentation/developers/roadmap-core-architecture.md`): `player.backend` config picks the
-  player backend (`jukebox.player.plugin` dispatches to it by `importlib.import_module`, mirroring
-  how `jukebox.rfid.reader` already loads a hardware reader module by name); non-default backends'
-  dependencies are `pyproject.toml` extras (`mpd`, `rpi-gpio`, and one per bundled RFID reader
-  module), not installed by default -- run `uv sync --extra <name>` to add one. This is what makes
-  the Pi/mpd/GPIO-specific pieces optional rather than a hard dependency of the core app.
+- **Optional dependencies**: non-default player backends and RFID reader drivers still come
+  from `pyproject.toml` extras (`mpd`, `rpi-gpio`, one per bundled reader driver) until they move
+  into plugin packages -- run `uv sync --extra <name>` to add one.
 
 ## Languages, tools, conventions
 
@@ -160,8 +164,9 @@ mpd/RFID hardware.
 
 ## Key docs to read before larger changes
 
-- `documentation/builders/concepts.md` — plugin interface / RPC / pub-sub in one page
-- `documentation/builders/rpc-commands.md` — RPC command reference
+- `documentation/developers/core-and-plugins.md` — core/plugin contract design
+- `documentation/builders/concepts.md` — core, plugins, actions, events in one page
+- `documentation/builders/actions.md` — action format for cards and config
 - `documentation/developers/coreapps.md` — what each core entry-point script does
 - `documentation/developers/python.md` — Python dev environment notes
 - `documentation/developers/webapp.md` — webapp dev notes

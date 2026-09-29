@@ -86,14 +86,11 @@ import mpd
 import threading
 import logging
 import time
-import functools
 from pathlib import Path
 import jukebox.player
 import jukebox.cfghandler
 import jukebox.utils as utils
-import jukebox.registry as plugs
 import jukebox.multitimer as multitimer
-import jukebox.publishing as publishing
 import jukebox.playlistgenerator as playlistgenerator
 
 from jukebox.nv_manager import nv_manager
@@ -140,10 +137,11 @@ class MpdLock:
 class PlayerMPD:
     """Interface to MPD Music Player Daemon"""
 
-    def __init__(self):
+    def __init__(self, host: str = 'localhost', status_file: str = 'shared/settings/music_player_status.json'):
+        self._status_callback = lambda status: None
         self.nvm = nv_manager()
-        self.mpd_host = cfg.getn('playermpd', 'host')
-        self.music_player_status = self.nvm.load(cfg.getn('playermpd', 'status_file'))
+        self.mpd_host = host
+        self.music_player_status = self.nvm.load(status_file)
 
         self.second_swipe_action_dict = {'toggle': self.toggle,
                                          'play': self.play,
@@ -239,27 +237,21 @@ class PlayerMPD:
     def connect(self):
         self.mpd_client.connect(self.mpd_host, 6600)
 
+    def set_status_callback(self, callback):
+        self._status_callback = callback
+
     def set_active(self, active):
         self._active = active
         if active:
-            self.mpd_status['provider'] = 'mpd'
-            publishing.get_publisher().send('playerstatus', self.mpd_status)
+            self._status_callback(self.mpd_status)
 
     def decode_2nd_swipe_option(self):
-        cfg_2nd_swipe_action = cfg.setndefault('player', 'second_swipe_action', 'alias', value='none').lower()
+        # A custom action ('action: <module>.<action>') is run by the player module itself.
+        cfg_2nd_swipe_action = str(cfg.getn('player', 'second_swipe_action', 'alias', default='none')).lower()
         if cfg_2nd_swipe_action not in [*self.second_swipe_action_dict.keys(), 'none', 'custom']:
             logger.error(f"Config player.second_swipe_action must be one of "
-                         f"{[*self.second_swipe_action_dict.keys(), 'none', 'custom']}. Ignore setting.")
-        if cfg_2nd_swipe_action in self.second_swipe_action_dict.keys():
-            self.second_swipe_action = self.second_swipe_action_dict[cfg_2nd_swipe_action]
-        if cfg_2nd_swipe_action == 'custom':
-            custom_action = utils.decode_rpc_call(cfg.getn('player', 'second_swipe_action', default=None))
-            self.second_swipe_action = functools.partial(plugs.call_ignore_errors,
-                                                         custom_action['package'],
-                                                         custom_action['plugin'],
-                                                         custom_action['method'],
-                                                         custom_action['args'],
-                                                         custom_action['kwargs'])
+                         f"{[*self.second_swipe_action_dict.keys(), 'none']}. Ignore setting.")
+        self.second_swipe_action = self.second_swipe_action_dict.get(cfg_2nd_swipe_action)
 
     def mpd_retry_with_mutex(self, mpd_cmd, *args):
         """
@@ -307,8 +299,7 @@ class PlayerMPD:
         except KeyError:
             pass
         if self._active:
-            self.mpd_status['provider'] = 'mpd'
-            publishing.get_publisher().send('playerstatus', self.mpd_status)
+            self._status_callback(self.mpd_status)
 
     # MPD can play absolute paths but can find songs in its database only by relative path
     # This function aims to prepare the song_url accordingly
@@ -318,35 +309,29 @@ class PlayerMPD:
 
         return song_url
 
-    @plugs.tag
     def get_player_type_and_version(self):
         with self.mpd_lock:
             value = self.mpd_client.mpd_version()
         return value
 
-    @plugs.tag
     def update(self):
         with self.mpd_lock:
             state = self.mpd_client.update()
         return state
 
-    @plugs.tag
     def update_wait(self):
         state = self.update()
         self._db_wait_for_update(state)
         return state
 
-    @plugs.tag
     def play(self):
         with self.mpd_lock:
             self.mpd_client.play()
 
-    @plugs.tag
     def stop(self):
         with self.mpd_lock:
             self.mpd_client.stop()
 
-    @plugs.tag
     def pause(self, state: int = 1):
         """Enforce pause to state (1: pause, 0: resume)
 
@@ -356,7 +341,6 @@ class PlayerMPD:
         with self.mpd_lock:
             self.mpd_client.pause(state)
 
-    @plugs.tag
     def prev(self):
         logger.debug("Prev")
         if self.mpd_status['state'] == 'stop':
@@ -374,7 +358,6 @@ class PlayerMPD:
         with self.mpd_lock:
             self.mpd_client.play(max(0, int(self.mpd_status['pos']) - 1))
 
-    @plugs.tag
     def next(self):
         """Play next track in current playlist"""
         logger.debug("Next")
@@ -402,12 +385,10 @@ class PlayerMPD:
         with self.mpd_lock:
             self.mpd_client.play(pos)
 
-    @plugs.tag
     def seek(self, new_time):
         with self.mpd_lock:
             self.mpd_client.seekcur(new_time)
 
-    @plugs.tag
     def rewind(self):
         """
         Re-start current playlist from first track
@@ -417,7 +398,6 @@ class PlayerMPD:
         with self.mpd_lock:
             self.mpd_client.play(0)
 
-    @plugs.tag
     def replay(self):
         """
         Re-start playing the last-played folder
@@ -427,13 +407,11 @@ class PlayerMPD:
         with self.mpd_lock:
             self.play_folder(self.music_player_status['player_status']['last_played_folder'])
 
-    @plugs.tag
     def toggle(self):
         """Toggle pause state, i.e. do a pause / resume depending on current state"""
         with self.mpd_lock:
             self.mpd_client.pause()
 
-    @plugs.tag
     def replay_if_stopped(self):
         """
         Re-start playing the last-played folder unless playlist is still playing
@@ -450,7 +428,6 @@ class PlayerMPD:
         # As long as we don't work with waiting lists (aka playlist), this implementation is ok!
         self.mpd_retry_with_mutex(self.mpd_client.random, 1 if random else 0)
 
-    @plugs.tag
     def shuffle(self, option='toggle'):
         if option == 'toggle':
             if self.mpd_status['random'] == '0':
@@ -480,7 +457,6 @@ class PlayerMPD:
             self.mpd_client.repeat(repeat)
             self.mpd_client.single(single)
 
-    @plugs.tag
     def repeat(self, option='toggle'):
         if option == 'toggle':
             if self.mpd_status['repeat'] == '0':
@@ -508,20 +484,16 @@ class PlayerMPD:
         else:
             logger.error(f"'{option}' does not exist for 'repeat'")
 
-    @plugs.tag
     def get_current_song(self, param):
         return self.mpd_status
 
-    @plugs.tag
     def map_filename_to_playlist_pos(self, filename):
         # self.mpd_client.playlistfind()
         raise NotImplementedError
 
-    @plugs.tag
     def remove(self):
         raise NotImplementedError
 
-    @plugs.tag
     def move(self):
         # song_id = param.get("song_id")
         # step = param.get("step")
@@ -529,14 +501,12 @@ class PlayerMPD:
         # MPDClient.swapid(song1, song2)
         raise NotImplementedError
 
-    @plugs.tag
     def play_single(self, song_url):
         with self.mpd_lock:
             self.mpd_client.clear()
             self.mpd_client.addid(song_url)
             self.mpd_client.play()
 
-    @plugs.tag
     def resume(self):
         with self.mpd_lock:
             songpos = self.current_folder_status["CURRENTSONGPOS"]
@@ -556,22 +526,20 @@ class PlayerMPD:
     def play_second_swipe(self):
         """Run the configured second-swipe action."""
         logger.debug('Calling second swipe action')
-        self.second_swipe_action()
+        if self.second_swipe_action is not None:
+            self.second_swipe_action()
 
-    @plugs.tag
     def get_single_coverart(self, song_url):
         mp3_file_path = Path(jukebox.player.get_music_library_path(), song_url).expanduser()
         cache_filename = self.coverart_cache_manager.get_cache_filename(mp3_file_path)
 
         return cache_filename
 
-    @plugs.tag
     def get_album_coverart(self, albumartist: str, album: str):
         song_list = self.list_songs_by_artist_and_album(albumartist, album)
 
         return self.get_single_coverart(song_list[0]['file'])
 
-    @plugs.tag
     def flush_coverart_cache(self):
         """
         Deletes the Cover Art Cache
@@ -579,7 +547,6 @@ class PlayerMPD:
 
         return self.coverart_cache_manager.flush_cache()
 
-    @plugs.tag
     def get_folder_content(self, folder: str):
         """
         Get the folder content as content list with meta-information. Depth is always 1.
@@ -592,7 +559,6 @@ class PlayerMPD:
         plc.get_directory_content(folder)
         return plc.playlist
 
-    @plugs.tag
     def play_folder(self, folder: str, recursive: bool = False) -> None:
         """
         Playback a music folder.
@@ -627,7 +593,6 @@ class PlayerMPD:
 
             self.mpd_client.play()
 
-    @plugs.tag
     def play_album(self, albumartist: str, album: str):
         """
         Playback a album found in MPD database.
@@ -644,7 +609,6 @@ class PlayerMPD:
             self.mpd_retry_with_mutex(self.mpd_client.findadd, 'albumartist', albumartist, 'album', album)
             self.mpd_client.play()
 
-    @plugs.tag
     def queue_load(self, folder):
         # There was something playing before -> stop and save state
         # Clear the queue
@@ -656,25 +620,21 @@ class PlayerMPD:
         # Get folder config and apply settings
         pass
 
-    @plugs.tag
     def playerstatus(self):
         return self.mpd_status
 
-    @plugs.tag
     def playlistinfo(self):
         with self.mpd_lock:
             value = self.mpd_client.playlistinfo()
         return value
 
     # Attention: MPD.listal will consume a lot of memory with large libs.. should be refactored at some point
-    @plugs.tag
     def list_all_dirs(self):
         with self.mpd_lock:
             result = self.mpd_client.listall()
             # list = [entry for entry in list if 'directory' in entry]
         return result
 
-    @plugs.tag
     def list_albums(self):
         with self.mpd_lock:
             album_list = self.mpd_retry_with_mutex(self.mpd_client.list, 'album', 'group', 'albumartist')
@@ -715,7 +675,6 @@ class PlayerMPD:
             return []
         return self.list_albums()
 
-    @plugs.tag
     def list_songs_by_artist_and_album(self, albumartist, album):
         with self.mpd_lock:
             song_list = self.mpd_retry_with_mutex(self.mpd_client.find, 'albumartist', albumartist, 'album', album)
@@ -725,7 +684,6 @@ class PlayerMPD:
             for song in (song_list or [])
         ]
 
-    @plugs.tag
     def get_song_by_url(self, song_url):
         song_url = self.harmonize_mpd_url(song_url)
 

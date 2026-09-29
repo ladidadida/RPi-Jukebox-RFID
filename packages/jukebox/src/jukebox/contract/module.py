@@ -32,6 +32,9 @@ class Module:
     def start(self, ctx: 'Context') -> None:
         pass
 
+    def ready(self) -> None:
+        """Called once every module has started, in start order. All actions are available now."""
+
     def stop(self) -> List[threading.Thread]:
         return []
 
@@ -80,7 +83,10 @@ class Module:
             func = getattr(cls, attr, None)
             spec = operation_spec(func) if callable(func) else None
             if spec is not None and callable(func):
-                ops[attr] = Operation(cls.name, attr, func, spec)
+                op = Operation(cls.name, attr, func, spec)
+                if op.name in ops:
+                    raise ContractError(f"{cls.name}: two operations are named '{op.name}'")
+                ops[op.name] = op
         cls._jukebox_operations = ops
         return ops
 

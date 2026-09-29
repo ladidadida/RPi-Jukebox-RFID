@@ -35,7 +35,7 @@ default button-action mapping is *completely* replaced with the new
 mapping. The definitions for each key looks like
 `key-code: {rpc_command_definition}`. The RPC command follows the
 regular RPC command rules as defined in
-[RPC Commands](rpc-commands.md).
+[Actions](actions.md).
 
 ``` yaml
 bluetooth_audio_buttons:

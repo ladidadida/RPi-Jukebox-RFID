@@ -14,6 +14,7 @@
     "get": "(self, key: str) -> Any",
     "items": "(self)",
     "names": "(self)",
+    "on_register": "(self, listener: Callable[[str, Any], NoneType]) -> None",
     "register": "(self, key: str, implementation: Any) -> None",
     "unregister": "(self, key: str) -> None"
   },
@@ -25,6 +26,7 @@
     "interface_version": "attribute",
     "is_core": "attribute",
     "operations": "(cls) -> Dict[str, jukebox.contract.declarations.Operation]",
+    "ready": "(self) -> None",
     "required_modules": "(cls) -> Dict[str, str | None]",
     "requires": "attribute",
     "start": "(self, ctx: 'Context') -> None",
@@ -44,9 +46,9 @@
   },
   "contract_version": "1.0",
   "functions": {
-    "action": "(func: Callable | None = None, *, method: str = 'POST', path: str | None = None, exclusive: bool = True)",
+    "action": "(func: Callable | None = None, *, method: str = 'POST', path: str | None = None, exclusive: bool = True, name: str | None = None)",
     "event": "(name: str, model: Type[pydantic.main.BaseModel]) -> jukebox.contract.declarations.EventSpec",
     "extension_point": "(name: str, protocol: type) -> jukebox.contract.declarations.ExtensionPointSpec",
-    "query": "(func: Callable | None = None, *, path: str | None = None, exclusive: bool = True)"
+    "query": "(func: Callable | None = None, *, path: str | None = None, exclusive: bool = True, name: str | None = None)"
   }
 }

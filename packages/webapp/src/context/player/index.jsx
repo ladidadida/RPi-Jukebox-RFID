@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import PlayerContext from './context';
 import { initSockets } from '../../sockets';
+import { PLAYER_STATUS_TOPIC } from '../../config';
 
 const PlayerProvider = ({ children }) => {
   const [state, setState] = useState({});
@@ -9,7 +10,7 @@ const PlayerProvider = ({ children }) => {
   // Initialize sockets for player context
   useEffect(() => (
     initSockets({
-      events: ['playerstatus'],
+      events: [PLAYER_STATUS_TOPIC],
       setState,
     })
   ), []);

@@ -1,10 +1,6 @@
 import logging
 import threading
-from typing import Any, Dict, Optional
-
-import jukebox.registry as plugs
-
-from .playcontentcallback import PlayCardState, PlayContentCallbacks
+from typing import Any, Callable, Dict, Optional
 
 
 logger = logging.getLogger('jb.player')
@@ -13,12 +9,16 @@ logger = logging.getLogger('jb.player')
 class PlayerCoordinator:
     """Provider-neutral facade for playback and content backends."""
 
-    def __init__(self, play_card_callbacks: Optional[PlayContentCallbacks] = None):
+    def __init__(self, second_swipe_action: Optional[Callable[[], Any]] = None):
+        """
+        :param second_swipe_action: runs on a second swipe of the same card instead of the
+            backend's own second-swipe behavior
+        """
         self._backends: Dict[str, Any] = {}
         self._default_backend_name: Optional[str] = None
         self._active_backend_name: Optional[str] = None
         self._lock = threading.RLock()
-        self._play_card_callbacks = play_card_callbacks
+        self._second_swipe_action = second_swipe_action
 
     def register_backend(self, name: str, backend: Any, make_active: bool = False) -> None:
         """Register a backend, selecting the first registered backend by default."""
@@ -32,6 +32,15 @@ class PlayerCoordinator:
                 self._default_backend_name = name
             if self._active_backend_name is None or make_active:
                 self._select_backend(name)
+
+    def set_second_swipe_action(self, action: Optional[Callable[[], Any]]) -> None:
+        self._second_swipe_action = action
+
+    def set_default_backend(self, name: str) -> None:
+        """Make ``name`` the backend used for content without an explicit provider."""
+        with self._lock:
+            self._get_backend(name)
+            self._default_backend_name = name
 
     @staticmethod
     def _set_backend_active(backend: Any, active: bool) -> None:
@@ -107,129 +116,98 @@ class PlayerCoordinator:
         with self._lock:
             return self._call_backend(self._get_active_backend(), method, *args, **kwargs)
 
-    @plugs.tag
     def list_backends(self):
         with self._lock:
             return list(self._backends)
 
-    @plugs.tag
     def get_active_backend(self):
         with self._lock:
             return self._active_backend_name
 
-    @plugs.tag
     def get_default_backend(self):
         with self._lock:
             return self._default_backend_name
 
-    @plugs.tag
     def select_backend(self, name: str):
         """Stop the current backend and select another registered backend."""
         with self._lock:
             self._select_backend(name)
             return name
 
-    @plugs.tag
     def get_player_type_and_version(self):
         return self._call_active('get_player_type_and_version')
 
-    @plugs.tag
     def update(self):
         return self._call_default('update')
 
-    @plugs.tag
     def update_wait(self):
         return self._call_default('update_wait')
 
-    @plugs.tag
     def play(self):
         return self._call_active('play')
 
-    @plugs.tag
     def stop(self):
         return self._call_active('stop')
 
-    @plugs.tag
     def pause(self, state: int = 1):
         return self._call_active('pause', state)
 
-    @plugs.tag
     def prev(self):
         return self._call_active('prev')
 
-    @plugs.tag
     def next(self):
         return self._call_active('next')
 
-    @plugs.tag
     def seek(self, new_time):
         return self._call_active('seek', new_time)
 
-    @plugs.tag
     def rewind(self):
         return self._call_active('rewind')
 
-    @plugs.tag
     def replay(self):
         return self._call_active('replay')
 
-    @plugs.tag
     def toggle(self):
         return self._call_active('toggle')
 
-    @plugs.tag
     def replay_if_stopped(self):
         return self._call_active('replay_if_stopped')
 
-    @plugs.tag
     def shuffle(self, option='toggle'):
         return self._call_active('shuffle', option)
 
-    @plugs.tag
     def repeat(self, option='toggle'):
         return self._call_active('repeat', option)
 
-    @plugs.tag
     def get_current_song(self, param):
         return self._call_active('get_current_song', param)
 
-    @plugs.tag
     def map_filename_to_playlist_pos(self, filename):
         return self._call_active('map_filename_to_playlist_pos', filename)
 
-    @plugs.tag
     def remove(self):
         return self._call_active('remove')
 
-    @plugs.tag
     def move(self):
         return self._call_active('move')
 
-    @plugs.tag
     def play_single(self, song_url, provider=None):
         with self._lock:
             backend = self._content_backend(provider)
             return self._call_backend(backend, 'play_single', song_url)
 
-    @plugs.tag
     def resume(self):
         return self._call_active('resume')
 
-    @plugs.tag
     def play_card(self, folder: str, recursive: bool = False):
         with self._lock:
             backend = self._content_backend()
-            is_second_swipe = self._call_backend(backend, 'is_second_swipe', folder)
-            if is_second_swipe:
-                if self._play_card_callbacks is not None:
-                    self._play_card_callbacks.run_callbacks(folder, PlayCardState.secondSwipe)
+            if self._call_backend(backend, 'is_second_swipe', folder):
+                if self._second_swipe_action is not None:
+                    return self._second_swipe_action()
                 return self._call_backend(backend, 'play_second_swipe')
-
-            if self._play_card_callbacks is not None:
-                self._play_card_callbacks.run_callbacks(folder, PlayCardState.firstSwipe)
             return self._call_backend(backend, 'play_folder', folder, recursive)
 
-    @plugs.tag
     def get_single_coverart(self, song_url, provider=None):
         return self._call_named(
             self._content_backend_name(provider),
@@ -237,7 +215,6 @@ class PlayerCoordinator:
             song_url,
         )
 
-    @plugs.tag
     def get_album_coverart(
             self,
             albumartist: str,
@@ -248,21 +225,17 @@ class PlayerCoordinator:
         args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
         return self._call_named(backend_name, 'get_album_coverart', *args)
 
-    @plugs.tag
     def flush_coverart_cache(self):
         return self._call_default('flush_coverart_cache')
 
-    @plugs.tag
     def get_folder_content(self, folder: str):
         return self._call_default('get_folder_content', folder)
 
-    @plugs.tag
     def play_folder(self, folder: str, recursive: bool = False) -> None:
         with self._lock:
             backend = self._content_backend()
             return self._call_backend(backend, 'play_folder', folder, recursive)
 
-    @plugs.tag
     def play_album(
             self,
             albumartist: str,
@@ -274,23 +247,18 @@ class PlayerCoordinator:
             args = (albumartist, album, content_uri) if content_uri else (albumartist, album)
             return self._call_backend(backend, 'play_album', *args)
 
-    @plugs.tag
     def queue_load(self, folder):
         return self._call_default('queue_load', folder)
 
-    @plugs.tag
     def playerstatus(self):
         return self._call_active('playerstatus')
 
-    @plugs.tag
     def playlistinfo(self):
         return self._call_active('playlistinfo')
 
-    @plugs.tag
     def list_all_dirs(self):
         return self._call_default('list_all_dirs')
 
-    @plugs.tag
     def list_albums(self, provider=None):
         with self._lock:
             if provider:
@@ -312,7 +280,6 @@ class PlayerCoordinator:
                     logger.warning("Could not read '%s' player catalog: %s", name, error)
             return result
 
-    @plugs.tag
     def list_library_sources(self):
         with self._lock:
             result = []
@@ -324,7 +291,6 @@ class PlayerCoordinator:
                         result.append(source_metadata)
             return result
 
-    @plugs.tag
     def list_library_items(self, provider=None, content_types=None):
         with self._lock:
             backend_names = [provider] if provider else list(self._backends)
@@ -345,7 +311,6 @@ class PlayerCoordinator:
                     logger.warning("Could not read '%s' player catalog: %s", name, error)
             return result
 
-    @plugs.tag
     def list_songs_by_artist_and_album(
             self,
             albumartist,
@@ -360,7 +325,6 @@ class PlayerCoordinator:
             *args,
         )
 
-    @plugs.tag
     def get_song_by_url(self, song_url, provider=None):
         return self._call_named(
             self._content_backend_name(provider),

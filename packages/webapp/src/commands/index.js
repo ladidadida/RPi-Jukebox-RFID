@@ -37,7 +37,7 @@ const commands = {
     rest: { method: 'POST', path: '/api/v1/cards' },
   },
   deleteCard: {
-    rest: { method: 'DELETE', path: '/api/v1/cards' },
+    rest: { method: 'DELETE', path: '/api/v1/cards/{card_id}' },
   },
   playerstatus: {
     rest: { method: 'GET', path: '/api/v1/player/status' },
@@ -46,37 +46,47 @@ const commands = {
   // Player Actions
   play: {
     rest: { method: 'POST', path: '/api/v1/player/play' },
+    cardAction: 'player.play',
   },
   play_single: {
     rest: { method: 'POST', path: '/api/v1/player/song' },
+    cardAction: 'player.play_single',
     argKeys: ['song_url', 'provider']
   },
   play_folder: {
     rest: { method: 'POST', path: '/api/v1/player/folder' },
+    cardAction: 'player.play_folder',
     argKeys: ['folder']
   },
   play_album: {
     rest: { method: 'POST', path: '/api/v1/player/album' },
+    cardAction: 'player.play_album',
     argKeys: ['albumartist', 'album', 'content_uri', 'provider']
   },
   pause: {
     rest: { method: 'POST', path: '/api/v1/player/pause' },
+    cardAction: 'player.pause',
   },
   prev_song: {
     rest: { method: 'POST', path: '/api/v1/player/prev' },
+    cardAction: 'player.prev',
   },
   next_song: {
     rest: { method: 'POST', path: '/api/v1/player/next' },
+    cardAction: 'player.next',
   },
   toggle: {
     rest: { method: 'POST', path: '/api/v1/player/toggle' },
+    cardAction: 'player.toggle',
   },
   shuffle: {
     rest: { method: 'POST', path: '/api/v1/player/shuffle' },
+    cardAction: 'player.shuffle',
     argKeys: ['option'],
   },
   repeat: {
     rest: { method: 'POST', path: '/api/v1/player/repeat' },
+    cardAction: 'player.repeat',
     argKeys: ['option'],
   },
   seek: {

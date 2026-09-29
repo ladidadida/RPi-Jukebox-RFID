@@ -21,15 +21,27 @@ const toQueryString = (kwargs) => {
   return params.toString();
 };
 
-const restRequest = async ({ method, path }, kwargs) => {
+// `{name}` placeholders in a path are filled from (and removed from) kwargs.
+const fillPath = (path, kwargs) => {
+  const remaining = { ...kwargs };
+  const filled = path.replace(/\{(\w+)\}/g, (_, name) => {
+    const value = remaining[name];
+    delete remaining[name];
+    return encodeURIComponent(value);
+  });
+  return [filled, remaining];
+};
+
+const restRequest = async ({ method, path }, allKwargs) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const options = { method, signal: controller.signal };
-  let requestPath = path;
+  const [filledPath, kwargs] = fillPath(path, allKwargs);
+  let requestPath = filledPath;
   if (method === 'GET') {
     const query = toQueryString(kwargs);
     if (query) {
-      requestPath = `${path}?${query}`;
+      requestPath = `${requestPath}?${query}`;
     }
   }
   else {

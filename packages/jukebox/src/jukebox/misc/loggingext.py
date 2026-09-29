@@ -100,11 +100,11 @@ class PubStream:
     > functions in the send-function stack!
     """
     def __init__(self):
-        self._topic = 'core.logger'
         self._message = ''
 
     def flush(self):
-        publishing.get_publisher().send(self._topic, self._message.strip('\n '))
+        # Payload matches jukebox.system.LogMessage (event 'system.log')
+        publishing.get_bus().publish('system.log', {'message': self._message.strip('\n ')})
         self._message = ''
 
     def write(self, msg):

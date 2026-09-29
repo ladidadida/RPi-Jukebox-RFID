@@ -1,14 +1,15 @@
 const PUBSUB_ENDPOINT = '/api/v1/events';
 
+const PLAYER_STATUS_TOPIC = 'player.status';
+const CARD_DETECTED_TOPIC = 'rfid.card_detected';
+const SYSTEM_INFO_TOPIC = 'system.info';
+
 const SUBSCRIPTIONS = [
   'batt_status',
-  'core.plugins.loaded',
-  'core.version',
-  'core.started_at',
   'host.timer.cputemp',
   'host.temperature.cpu',
-  'playerstatus',
-  'rfid.card_id',
+  CARD_DETECTED_TOPIC,
+  SYSTEM_INFO_TOPIC,
 ];
 
 const ROOT_DIR = './';
@@ -54,9 +55,12 @@ const JUKEBOX_ACTIONS_MAP = {
 const TIMER_STEPS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 120, 180, 240];
 
 export {
+  CARD_DETECTED_TOPIC,
   JUKEBOX_ACTIONS_MAP,
+  PLAYER_STATUS_TOPIC,
   PUBSUB_ENDPOINT,
   ROOT_DIR,
   SUBSCRIPTIONS,
+  SYSTEM_INFO_TOPIC,
   TIMER_STEPS,
 }

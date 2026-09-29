@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """FastAPI + uvicorn HTTP and WebSocket API server.
 
-The sole browser-facing HTTP/WebSocket bridge. Serves health, the typed REST routes for player,
-settings and cards, events-over-websocket, the library upload/folder/entries/refresh endpoints, and
-(see jukebox.api.webapp_static) the webapp's static build + /logs -- this is the one thing reachable
-from the LAN, hence `api.bind_address` defaulting to 0.0.0.0.
+The sole browser-facing HTTP/WebSocket bridge. Serves health, the routes generated from the modules'
+declared operations (see jukebox.contract.routes), events-over-websocket, the library
+upload/folder/entries/refresh endpoints, and (see jukebox.api.webapp_static) the webapp's static
+build + /logs -- this is the one thing reachable from the LAN, hence `api.bind_address` defaulting
+to 0.0.0.0.
 
-Handlers run on a multi-worker executor: components are responsible for their own thread-safety,
-so a slow call doesn't serialize the rest of the API.
+Handlers run on a multi-worker executor; each module guards itself (see the contract's threading
+model), so a slow call doesn't serialize the rest of the API.
 """
 
 import asyncio
@@ -16,20 +17,18 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlsplit
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from starlette.requests import Request
 
 import jukebox.cfghandler
 import jukebox.publishing
-import jukebox.registry
 from jukebox.api.events import EventBroker, MAX_MESSAGE_SIZE, parse_subscription_command
 from jukebox.api.webapp_static import register_webapp_routes
+from jukebox.contract.routes import build_router
 from jukebox.library import LibraryError, MAX_UPLOAD_SIZE, create_music_library
 
 logger = logging.getLogger('jb.api.fastapi_server')
@@ -256,344 +255,11 @@ async def _handle_library_refresh(library, executor):
     return {'update_id': update_id}
 
 
-class PauseRequest(BaseModel):
-    state: int = 1
-
-
-class SeekRequest(BaseModel):
-    position: float
-
-
-class ShuffleRequest(BaseModel):
-    option: str = 'toggle'
-
-
-class RepeatRequest(BaseModel):
-    option: str = 'toggle'
-
-
-class PlayFolderRequest(BaseModel):
-    folder: str
-    recursive: bool = False
-
-
-class PlaySongRequest(BaseModel):
-    song_url: str
-
-
-class VolumeRequest(BaseModel):
-    volume: int
-
-
-class SelectBackendRequest(BaseModel):
-    name: str
-
-
-class QueueLoadRequest(BaseModel):
-    folder: str
-
-
-class PlayAlbumRequest(BaseModel):
-    albumartist: str
-    album: str
-    content_uri: Optional[str] = None
-    provider: Optional[str] = None
-
-
-class AppSettingsRequest(BaseModel):
-    settings: dict
-
-
-class RegisterCardRequest(BaseModel):
-    card_id: str
-    cmd_alias: str
-    args: Optional[list] = None
-    kwargs: Optional[dict] = None
-    ignore_card_removal_action: Optional[bool] = None
-    ignore_same_id_delay: Optional[bool] = None
-    overwrite: bool = False
-
-
-class DeleteCardRequest(BaseModel):
-    card_id: str
-
-
-def _player_ctrl():
-    """The registered PlayerCoordinator, fetched directly -- routes call straight into it rather than
-    through jukebox.registry.call()."""
-    return jukebox.registry.get('player', 'ctrl')
-
-
-async def _run_on_executor(executor, func, *args):
-    """Run a (possibly lock-acquiring) component call off the asyncio event loop, same as the
-    library handlers do for anything that isn't guaranteed-instant.
-
-    Some PlayerCoordinator methods are backend-specific (e.g. cover art, tag-based browsing) and
-    raise NotImplementedError when the active backend doesn't support them -- local_audio
-    deliberately only implements folder-triggered playback, not MPD's tag/coverart surface (see
-    player/backends/local_audio.py). Turn that into a clean 501 instead of a raw 500/traceback.
-    """
-    loop = asyncio.get_running_loop()
-    try:
-        return await loop.run_in_executor(executor, func, *args)
-    except NotImplementedError as error:
-        raise HTTPException(status_code=501, detail=str(error)) from error
-
-
-def _register_player_transport_routes(app: FastAPI, executor) -> None:
-    """Playback transport: play/pause/toggle/next/prev/seek/shuffle/repeat."""
-
-    @app.post('/api/v1/player/play', status_code=204)
-    async def player_play():
-        await _run_on_executor(executor, _player_ctrl().play)
-
-    @app.post('/api/v1/player/pause', status_code=204)
-    async def player_pause(body: PauseRequest):
-        await _run_on_executor(executor, _player_ctrl().pause, body.state)
-
-    @app.post('/api/v1/player/toggle', status_code=204)
-    async def player_toggle():
-        await _run_on_executor(executor, _player_ctrl().toggle)
-
-    @app.post('/api/v1/player/next', status_code=204)
-    async def player_next():
-        await _run_on_executor(executor, _player_ctrl().next)
-
-    @app.post('/api/v1/player/prev', status_code=204)
-    async def player_prev():
-        await _run_on_executor(executor, _player_ctrl().prev)
-
-    @app.post('/api/v1/player/seek', status_code=204)
-    async def player_seek(body: SeekRequest):
-        await _run_on_executor(executor, _player_ctrl().seek, body.position)
-
-    @app.post('/api/v1/player/shuffle', status_code=204)
-    async def player_shuffle(body: ShuffleRequest):
-        await _run_on_executor(executor, _player_ctrl().shuffle, body.option)
-
-    @app.post('/api/v1/player/repeat', status_code=204)
-    async def player_repeat(body: RepeatRequest):
-        await _run_on_executor(executor, _player_ctrl().repeat, body.option)
-
-
-def _register_player_content_and_status_routes(app: FastAPI, executor) -> None:
-    """Content selection (folder/song) + status/volume."""
-
-    @app.post('/api/v1/player/folder', status_code=204)
-    async def player_play_folder(body: PlayFolderRequest):
-        await _run_on_executor(executor, _player_ctrl().play_folder, body.folder, body.recursive)
-
-    @app.post('/api/v1/player/song', status_code=204)
-    async def player_play_song(body: PlaySongRequest):
-        await _run_on_executor(executor, _player_ctrl().play_single, body.song_url)
-
-    @app.get('/api/v1/player/status')
-    async def player_status():
-        return await _run_on_executor(executor, _player_ctrl().playerstatus)
-
-    @app.get('/api/v1/player/volume')
-    async def player_get_volume():
-        volume = await _run_on_executor(executor, _player_ctrl().get_volume)
-        return {'volume': volume}
-
-    @app.put('/api/v1/player/volume')
-    async def player_set_volume(body: VolumeRequest):
-        volume = await _run_on_executor(executor, _player_ctrl().set_volume, body.volume)
-        return {'volume': volume}
-
-
-def _register_player_library_routes(app: FastAPI, executor) -> None:
-    """Library browsing + cover art. list_all_dirs/get_folder_content/list_albums are currently
-    unused by the webapp (superseded by list_library_items' content_types filtering) but kept
-    for API completeness/Swagger -- they're real, working PlayerCoordinator methods."""
-
-    @app.get('/api/v1/player/coverart/song')
-    async def player_song_coverart(song_url: str, provider: Optional[str] = None):
-        cover_url = await _run_on_executor(
-            executor, _player_ctrl().get_single_coverart, song_url, provider)
-        return {'cover_url': cover_url}
-
-    @app.get('/api/v1/player/coverart/album')
-    async def player_album_coverart(
-            albumartist: str, album: str,
-            content_uri: Optional[str] = None, provider: Optional[str] = None):
-        cover_url = await _run_on_executor(
-            executor, _player_ctrl().get_album_coverart, albumartist, album, content_uri, provider)
-        return {'cover_url': cover_url}
-
-    @app.get('/api/v1/player/dirs')
-    async def player_list_all_dirs():
-        return await _run_on_executor(executor, _player_ctrl().list_all_dirs)
-
-    @app.get('/api/v1/player/folder-content')
-    async def player_folder_content(folder: str):
-        return await _run_on_executor(executor, _player_ctrl().get_folder_content, folder)
-
-    @app.get('/api/v1/player/albums')
-    async def player_list_albums(provider: Optional[str] = None):
-        return await _run_on_executor(executor, _player_ctrl().list_albums, provider)
-
-    @app.get('/api/v1/player/library/sources')
-    async def player_library_sources():
-        return await _run_on_executor(executor, _player_ctrl().list_library_sources)
-
-    @app.get('/api/v1/player/library/items')
-    async def player_library_items(
-            provider: Optional[str] = None, content_types: Optional[list[str]] = Query(None)):
-        return await _run_on_executor(
-            executor, _player_ctrl().list_library_items, provider, content_types)
-
-    @app.get('/api/v1/player/songs')
-    async def player_songs_by_artist_and_album(
-            albumartist: str, album: str,
-            content_uri: Optional[str] = None, provider: Optional[str] = None):
-        return await _run_on_executor(
-            executor, _player_ctrl().list_songs_by_artist_and_album,
-            albumartist, album, content_uri, provider)
-
-    @app.get('/api/v1/player/song-lookup')
-    async def player_song_by_url(song_url: str, provider: Optional[str] = None):
-        return await _run_on_executor(executor, _player_ctrl().get_song_by_url, song_url, provider)
-
-    @app.post('/api/v1/player/album', status_code=204)
-    async def player_play_album(body: PlayAlbumRequest):
-        await _run_on_executor(
-            executor, _player_ctrl().play_album,
-            body.albumartist, body.album, body.content_uri, body.provider)
-
-
-def _register_player_playback_extra_routes(app: FastAPI, executor) -> None:
-    """Playback-adjacent methods from PlayerCoordinator's tagged surface not used by the webapp
-    today (no call sites to migrate), but real, working methods; wrapped for completeness so
-    nothing on player.ctrl is REST-unreachable. Not wrapped: map_filename_to_playlist_pos/
-    remove/move (both backends unconditionally raise NotImplementedError -- nothing to expose),
-    and play_card (RFID-reader-internal: physical-scan/second-swipe semantics that don't map to
-    a stateless call; play_folder already covers "start this folder" for API purposes)."""
-
-    @app.get('/api/v1/player/type')
-    async def player_type_and_version():
-        return await _run_on_executor(executor, _player_ctrl().get_player_type_and_version)
-
-    @app.post('/api/v1/player/update')
-    async def player_update():
-        return await _run_on_executor(executor, _player_ctrl().update)
-
-    @app.post('/api/v1/player/update-wait')
-    async def player_update_wait():
-        return await _run_on_executor(executor, _player_ctrl().update_wait)
-
-    @app.post('/api/v1/player/stop', status_code=204)
-    async def player_stop():
-        await _run_on_executor(executor, _player_ctrl().stop)
-
-    @app.post('/api/v1/player/rewind', status_code=204)
-    async def player_rewind():
-        await _run_on_executor(executor, _player_ctrl().rewind)
-
-    @app.post('/api/v1/player/replay', status_code=204)
-    async def player_replay():
-        await _run_on_executor(executor, _player_ctrl().replay)
-
-    @app.post('/api/v1/player/replay-if-stopped', status_code=204)
-    async def player_replay_if_stopped():
-        await _run_on_executor(executor, _player_ctrl().replay_if_stopped)
-
-    @app.post('/api/v1/player/resume', status_code=204)
-    async def player_resume():
-        await _run_on_executor(executor, _player_ctrl().resume)
-
-    @app.get('/api/v1/player/current-song')
-    async def player_current_song(param: Optional[str] = None):
-        return await _run_on_executor(executor, _player_ctrl().get_current_song, param)
-
-    @app.get('/api/v1/player/playlist')
-    async def player_playlist():
-        return await _run_on_executor(executor, _player_ctrl().playlistinfo)
-
-    @app.post('/api/v1/player/coverart/flush', status_code=204)
-    async def player_flush_coverart_cache():
-        await _run_on_executor(executor, _player_ctrl().flush_coverart_cache)
-
-
-def _register_player_backend_management_routes(app: FastAPI, executor) -> None:
-    """Which registered backend (mpd/local_audio/...) is active -- administrative, not used by
-    the webapp today, wrapped for the same completeness reason as the routes above."""
-
-    @app.get('/api/v1/player/backends')
-    async def player_list_backends():
-        return await _run_on_executor(executor, _player_ctrl().list_backends)
-
-    @app.get('/api/v1/player/backends/active')
-    async def player_get_active_backend():
-        return {'name': await _run_on_executor(executor, _player_ctrl().get_active_backend)}
-
-    @app.get('/api/v1/player/backends/default')
-    async def player_get_default_backend():
-        return {'name': await _run_on_executor(executor, _player_ctrl().get_default_backend)}
-
-    @app.put('/api/v1/player/backends/active')
-    async def player_select_backend(body: SelectBackendRequest):
-        return {'name': await _run_on_executor(executor, _player_ctrl().select_backend, body.name)}
-
-    @app.post('/api/v1/player/queue', status_code=204)
-    async def player_queue_load(body: QueueLoadRequest):
-        await _run_on_executor(executor, _player_ctrl().queue_load, body.folder)
-
-
-def register_player_routes(app: FastAPI, executor) -> None:
-    """Typed REST routes for the PlayerCoordinator -- see roadmap-core-architecture.md,
-    "Advanced plugin system"."""
-    _register_player_transport_routes(app, executor)
-    _register_player_content_and_status_routes(app, executor)
-    _register_player_library_routes(app, executor)
-    _register_player_playback_extra_routes(app, executor)
-    _register_player_backend_management_routes(app, executor)
-
-
-def register_settings_routes(app: FastAPI, executor) -> None:
-    """misc.get_app_settings/set_app_settings -- webapp UI settings stored in jukebox.yaml."""
-
-    @app.get('/api/v1/settings')
-    async def get_settings():
-        return await _run_on_executor(executor, jukebox.registry.get('misc', 'get_app_settings'))
-
-    @app.put('/api/v1/settings')
-    async def set_settings(body: AppSettingsRequest):
-        await _run_on_executor(
-            executor, jukebox.registry.get('misc', 'set_app_settings'), body.settings)
-
-
-def _cards_error_response(error: KeyError) -> JSONResponse:
-    return JSONResponse(status_code=400, content={'error': {
-        'code': 'invalid_card_request', 'message': str(error).strip("'\""),
-    }})
-
-
-def register_cards_routes(app: FastAPI, executor) -> None:
-    """RFID card database CRUD (cards.list_cards/register_card/delete_card)."""
-
-    @app.get('/api/v1/cards')
-    async def cards_list():
-        return await _run_on_executor(executor, jukebox.registry.get('cards', 'list_cards'))
-
-    @app.post('/api/v1/cards', status_code=201)
-    async def cards_register(body: RegisterCardRequest):
-        try:
-            await _run_on_executor(
-                executor, jukebox.registry.get('cards', 'register_card'),
-                body.card_id, body.cmd_alias, body.args, body.kwargs,
-                body.ignore_card_removal_action, body.ignore_same_id_delay, body.overwrite)
-        except KeyError as error:
-            return _cards_error_response(error)
-
-    @app.delete('/api/v1/cards', status_code=204)
-    async def cards_delete(body: DeleteCardRequest):
-        await _run_on_executor(executor, jukebox.registry.get('cards', 'delete_card'), body.card_id)
-
-
-def create_app(broker, executor, library=None, library_executor=None, webapp_build_dir=None, logs_dir=None):
+def create_app(broker, executor, modules=None, library=None, library_executor=None, webapp_build_dir=None,
+               logs_dir=None):
     if library is None:
-        library = create_music_library()
+        library = create_music_library(
+            (lambda: modules.handle('player').invoke('update')) if modules is not None else (lambda: None))
     if library_executor is None:
         library_executor = executor
 
@@ -627,9 +293,8 @@ def create_app(broker, executor, library=None, library_executor=None, webapp_bui
     async def library_refresh():
         return await _handle_library_refresh(library, library_executor)
 
-    register_player_routes(app, executor)
-    register_settings_routes(app, executor)
-    register_cards_routes(app, executor)
+    if modules is not None:
+        app.include_router(build_router(modules, executor))
 
     # Registered last so it never shadows the /api/v1/* routes above: FastAPI/Starlette tries
     # routes in registration order, and this includes a catch-all.
@@ -645,12 +310,13 @@ def create_app(broker, executor, library=None, library_executor=None, webapp_bui
 class FastApiServer(threading.Thread):
     """Run the browser API on an isolated asyncio event loop."""
 
-    def __init__(self, bind_address=None, port=None, bus=None):
+    def __init__(self, bind_address=None, port=None, bus=None, modules=None):
         super().__init__(name='FastApiServer', daemon=True)
         self.bind_address = bind_address or cfg.getn('api', 'bind_address', default='0.0.0.0')
         self.port = port if port is not None else cfg.getn('api', 'port', default=5556)
         self.bus = bus or jukebox.publishing.get_bus()
         self.broker = EventBroker(bus=self.bus)
+        self.modules = modules
         self._ready = threading.Event()
         self._startup_error = None
         self._loop = None
@@ -681,7 +347,7 @@ class FastApiServer(threading.Thread):
         self._executor = ThreadPoolExecutor(max_workers=API_EXECUTOR_WORKERS, thread_name_prefix='FastApi')
         self._library_executor = ThreadPoolExecutor(
             max_workers=LIBRARY_EXECUTOR_WORKERS, thread_name_prefix='FastApiLibrary')
-        app = create_app(self.broker, self._executor, library_executor=self._library_executor)
+        app = create_app(self.broker, self._executor, modules=self.modules, library_executor=self._library_executor)
 
         config = uvicorn.Config(app, host=self.bind_address, port=self.port, loop='none', log_config=None)
         self._server = uvicorn.Server(config)

@@ -7,6 +7,7 @@ import CardsForm from './form';
 import {
   buildActionData,
   findActionByCommand,
+  findCommandByCardAction,
 } from './utils';
 
 const CardsEdit = () => {
@@ -20,11 +21,8 @@ const CardsEdit = () => {
         const { result, error } = await request('cardsList');
 
         if (result && result[cardId]) {
-          const {
-            action: { args },
-            from_alias: command
-          } = result[cardId];
-
+          const { action: cardAction, args } = result[cardId];
+          const command = findCommandByCardAction(cardAction);
           const action = findActionByCommand(command);
           const actionData = buildActionData(action, command, args);
 

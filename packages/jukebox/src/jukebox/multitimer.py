@@ -5,8 +5,6 @@ import threading
 from time import monotonic
 from typing import Any, Callable, Dict, Optional
 
-import jukebox.registry as plugin
-import jukebox.publishing as publishing
 
 
 logger = logging.getLogger('jb.multitimers')
@@ -130,7 +128,7 @@ class MultiTimer(threading.Thread):
 
 
 class GenericTimerClass:
-    """A race-safe, single-execution timer with plugin/RPC support."""
+    """A race-safe, single-execution timer. ``on_change(state)`` is called on every state change."""
 
     def __init__(
             self,
@@ -138,8 +136,11 @@ class GenericTimerClass:
             wait_seconds: float,
             function: Callable,
             args: Optional[list] = None,
-            kwargs: Optional[dict] = None):
+            kwargs: Optional[dict] = None,
+            *,
+            on_change: Optional[Callable[[Dict[str, Any]], None]] = None):
         self.timer_thread = None
+        self._on_change = on_change
         self.args = args if args is not None else []
         self.kwargs = kwargs if kwargs is not None else {}
         self._wait_seconds = wait_seconds
@@ -199,7 +200,6 @@ class GenericTimerClass:
         with self._lock:
             self._workers.discard(worker)
 
-    @plugin.tag
     def start(
             self,
             wait_seconds: Optional[float] = None,
@@ -243,7 +243,6 @@ class GenericTimerClass:
             self._publish_core(enabled=True)
             worker.start()
 
-    @plugin.tag
     def cancel(self):
         """Cancel the active generation."""
         with self._lock:
@@ -265,7 +264,6 @@ class GenericTimerClass:
             else:
                 worker.cancel()
 
-    @plugin.tag
     def toggle(self):
         """Toggle between active and disabled states."""
         if self.is_alive():
@@ -273,26 +271,22 @@ class GenericTimerClass:
         else:
             self.start()
 
-    @plugin.tag
     def trigger(self):
         """Trigger the active generation immediately."""
         with self._lock:
             if self._enabled and self.timer_thread is not None:
                 self.timer_thread.trigger()
 
-    @plugin.tag
     def is_alive(self) -> bool:
         """Return whether a timer generation is logically active."""
         with self._lock:
             return self._enabled
 
-    @plugin.tag
     def get_timeout(self) -> float:
         """Return the configured timeout in seconds."""
         with self._lock:
             return self._wait_seconds
 
-    @plugin.tag
     def set_timeout(self, wait_seconds: float) -> float:
         """Set the timeout, atomically replacing an active generation."""
         with self._lock:
@@ -303,7 +297,6 @@ class GenericTimerClass:
                 self._publish_core()
         return wait_seconds
 
-    @plugin.tag
     def publish(self):
         """Publish the current timer state."""
         self._publish_core()
@@ -313,9 +306,8 @@ class GenericTimerClass:
             return 0
         return max(0, self._deadline - monotonic())
 
-    @plugin.tag
     def get_state(self) -> Dict[str, Any]:
-        """Return the RPC-compatible timer state."""
+        """Return the timer state."""
         with self._lock:
             return {
                 'enabled': self._enabled,
@@ -325,13 +317,13 @@ class GenericTimerClass:
             }
 
     def _publish_core(self, enabled: Optional[bool] = None):
-        if self._name is None:
+        if self._on_change is None:
             return
         state = self.get_state()
         if enabled is not None:
             state['enabled'] = enabled
         logger.debug("%s: State = %s", self._name, state)
-        publishing.get_publisher().send(self._name, state)
+        self._on_change(state)
 
     def close(self):
         """Permanently close this timer and join all active workers."""
@@ -362,19 +354,21 @@ class GenericEndlessTimerClass(GenericTimerClass):
             wait_seconds_per_iteration: float,
             function: Callable,
             args=None,
-            kwargs=None):
+            kwargs=None,
+            *,
+            on_change: Optional[Callable[[Dict[str, Any]], None]] = None):
         super().__init__(
             name,
             wait_seconds_per_iteration,
             function,
             args,
             kwargs,
+            on_change=on_change,
         )
         self._iterations = -1
 
-    @plugin.tag
     def get_state(self) -> Dict[str, Any]:
-        """Return the RPC-compatible periodic timer state."""
+        """Return the periodic timer state."""
         with self._lock:
             return {
                 'enabled': self._enabled,

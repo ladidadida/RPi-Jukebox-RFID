@@ -1,0 +1,195 @@
+{
+  "events": {
+    "changed": {
+      "properties": {
+        "changed_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "changed_at"
+      ],
+      "type": "object"
+    }
+  },
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "core",
+  "name": "cards",
+  "operations": {
+    "delete_card": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "card_id"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "DELETE",
+      "path": "/api/v1/cards/{card_id}",
+      "returns": {
+        "type": "null"
+      }
+    },
+    "get_card": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "card_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "card_id"
+        ],
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/cards/{card_id}",
+      "returns": {
+        "anyOf": [
+          {
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "args": {
+                "additionalProperties": true,
+                "default": {},
+                "type": "object"
+              },
+              "ignore_card_removal_action": {
+                "default": false,
+                "type": "boolean"
+              },
+              "ignore_same_id_delay": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "action"
+            ],
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "list_cards": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "kind": "query",
+      "method": "GET",
+      "path": "/api/v1/cards",
+      "returns": {
+        "additionalProperties": {
+          "properties": {
+            "action": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "args": {
+              "additionalProperties": true,
+              "default": {},
+              "type": "object"
+            },
+            "description": {
+              "default": "",
+              "type": "string"
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "ignore_card_removal_action": {
+              "default": false,
+              "type": "boolean"
+            },
+            "ignore_same_id_delay": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "type": "object"
+      }
+    },
+    "register_card": {
+      "args": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "args": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "card_id": {
+            "type": "string"
+          },
+          "ignore_card_removal_action": {
+            "default": false,
+            "type": "boolean"
+          },
+          "ignore_same_id_delay": {
+            "default": false,
+            "type": "boolean"
+          },
+          "overwrite": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "card_id",
+          "action"
+        ],
+        "type": "object"
+      },
+      "kind": "action",
+      "method": "POST",
+      "path": "/api/v1/cards",
+      "returns": {
+        "type": "null"
+      }
+    }
+  },
+  "requires": {}
+}

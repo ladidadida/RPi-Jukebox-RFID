@@ -11,7 +11,7 @@ import tkinter as tk
 from tkinter import ttk
 import jukebox.gpio.gpioz as gpioz
 from jukebox.gpio.gpioz.core.input_devices import Button, ShortLongPressButton, LongPressButton, RotaryEncoder
-from jukebox.rfid.hardware.fake_reader_gui.fake_reader_gui import action_que
+from jukebox_rfid_readers.fake_reader_gui.fake_reader_gui import action_que
 
 logger = logging.getLogger('jb.rfid.tk')
 

@@ -1,0 +1,11 @@
+{
+  "events": {},
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "plugin",
+  "name": "rfid_rc522_spi",
+  "operations": {},
+  "requires": {
+    "rfid": ">=1.0,<2"
+  }
+}

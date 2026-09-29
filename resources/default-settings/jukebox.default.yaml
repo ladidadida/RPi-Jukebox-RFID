@@ -6,6 +6,14 @@ system:
 # Plugins to load, each with its settings. Installed plugins are only loaded when listed here.
 # See documentation/developers/core-and-plugins.md
 plugins: {}
+# Example: play through an external mpd server (also set player.backend: mpd)
+# plugins:
+#   mpd:
+#     host: localhost
+#     status_file: shared/settings/music_player_status.json
+#     library:
+#       update_on_startup: true
+#       check_user_rights: true
 pulse:
   # Reset system volume to this level after start. (Comment out disables and volume is not changed)
   startup_volume: 40
@@ -64,8 +72,8 @@ alsawave:
 player:
   # Which playback backend to use. 'local_audio' (default) plays files directly via PyAV/sounddevice,
   # no external player/daemon needed -- works on any Linux box with the normal audio output.
-  # 'mpd' delegates to an external mpd server instead (requires `uv sync --extra mpd` and a running
-  # mpd instance, see playermpd: below).
+  # 'mpd' delegates to an external mpd server instead (requires the mpd plugin, see plugins: above,
+  # and a running mpd instance).
   backend: local_audio
   # Root of the music library. Relative to the repository root (the Jukebox daemon's working
   # directory), same convention as everywhere else in this file.
@@ -86,12 +94,8 @@ player:
   # own volume (see mpd_client.setvol), unrelated to this.
   volume: 80
 playermpd:
-  # Only consulted when player.backend is 'mpd'.
-  host: localhost
-  status_file: shared/settings/music_player_status.json
-  library:
-    update_on_startup: true
-    check_user_rights: true
+  # Only read by jukebox.player to find the music library in mpd.conf when player.music_library_path
+  # is not set. The mpd plugin's own settings live under plugins.mpd.
   mpd_conf: ~/.config/mpd/mpd.conf
 api:
   # 0.0.0.0 (all interfaces): nginx used to be the only thing reachable from the LAN, reverse

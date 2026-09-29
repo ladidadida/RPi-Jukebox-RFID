@@ -85,9 +85,10 @@ Punkte. Kurzfassung:
 `documentation/developers/roadmap-core-architecture.md`): `player.backend`-Config wählt das
 Backend, Standard ist `local_audio` (dekodiert direkt per PyAV, Ausgabe über sounddevice/
 PortAudio -- kein MPD, kein externer Prozess, läuft auf jeder Linux-Kiste ohne Zusatzinstallation).
-`mpd` (externer MPD-Server, per `python-mpd2`) ist optional (`uv sync --extra mpd`). Genauso sind
-GPIO-angebundene RFID-Reader jetzt hinter `pyproject.toml`-Extras (`rpi-gpio`, je ein Extra pro
-gebündeltem Reader-Modul) statt fest eingebauter Abhängigkeiten.
+`mpd` (externer MPD-Server, per `python-mpd2`) ist ein mitgeliefertes Plugin (`packages/plugins/mpd`),
+ebenso die RFID-Lesertreiber (`packages/plugins/rfid-readers`, ein Plugin pro Treiber). Plugins
+werden mitinstalliert, aber nur geladen, wenn sie unter `plugins:` in der Config stehen (siehe
+`documentation/developers/core-and-plugins.md`).
 
 ## Eingesetzte Tools und Libraries
 

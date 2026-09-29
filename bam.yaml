@@ -9,18 +9,20 @@ tasks:
   # ── Static checks ────────────────────────────────────────────────────────────
 
   lint:
-    command: uv run ruff check packages/jukebox/src packages/cli/src test
+    command: uv run ruff check packages/jukebox/src packages/cli/src packages/plugins test
     stage: lint
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
 
   format:
-    command: uv run ruff format packages/jukebox/src packages/cli/src test
+    command: uv run ruff format packages/jukebox/src packages/cli/src packages/plugins test
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
@@ -30,10 +32,11 @@ tasks:
     # --check currently flags ~70 files), and applying it needs its own dedicated commit at a
     # moment that's acceptable for a large diff, not bundled into unrelated changes. See
     # documentation/developers/roadmap-core-architecture.md.
-    command: uv run ruff format --check packages/jukebox/src packages/cli/src test || true
+    command: uv run ruff format --check packages/jukebox/src packages/cli/src packages/plugins test || true
     stage: lint
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
@@ -46,6 +49,7 @@ tasks:
     stage: lint
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - pyproject.toml
 
@@ -56,6 +60,7 @@ tasks:
     stage: test
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - "test/**/*.py"
       - pyproject.toml
@@ -68,6 +73,7 @@ tasks:
     command: uv run pydoc-markdown
     inputs:
       - "packages/jukebox/src/**/*.py"
+      - "packages/plugins/**/*.py"
       - "packages/cli/src/**/*.py"
       - pydoc-markdown.yml
     outputs:

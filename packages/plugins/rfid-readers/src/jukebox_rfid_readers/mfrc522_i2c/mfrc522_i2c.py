@@ -3,7 +3,7 @@ import logging
 import jukebox.cfghandler
 from mfrc522_i2c import MFRC522
 
-from ...readerbase import ReaderBaseClass
+from jukebox.rfid import ReaderBaseClass
 
 from .description import DESCRIPTION
 

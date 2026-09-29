@@ -10,6 +10,8 @@ resolution-markers = [
 members = [
     "jukebox",
     "jukebox-cli",
+    "jukebox-plugin-mpd",
+    "jukebox-plugin-rfid-readers",
 ]
 
 [manifest.dependency-groups]
@@ -819,61 +821,20 @@ dependencies = [
     { name = "uvicorn" },
 ]
 
-[package.optional-dependencies]
-fake-reader-gui = [
-    { name = "ttkthemes" },
-]
-generic-nfcpy = [
-    { name = "nfcpy" },
-]
-mfrc522-i2c = [
-    { name = "mfrc522-i2c" },
-]
-mpd = [
-    { name = "python-mpd2" },
-]
-pn532-i2c-py532 = [
-    { name = "py532lib" },
-]
-rc522-spi = [
-    { name = "gpiozero" },
-    { name = "pi-rc522-gpiozero" },
-    { name = "rpi-lgpio", marker = "platform_machine == 'aarch64' or platform_machine == 'armv7l'" },
-]
-rdm6300-serial = [
-    { name = "pyserial" },
-]
-rpi-gpio = [
-    { name = "gpiozero" },
-    { name = "rpi-lgpio", marker = "platform_machine == 'aarch64' or platform_machine == 'armv7l'" },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "av" },
     { name = "evdev" },
     { name = "fastapi" },
-    { name = "gpiozero", marker = "extra == 'rc522-spi'" },
-    { name = "gpiozero", marker = "extra == 'rpi-gpio'" },
-    { name = "mfrc522-i2c", marker = "extra == 'mfrc522-i2c'" },
     { name = "mutagen" },
-    { name = "nfcpy", marker = "extra == 'generic-nfcpy'" },
     { name = "packaging" },
-    { name = "pi-rc522-gpiozero", marker = "extra == 'rc522-spi'", git = "https://github.com/hoffie/pi-rc522-gpiozero?rev=1dc878c" },
     { name = "pulsectl" },
-    { name = "py532lib", marker = "extra == 'pn532-i2c-py532'" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "pyserial", marker = "extra == 'rdm6300-serial'" },
-    { name = "python-mpd2", marker = "extra == 'mpd'" },
     { name = "requests" },
-    { name = "rpi-lgpio", marker = "(platform_machine == 'aarch64' and extra == 'rc522-spi') or (platform_machine == 'armv7l' and extra == 'rc522-spi')" },
-    { name = "rpi-lgpio", marker = "(platform_machine == 'aarch64' and extra == 'rpi-gpio') or (platform_machine == 'armv7l' and extra == 'rpi-gpio')" },
     { name = "ruamel-yaml" },
     { name = "sounddevice" },
-    { name = "ttkthemes", marker = "extra == 'fake-reader-gui'" },
     { name = "uvicorn" },
 ]
-provides-extras = ["mpd", "rpi-gpio", "rc522-spi", "mfrc522-i2c", "pn532-i2c-py532", "rdm6300-serial", "generic-nfcpy", "fake-reader-gui"]
 
 [[package]]
 name = "jukebox-cli"
@@ -893,6 +854,65 @@ requires-dist = [
     { name = "typer" },
     { name = "websockets" },
 ]
+
+[[package]]
+name = "jukebox-plugin-mpd"
+version = "1.0.0"
+source = { editable = "packages/plugins/mpd" }
+dependencies = [
+    { name = "jukebox" },
+    { name = "python-mpd2" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jukebox", editable = "packages/jukebox" },
+    { name = "python-mpd2" },
+]
+
+[[package]]
+name = "jukebox-plugin-rfid-readers"
+version = "1.0.0"
+source = { editable = "packages/plugins/rfid-readers" }
+dependencies = [
+    { name = "jukebox" },
+]
+
+[package.optional-dependencies]
+fake-reader-gui = [
+    { name = "ttkthemes" },
+]
+generic-nfcpy = [
+    { name = "nfcpy" },
+]
+mfrc522-i2c = [
+    { name = "mfrc522-i2c" },
+]
+pn532-i2c-py532 = [
+    { name = "py532lib" },
+]
+rc522-spi = [
+    { name = "gpiozero" },
+    { name = "pi-rc522-gpiozero" },
+    { name = "rpi-lgpio", marker = "platform_machine == 'aarch64' or platform_machine == 'armv7l'" },
+]
+rdm6300-serial = [
+    { name = "pyserial" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gpiozero", marker = "extra == 'rc522-spi'" },
+    { name = "jukebox", editable = "packages/jukebox" },
+    { name = "mfrc522-i2c", marker = "extra == 'mfrc522-i2c'" },
+    { name = "nfcpy", marker = "extra == 'generic-nfcpy'" },
+    { name = "pi-rc522-gpiozero", marker = "extra == 'rc522-spi'", git = "https://github.com/hoffie/pi-rc522-gpiozero?rev=1dc878c" },
+    { name = "py532lib", marker = "extra == 'pn532-i2c-py532'" },
+    { name = "pyserial", marker = "extra == 'rdm6300-serial'" },
+    { name = "rpi-lgpio", marker = "(platform_machine == 'aarch64' and extra == 'rc522-spi') or (platform_machine == 'armv7l' and extra == 'rc522-spi')" },
+    { name = "ttkthemes", marker = "extra == 'fake-reader-gui'" },
+]
+provides-extras = ["rc522-spi", "mfrc522-i2c", "pn532-i2c-py532", "rdm6300-serial", "generic-nfcpy", "fake-reader-gui"]
 
 [[package]]
 name = "lgpio"

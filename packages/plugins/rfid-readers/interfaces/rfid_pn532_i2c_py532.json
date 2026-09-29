@@ -1,0 +1,11 @@
+{
+  "events": {},
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "plugin",
+  "name": "rfid_pn532_i2c_py532",
+  "operations": {},
+  "requires": {
+    "rfid": ">=1.0,<2"
+  }
+}

@@ -39,13 +39,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libasound2-dev pulseaudio
 
+        # Installs the core and the bundled plugin packages (workspace members). Reader driver
+        # extras aren't needed: tests needing a driver's dependency skip without it.
         uv sync --group dev
-        # Also install all optional rfid-hardware dependencies (not part of the base project,
-        # each hardware backend has its own requirements.txt)
-        uv pip install -r packages/jukebox/src/jukebox/rfid/hardware/fake_reader_gui/requirements.txt
-        uv pip install -r packages/jukebox/src/jukebox/rfid/hardware/pn532_i2c_py532/requirements.txt
-        uv pip install -r packages/jukebox/src/jukebox/rfid/hardware/rdm6300_serial/requirements.txt
-        uv pip install -r packages/jukebox/src/jukebox/rfid/hardware/rc522_spi/requirements.txt
     - name: Run pytest with coverage
       run: |
         uv run pytest --cov --cov-report xml

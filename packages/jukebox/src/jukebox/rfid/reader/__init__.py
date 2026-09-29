@@ -4,7 +4,6 @@ Hardware drivers register at the ``rfid.readers`` extension point. Readers are c
 reader config file (``rfid.reader_config``), each with the name of its driver under ``module``.
 """
 
-import importlib
 import logging
 import threading
 import time
@@ -32,23 +31,6 @@ class ReaderDriver(Protocol):
 class CardDetected(BaseModel):
     card_id: str
     registered: bool
-
-
-class _BundledDriver:
-    """Loads a driver from ``jukebox.rfid.hardware`` until drivers are shipped as plugins."""
-
-    def __init__(self, module_name: str):
-        self.module_name = module_name
-
-    def create_reader(self, reader_cfg_key: str) -> Any:
-        try:
-            module = importlib.import_module(f'jukebox.rfid.hardware.{self.module_name}.{self.module_name}')
-        except ImportError as exc:
-            raise RuntimeError(
-                f"RFID reader module '{self.module_name}' needs its optional dependencies installed. "
-                f"Install with: uv sync --extra {self.module_name.replace('_', '-')}"
-            ) from exc
-        return module.ReaderClass(reader_cfg_key)
 
 
 class CardRemovalTimer(threading.Thread):
@@ -170,12 +152,12 @@ class Rfid(CoreModule):
         readers = cfg_rfid.getn('rfid', 'readers', default=None) or {}
         for key, reader_cfg in readers.items():
             driver_name = str(reader_cfg.get('module', '')).lower()
-            if driver_name in self.readers:
-                driver = self.readers.get(driver_name)
-            else:
-                driver = _BundledDriver(driver_name)
+            if driver_name not in self.readers:
+                log.error(f"Reader '{key}': no driver '{driver_name}' available. Enable its plugin "
+                          f"('rfid_{driver_name}' under 'plugins:' in the jukebox config).")
+                continue
             log.info(f"Reader '{key}': using driver '{driver_name}'")
-            self._runners[key] = ReaderRunner(key, driver, self)
+            self._runners[key] = ReaderRunner(key, self.readers.get(driver_name), self)
         for runner in self._runners.values():
             runner.start()
 

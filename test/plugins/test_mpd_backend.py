@@ -4,9 +4,9 @@ from unittest.mock import Mock, sentinel
 
 import pytest
 
-pytest.importorskip('mpd', reason="python-mpd2 is an optional extra (`uv sync --extra mpd`)")
+pytest.importorskip('mpd', reason="python-mpd2 comes with the mpd plugin package")
 
-from jukebox.player.backends.mpd import PlayerMPD
+from jukebox_plugin_mpd.backend import PlayerMPD
 
 
 def mpd_backend():

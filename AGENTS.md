@@ -63,7 +63,7 @@ ci/                CI helper scripts (e.g. installation testing)
   built from the signature. Don't hand-write REST routes or card aliases for new functionality --
   declare them on a module. Per-module lock by default (`concurrency = 'threadsafe'` opts out).
 - **Interface versioning**: each module has an `interface_version`, the framework a
-  `CONTRACT_VERSION`. Snapshots in `packages/jukebox/interfaces/` (and `interface.json` in bundled
+  `CONTRACT_VERSION`. Snapshots in `packages/jukebox/interfaces/` (and `interfaces/<plugin>.json` in bundled
   plugin packages) are compared in CI: a breaking change (removed/renamed operation or field,
   type change, protocol change) needs a major bump, an addition a minor bump. After bumping, run
   `uv run python -m jukebox.contract.snapshots --update` and commit the snapshot.
@@ -90,9 +90,10 @@ ci/                CI helper scripts (e.g. installation testing)
   their raw status into the typed `player.status` event (`jukebox.player.status.PlayerStatus`).
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.
-- **Optional dependencies**: non-default player backends and RFID reader drivers still come
-  from `pyproject.toml` extras (`mpd`, `rpi-gpio`, one per bundled reader driver) until they move
-  into plugin packages -- run `uv sync --extra <name>` to add one.
+- **Bundled plugins** live in `packages/plugins/*` (uv workspace members, installed by `uv sync`
+  but only loaded when enabled under `plugins:`): `mpd` (player backend) and `rfid-readers`
+  (one plugin per reader driver, `rfid_<driver>`; each driver's dependencies are an extra of that
+  package -- `uv sync --inexact --extra <driver-extra>`, e.g. `rc522-spi`).
 
 ## Languages, tools, conventions
 
@@ -115,11 +116,9 @@ Package manager is **uv**; the dev/CI workflow is driven by **[bam](https://gitl
 The old `run_*.sh` wrapper scripts are gone.
 
 ```bash
-uv sync --group dev             # install/update the .venv (runtime + dev dependencies)
-                                 # add --extra mpd / --extra rpi-gpio / --extra <reader-name> for
-                                 # non-default player/RFID backends (see "Player/RFID backends
-                                 # are pluggable" above) -- not needed for the default local_audio
-                                 # backend or the generic_usb/fake_reader_gui readers
+uv sync --group dev             # install/update the .venv (runtime + dev dependencies, core and
+                                 # bundled plugins); reader drivers with extra dependencies need
+                                 # --extra <driver-extra> (see "Bundled plugins" above)
 uv run jukebox run              # start the Jukebox core -- creates shared/settings/jukebox.yaml
                                  # and logger.yaml from the default templates on first run if
                                  # missing. Override the paths with -c/-l or $JUKEBOX_CONF/

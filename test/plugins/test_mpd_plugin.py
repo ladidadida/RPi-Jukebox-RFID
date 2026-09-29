@@ -1,0 +1,62 @@
+from unittest.mock import Mock
+
+import pytest
+
+pytest.importorskip('jukebox_plugin_mpd', reason="the mpd plugin package is not installed")
+
+import jukebox_plugin_mpd
+import jukebox_plugin_mpd.backend
+from jukebox.cfghandler import ConfigHandler
+from jukebox.contract.manager import ModuleManager
+from jukebox.player.backend import PlayerBackend
+from jukebox.player.module import Player
+from jukebox.publishing.bus import EventBus
+
+
+class PlayerWithoutLocalAudio(Player):
+    def start(self, ctx):
+        self._ctx = ctx
+        self._configured_backend = ctx.config.setdefault('backend', value='local_audio')
+        self.backends.on_register(self._add_backend)
+
+
+def fake_backend_class(created):
+    methods = {name: Mock() for name in vars(PlayerBackend) if not name.startswith('_')}
+
+    class FakeMPD:
+        def __init__(self, host, status_file):
+            created.append((host, status_file))
+            for name, mock in methods.items():
+                setattr(self, name, mock)
+
+    return FakeMPD
+
+
+@pytest.mark.parametrize('config, expected_host', [
+    ({'plugins': {'mpd': {'host': 'music.local'}}}, 'music.local'),
+    ({'plugins': {'mpd': {}}, 'playermpd': {'host': 'legacy.local'}}, 'legacy.local'),
+])
+def test_mpd_plugin_registers_its_backend(monkeypatch, config, expected_host):
+    created = []
+    monkeypatch.setattr(jukebox_plugin_mpd.backend, 'PlayerMPD', fake_backend_class(created))
+    monkeypatch.setattr(jukebox_plugin_mpd, 'cfg_main', _cfg(config))
+    config = {**config, 'player': {'backend': 'mpd'}}
+    config['plugins']['mpd'].setdefault('library', {'update_on_startup': False, 'check_user_rights': False})
+
+    cfg = _cfg(config)
+    manager = ModuleManager([PlayerWithoutLocalAudio], cfg, EventBus(),
+                            plugins={'mpd': lambda: jukebox_plugin_mpd.Mpd}, strict=True)
+    manager.load()
+    manager.start()
+    manager.ready()
+
+    assert manager.failed == {}
+    assert created == [(expected_host, 'shared/settings/music_player_status.json')]
+    player = manager.instance('player')
+    assert player.get_active_backend().name == 'mpd'
+
+
+def _cfg(data):
+    cfg = ConfigHandler('test')
+    cfg.config_dict(data)
+    return cfg

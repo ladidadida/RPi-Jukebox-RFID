@@ -172,7 +172,7 @@ class ReaderClass(ReaderBaseClass):
         except KeyError:
             pass
         else:
-            import jukebox.rfid.hardware.fake_reader_gui.gpioz_gui_addon as gpioz_gui
+            import jukebox_rfid_readers.fake_reader_gui.gpioz_gui_addon as gpioz_gui
 
             if gpioz.IS_ENABLED and gpioz.IS_MOCKED:
                 # This happens during finalize

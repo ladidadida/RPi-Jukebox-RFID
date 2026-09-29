@@ -1,9 +1,9 @@
 [tool.uv.workspace]
-members = ["packages/*"]
+members = ["packages/*", "packages/plugins/*"]
 # webapp is a Node/Vite project, not a Python package -- can't be a uv workspace member (uv
 # workspaces are PEP 621/Python-only). It still lives under packages/ structurally, alongside the
 # Python packages.
-exclude = ["packages/webapp"]
+exclude = ["packages/webapp", "packages/plugins"]
 
 [dependency-groups]
 dev = [
@@ -63,7 +63,7 @@ max-complexity = 12
 [tool.pyright]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"
-include = ["packages/jukebox/src", "packages/cli/src"]
+include = ["packages/jukebox/src", "packages/cli/src", "packages/plugins"]
 exclude = [
   "**/node_modules",
   "**/__pycache__",

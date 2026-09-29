@@ -50,7 +50,7 @@ def targets(include_plugins: bool = True) -> List[Target]:
             root = _package_root(cls)
             if root.parent.name != 'plugins':
                 continue  # only bundled plugins (packages/plugins/<name>) are tracked here
-            result.append(Target(f"plugin '{name}'", root / 'interface.json',
+            result.append(Target(f"plugin '{name}'", root / 'interfaces' / f'{name}.json',
                                  lambda cls=cls: interfaces.describe_module_interface(cls),
                                  interfaces.compare_module_interfaces, 'interface_version'))
     return result

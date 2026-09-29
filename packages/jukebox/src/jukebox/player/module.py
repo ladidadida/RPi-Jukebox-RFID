@@ -54,9 +54,6 @@ class Player(CoreModule):
 
         from jukebox.player.backends.local_audio import PlayerLocalAudio
         self.backends.register('local_audio', PlayerLocalAudio())
-        if self._configured_backend == 'mpd':
-            from jukebox.player.mpd_plugin import create_mpd_backend
-            self.backends.register('mpd', create_mpd_backend())
 
     def _add_backend(self, name: str, backend: Any) -> None:
         backend.set_status_callback(partial(self._publish_status, name))

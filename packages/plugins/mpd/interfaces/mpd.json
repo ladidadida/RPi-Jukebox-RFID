@@ -1,0 +1,11 @@
+{
+  "events": {},
+  "extension_points": {},
+  "interface_version": "1.0",
+  "kind": "plugin",
+  "name": "mpd",
+  "operations": {},
+  "requires": {
+    "player": ">=1.0,<2"
+  }
+}

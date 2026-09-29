@@ -342,8 +342,8 @@ Three extension points are needed from the start, because today's behavior depen
 - **Player backends** (`player.backends`) - `local_audio` is registered by the core; `mpd` becomes a
   plugin. `player.backend` config keeps selecting the active one. The duck-typed backend surface
   `PlayerCoordinator` calls today becomes an explicit protocol.
-- **RFID reader drivers** (`rfid.readers`) - every bundled driver under `rfid/hardware/` becomes a
-  plugin that registers a reader class. The reader framework keeps owning threads, timing and
+- **RFID reader drivers** (`rfid.readers`) - every bundled driver is a plugin (`rfid_<driver>`,
+  all shipped in the `rfid-readers` package) that registers a reader factory. The reader framework keeps owning threads, timing and
   dispatch.
 - **Library sources** (`library.sources`) - the core index is the local source; the `mpd` plugin can
   add its own database as a second source, streaming services later as further ones. The webapp's
@@ -406,10 +406,11 @@ original is kept as `cards.yaml.bak-<timestamp>`:
    `DELETE /api/v1/cards/{card_id}`; topics were renamed (`playerstatus` -> `player.status`,
    `rfid.card_id` -> `rfid.card_detected`, `core.*` -> `system.info`) and the webapp follows.
    Card dispatch goes through the action catalog; `cards.yaml` is migrated with a backup.
-3. **First bundled plugins**: `mpd` backend and the RFID reader drivers move to
-   `packages/plugins/*`; extras are removed; installer and Docker files enable them via `plugins:`.
-   Until then `player` creates the `mpd` backend itself when configured, and `rfid` loads drivers
-   from `jukebox.rfid.hardware` when no plugin registered them.
+3. **First bundled plugins** -- *done*: `packages/plugins/mpd` (player backend) and
+   `packages/plugins/rfid-readers` (one plugin per driver in one package; driver dependencies are
+   extras of that package). The core has no optional dependencies left. The RFID reader
+   configuration tool moved along (`jukebox_rfid_readers.configure`) and enables the driver plugins
+   of the readers it configures. Snapshots of bundled plugins live in `<package>/interfaces/`.
 4. **Remove the old mechanism** -- *done together with step 2*: registry, command aliases, RPC
    helpers, hand-written routes and the player backend import table are gone.
 5. **Library**: index, metadata, cover art, library-source extension point (see "Library").

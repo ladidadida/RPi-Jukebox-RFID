@@ -12,8 +12,7 @@ logger = logging.getLogger()
 
 NO_RFID_READER = 'No RFID Reader'
 
-#: Reader (sub)package name -> pyproject.toml extra providing its dependencies. Formalizes what
-#: used to be a per-reader requirements.txt, installed with `pip install -r requirements.txt`.
+#: Driver name -> extra of this package providing the driver's dependencies.
 BUNDLED_READER_EXTRAS = {
     'fake_reader_gui': 'fake-reader-gui',
     'rdm6300_serial': 'rdm6300-serial',
@@ -39,11 +38,11 @@ def reader_install_dependencies(reader_path: str, dependency_install: str) -> No
         reader_name = os.path.basename(reader_path.rstrip('/'))
         extra = BUNDLED_READER_EXTRAS.get(reader_name)
         if extra is not None:
-            print(f"\nInstalling/Checking Python dependencies (`uv sync --extra {extra}`) ...\n")
+            print(f"\nInstalling/Checking Python dependencies (`uv sync --inexact --extra {extra}`) ...\n")
             if dependency_install == 'auto' or pyil.input_yesno("Install Python dependencies?", blank=True,
                                                                 prompt_color=Colors.lightgreen, prompt_hint=True):
                 print(f"{'=' * 80}")
-                subprocess.run(['uv', 'sync', '--extra', extra], check=False)
+                subprocess.run(['uv', 'sync', '--inexact', '--extra', extra], check=False)
                 print(f"\n{'=' * 80}\nInstalling dependencies ... done!")
         elif os.path.exists(reader_path + '/requirements.txt'):
             # Third-party reader dropped in locally with its own requirements.txt (not one of the
@@ -78,7 +77,7 @@ def reader_load_module(reader_name):
     :return: module
     """
     try:
-        reader_module = importlib.import_module('jukebox.rfid.hardware.' + reader_name + '.' + reader_name, 'pkg.subpkg')
+        reader_module = importlib.import_module('jukebox_rfid_readers.' + reader_name + '.' + reader_name)
     except ModuleNotFoundError as e:
         # This can have two reasons:
         # (1) The reader_type module itself cannot be found (for whatever unfathomable reason after all the checks above)
@@ -94,7 +93,7 @@ def reader_load_module(reader_name):
                             "If this script is called with -d a, an attempt will be made to install the dependencies "
                             "automatically\n"
                             "You may install the dependencies manually before re-executing this script by:\n"
-                            f"'$ uv sync --extra {BUNDLED_READER_EXTRAS.get(reader_name, '<extra-name>')}' "
+                            f"'$ uv sync --inexact --extra {BUNDLED_READER_EXTRAS.get(reader_name, '<extra-name>')}' "
                             "(or '$ pip install -r requirements.txt' in the reader's submodule directory, for a "
                             "custom reader that isn't one of the bundled ones) and \n"
                             "'$ ./setup.inc.sh'\n"
@@ -119,7 +118,7 @@ def _get_reader_descriptions(reader_dirs: list[str]) -> dict[str, tuple[str, str
         else:
             reader_description_module_name = f"{reader_type + '/' + reader_type + '.py'}"
             try:
-                reader_description_module = (importlib.import_module('jukebox.rfid.hardware.' + reader_type
+                reader_description_module = (importlib.import_module('jukebox_rfid_readers.' + reader_type
                                                                         + '.description', 'pkg.subpkg'))
                 reader_description = reader_description_module.DESCRIPTION
             except ModuleNotFoundError:
@@ -171,7 +170,7 @@ def query_user_for_reader(dependency_install='query') -> dict:
     :rtype: dict as {section: {parameter: value}}
     """
 
-    package_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + '/../hardware')
+    package_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     logger.debug(f"Package location: {package_dir}")
     # For known included readers, specify manual order
     included_readers = [NO_RFID_READER, 'generic_usb', 'rdm6300_serial', 'rc522_spi', 'pn532_i2c_py532', 'fake_reader_gui']
@@ -252,7 +251,7 @@ def query_user_for_reader(dependency_install='query') -> dict:
                                                                                      'place_not_swipe':
                                                                                          {'enabled': False,
                                                                                           'card_removal_action':
-                                                                                              {'alias': 'pause'}}}
+                                                                                              {'action': 'player.pause'}}}
 
         if not pyil.input_yesno("\nDo you want to add another RFID reader? ", blank=False,
                                 prompt_color=Colors.lightgreen, prompt_hint=True):

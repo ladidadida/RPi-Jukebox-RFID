@@ -102,22 +102,9 @@ class Player(CoreModule):
             return
         if 'action' not in entry and entry.get('alias', 'custom') != 'custom':
             return
-        catalog = self._ctx.actions
-
-        def param_names(action_id):
-            return [p.name for p in catalog.operation(action_id).params] if action_id in catalog else None
-
-        converted, problem = legacy_actions.convert(entry, param_names)
-        if converted is None:
-            logger.error(f"Ignoring player.second_swipe_action: {problem}")
-            return
-        try:
-            catalog.validate(converted['action'], converted['args'])
-        except Exception as error:
-            logger.error(f"Ignoring player.second_swipe_action: {error}")
-            return
-        self._coordinator.set_second_swipe_action(
-            lambda: catalog.call_ignore_errors(converted['action'], converted['args']))
+        action = legacy_actions.bind_action(self._ctx.actions, entry, 'player.second_swipe_action', logger)
+        if action is not None:
+            self._coordinator.set_second_swipe_action(action)
 
     def stop(self) -> List[threading.Thread]:
         results = self._coordinator.exit()

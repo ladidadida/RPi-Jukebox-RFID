@@ -5,7 +5,7 @@ Before the core/plugin contract, card entries and config actions were stored eit
 ``kwargs``. The contract stores ``action: <module>.<action>`` plus named ``args``.
 """
 
-from typing import Any, Dict, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 # alias -> (action id, fixed arguments)
 ALIASES: Dict[str, Tuple[str, Dict[str, Any]]] = {
@@ -113,3 +113,24 @@ def convert(entry: Mapping, param_names=None) -> Tuple[Optional[Dict[str, Any]],
         if flag in entry:
             converted[flag] = entry[flag]
     return converted, None
+
+
+def bind_action(catalog, entry, where: str, logger) -> Optional[Callable[[], Any]]:
+    """A callable running a configured action (either format), or None (logged) if it's invalid."""
+    if not isinstance(entry, Mapping):
+        logger.error(f"{where}: an action must be a mapping, got {entry!r}")
+        return None
+
+    def param_names(action_id):
+        return [p.name for p in catalog.operation(action_id).params] if action_id in catalog else None
+
+    converted, problem = convert(entry, param_names)
+    if converted is None:
+        logger.error(f"{where}: {problem}")
+        return None
+    try:
+        catalog.validate(converted['action'], converted['args'])
+    except Exception as error:
+        logger.error(f"{where}: {error}")
+        return None
+    return lambda: catalog.call_ignore_errors(converted['action'], converted['args'])

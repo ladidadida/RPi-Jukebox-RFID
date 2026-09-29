@@ -44,7 +44,6 @@ const backendData = {
 };
 
 const socketEvents = {
-  'batt_status': { charging: false, soc: 76 },
   'system.info': { version: '3.7.0-alpha', git_state: 'test', started_at: 'today' },
   'system.health': { cpu_temperature: 47.2, disk_total: 32_000_000_000, disk_used: 8_000_000_000,
     disk_free: 24_000_000_000 },
@@ -158,6 +157,7 @@ async function mockBackend(
     '/api/v1/library/sources': librarySources,
     '/api/v1/library/songs': () => backendData.list_songs_by_artist_and_album,
     '/api/v1/player/status': () => socketEvents['player.status'],
+    '/api/v1/actions': () => [{ id: 'player.play', description: '', args: {} }],
     '/api/v1/settings': () => ({ show_covers: showCovers }),
     '/api/v1/system/ip-addresses': () => ({ addresses: ['192.168.1.42'] }),
     '/api/v1/timers': () => [

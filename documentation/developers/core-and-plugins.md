@@ -431,8 +431,15 @@ original is kept as `cards.yaml.bak-<timestamp>`:
    devices by name with key -> action mappings, optional media keys). Old `pulse:` settings are
    still read. Not carried over: the idle-shutdown timer (belongs to the `raspberry-pi` plugin)
    and the separate `evdev.yaml` file (device mappings now live under `input:`).
-7. **`raspberry-pi` plugin**: power, GPIO, battery monitor, health. Autohotspot moves to the
-   installer/`jukebox setup` track instead.
+7. **`raspberry-pi` plugin** -- *done*: `packages/plugins/raspberry-pi` with `shutdown`/`reboot`
+   (with `debug_mode`), GPIO via gpiozero (buttons with optional hold action, rotary encoders, a
+   status LED; `gpio` extra), a battery monitor (INA219 via the `battery-ina219` extra, or a
+   simulator; `raspberry_pi.battery` event, warning action, shutdown below a threshold), and
+   firmware health (`vcgencmd get_throttled`, HDMI power-down, WLAN power saving). Old `host:`
+   settings are still read. The installer enables the plugin and installs the `gpio` extra; the web
+   app shows shutdown/reboot only when `raspberry_pi.shutdown` is available. Not carried over: the
+   ADS1015 battery driver, the OnOff SHIM script, the idle-shutdown timer and the old `gpio.yaml`
+   format. Autohotspot moves to the installer/`jukebox setup` track instead.
 
 Each step leaves the daemon runnable and the test suites green.
 

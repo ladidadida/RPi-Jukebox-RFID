@@ -180,23 +180,7 @@ class Rfid(CoreModule):
 
     def resolve_config_action(self, entry, where: str) -> Optional[Callable[[], Any]]:
         """Turn a configured action (new or old format) into a callable, or None if invalid."""
-        if not isinstance(entry, dict):
-            return None
-        catalog = self._ctx.actions
-
-        def param_names(action_id):
-            return [p.name for p in catalog.operation(action_id).params] if action_id in catalog else None
-
-        converted, problem = legacy_actions.convert(entry, param_names)
-        if converted is None:
-            log.error(f"{where}: {problem}")
-            return None
-        try:
-            catalog.validate(converted['action'], converted['args'])
-        except Exception as error:
-            log.error(f"{where}: {error}")
-            return None
-        return lambda: catalog.call_ignore_errors(converted['action'], converted['args'])
+        return legacy_actions.bind_action(self._ctx.actions, entry, where, log)
 
     # -- operations -----------------------------------------------------------------------------
 

@@ -6,6 +6,7 @@ import SettingsGeneral from './general';
 import SettingsSecondSwipe from './secondswipe';
 import SettingsStatus from './status/index';
 import SettingsTimers from './timers';
+import SystemControls from './systemcontrols';
 
 import { useTheme } from '@mui/material/styles';
 
@@ -37,6 +38,9 @@ const Settings = () => {
       </Grid>
       <Grid>
         <SettingsSecondSwipe />
+      </Grid>
+      <Grid>
+        <SystemControls />
       </Grid>
     </Grid>
   );

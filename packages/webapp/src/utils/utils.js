@@ -12,10 +12,6 @@ const toHHMMSS = (seconds) => {
   ].filter(Boolean).join(':');
 }
 
-const pluginIsLoaded = (pluginList = {}, _package) => {
-  return Object.keys(pluginList).includes(_package)
-}
-
 const flatByAlbum = (albumList, entry) => {
   const { album } = entry;
   const list = Array.isArray(album)
@@ -34,7 +30,6 @@ const coverSrc = (coverUrl) => (
 export {
   coverSrc,
   flatByAlbum,
-  pluginIsLoaded,
   progressToTime,
   timeToProgress,
   toHHMMSS,

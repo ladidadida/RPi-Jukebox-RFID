@@ -8,8 +8,10 @@ const SYSTEM_HEALTH_TOPIC = 'system.health';
 const TIMERS_TOPIC = 'timers.changed';
 const VOLUME_LEVEL_TOPIC = 'volume.level';
 
+const BATTERY_TOPIC = 'raspberry_pi.battery';
+
 const SUBSCRIPTIONS = [
-  'batt_status',
+  BATTERY_TOPIC,
   CARD_DETECTED_TOPIC,
   SYSTEM_HEALTH_TOPIC,
   SYSTEM_INFO_TOPIC,
@@ -54,6 +56,8 @@ const JUKEBOX_ACTIONS_MAP = {
   // System
   host: {
     commands: {
+      shutdown: {},
+      reboot: {},
       say_my_ip: {},
     }
   },
@@ -71,6 +75,7 @@ const JUKEBOX_ACTIONS_MAP = {
 const TIMER_STEPS = [0, 2, 5, 10, 15, 20, 30, 45, 60, 120, 180, 240];
 
 export {
+  BATTERY_TOPIC,
   CARD_DETECTED_TOPIC,
   JUKEBOX_ACTIONS_MAP,
   LOCAL_LIBRARY_SOURCE,

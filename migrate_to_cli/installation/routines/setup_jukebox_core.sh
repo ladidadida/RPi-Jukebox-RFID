@@ -41,12 +41,15 @@ _jukebox_core_install_python_requirements() {
   # leave, but nothing installs or needs it anymore, so clean it up if present.
   uv pip uninstall pyzmq
 
-  uv sync --no-dev --frozen || exit_on_error "ERROR: Failed to install Python requirements"
+  # gpio: dependencies of the raspberry-pi plugin's GPIO support
+  uv sync --no-dev --frozen --extra gpio || exit_on_error "ERROR: Failed to install Python requirements"
 }
 
 _jukebox_core_install_settings() {
   print_lc "  Register Jukebox settings"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/jukebox.default.yaml" "${SETTINGS_PATH}/jukebox.yaml"
+  # Enable the Raspberry Pi hardware control plugin
+  sed -i 's/^plugins: {}$/plugins:\n  raspberry_pi: {}/' "${SETTINGS_PATH}/jukebox.yaml"
   cp -f "${INSTALLATION_PATH}/resources/default-settings/logger.default.yaml" "${SETTINGS_PATH}/logger.yaml"
 }
 

@@ -155,6 +155,18 @@ const commands = {
     cardAction: 'system.say_my_ip',
   },
 
+  listActions: {
+    rest: { method: 'GET', path: '/api/v1/actions' },
+  },
+  shutdown: {
+    rest: { method: 'POST', path: '/api/v1/raspberry_pi/shutdown' },
+    cardAction: 'raspberry_pi.shutdown',
+  },
+  reboot: {
+    rest: { method: 'POST', path: '/api/v1/raspberry_pi/reboot' },
+    cardAction: 'raspberry_pi.reboot',
+  },
+
   // Misc
   getAppSettings: {
     rest: { method: 'GET', path: '/api/v1/settings' },

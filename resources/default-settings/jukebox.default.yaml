@@ -10,6 +10,28 @@ system:
 # Plugins to load, each with its settings. Installed plugins are only loaded when listed here.
 # See documentation/developers/core-and-plugins.md
 plugins: {}
+# Example: Raspberry Pi hardware control (the installer enables it on a Pi)
+# plugins:
+#   raspberry_pi:
+#     debug_mode: false          # log shutdown/reboot instead of doing them
+#     hdmi_power_down: false
+#     wlan_power_save: false     # false: keep WLAN reachable
+#     gpio:
+#       enabled: true
+#       buttons:
+#         next: {pin: 5, action: player.next}
+#         play: {pin: 6, action: player.toggle, hold_action: {action: raspberry_pi.shutdown}, hold_time: 3}
+#       rotary_encoders:
+#         volume:
+#           pin_a: 17
+#           pin_b: 27
+#           clockwise: {action: volume.change_volume, args: {step: 2}}
+#           counter_clockwise: {action: volume.change_volume, args: {step: -2}}
+#       status_led: 25
+#     battery:
+#       enabled: false
+#       driver: ina219
+#
 # Example: play through an external mpd server (also set player.backend: mpd)
 # plugins:
 #   mpd:
@@ -89,9 +111,6 @@ rfid:
   reader_config: shared/settings/rfid.yaml
 cards:
   database: shared/settings/cards.yaml
-gpioz:
-  enable: false
-  config_file: shared/settings/gpio.yaml
 timers:
   # Named timers run an action when they expire. Defaults (can be overridden here):
   #   stop_player: player.stop, fade_volume: volume.fade_out, shutdown: raspberry_pi.shutdown
@@ -115,21 +134,6 @@ input:
   #       BTN_TRIGGER: {action: player.toggle}
   #       BTN_THUMB: {action: volume.change_volume, args: {step: 5}}
   devices: {}
-host:
-  # Do not actually execute system shutdown and reboot commands
-  debug_mode: false
-  # Whether to publish the host's temperature regularly
-  publish_temperature:
-    enabled: true
-    timer_interval_sec: 10
-  # Should we disable the power management of the WLAN to ensure reachability via WLAN?
-  wlan_power:
-    disable_power_down: false
-    # Specify the wlan interface. Get a list from $iwconfig. 'wlan0' is default on RPis
-    card: wlan0
-  # RPi-specific stuff. Will be silently ignored if not on an RPi
-  rpi:
-    hdmi_power_down: false
 sync_rfidcards:
   enable: false
   config_file: shared/settings/sync_rfidcards.yaml

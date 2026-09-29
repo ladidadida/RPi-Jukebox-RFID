@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -10,46 +10,29 @@ import {
 
 import BatteryIcon from '../helpers/battery-icon';
 import PubSubContext from '../../../context/pubsub/context';
-import { pluginIsLoaded } from '../../../utils/utils';
+import { BATTERY_TOPIC } from '../../../config';
 
+// Shown while a plugin publishes battery readings (raspberry-pi with its battery monitor enabled).
 const StatusBattery = () => {
   const { t } = useTranslation();
+  const { state: { [BATTERY_TOPIC]: battery } } = useContext(PubSubContext);
 
-  const { state: {
-    'core.plugins.loaded': plugins,
-    'batt_status': { soc, charging } = {}
-  } } = useContext(PubSubContext);
-
-  const [batteryPluginAvaialble, setBatteryPluginAvailability] = useState(false);
-
-  const chargingStatusLabel = () => {
-    if (soc) {
-      if (charging) return t('settings.status.battery.charging');
-      return t('settings.status.battery.not-charging');
-    }
-
-    return t('settings.status.battery.title');
-  };
-
-  useEffect(() => {
-    if (pluginIsLoaded(plugins, 'battmon')) {
-      setBatteryPluginAvailability(true);
-    }
-  }, [plugins]);
+  if (!battery) {
+    return null;
+  }
 
   return (
-    batteryPluginAvaialble &&
-      <ListItem disableGutters>
-        <ListItemAvatar>
-          <Avatar>
-            <BatteryIcon soc={soc} charging={charging} />
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText
-          primary={soc ? `${soc}%` : `${t('general.loading')} ...`}
-          secondary={chargingStatusLabel()}
-        />
-      </ListItem>
+    <ListItem disableGutters>
+      <ListItemAvatar>
+        <Avatar>
+          <BatteryIcon soc={battery.soc} charging={false} />
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={`${battery.soc}% (${(battery.voltage_mv / 1000).toFixed(2)} V)`}
+        secondary={t('settings.status.battery.title')}
+      />
+    </ListItem>
   );
 };
 

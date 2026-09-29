@@ -96,7 +96,8 @@ ci/                CI helper scripts (e.g. installation testing)
 - Playback/config data lives under `shared/` (audiofolders, playlists, settings, logs) — this is
   what gets mounted into Docker containers and is where user-editable YAML config sits.
 - **Bundled plugins** live in `packages/plugins/*` (uv workspace members, installed by `uv sync`
-  but only loaded when enabled under `plugins:`): `mpd` (player backend) and `rfid-readers`
+  but only loaded when enabled under `plugins:`): `raspberry-pi` (shutdown/reboot, GPIO, battery,
+  firmware health; the installer enables it), `mpd` (player backend) and `rfid-readers`
   (one plugin per reader driver, `rfid_<driver>`; each driver's dependencies are an extra of that
   package -- `uv sync --inexact --extra <driver-extra>`, e.g. `rc522-spi`).
 

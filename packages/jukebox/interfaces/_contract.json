@@ -43,9 +43,10 @@
   },
   "Plugin": {
     "contract": "attribute",
+    "extras": "attribute",
     "validate_declaration": "(cls) -> None"
   },
-  "contract_version": "1.0",
+  "contract_version": "1.1",
   "functions": {
     "action": "(func: Callable | None = None, *, method: str = 'POST', path: str | None = None, exclusive: bool = True, name: str | None = None, status_code: int | None = None)",
     "event": "(name: str, model: Type[pydantic.main.BaseModel]) -> jukebox.contract.declarations.EventSpec",

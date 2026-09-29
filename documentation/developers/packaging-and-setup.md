@@ -101,7 +101,10 @@ optimisation. Steps needing root run their commands through `sudo`.
    the `jukebox` package and builds the wheels of core, CLI and bundled plugins.
    `.github/workflows/wheels.yml` builds them on every push/PR, installs them into a fresh
    environment and starts the jukebox; a tag `v<version>` attaches them to a GitHub release.
-3. **Plugin commands.**
+3. **Plugin commands** -- *done*: `jukebox plugin list|enable|disable|install`
+   (`packages/cli/src/jukebox_cli/plugin.py`). `Plugin.extras` (contract 1.1) names the extras of
+   the plugin's package that `enable --with-extras` installs; installs go through `uv pip` into the
+   jukebox's own environment, `pip` as fallback.
 4. **Setup framework and steps**, porting the Bash routines one by one.
 5. **Install script** for package and source installs; CI runs it in the Debian containers.
 6. **`jukebox update`** and configuration migrations.

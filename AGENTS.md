@@ -134,6 +134,8 @@ uv run jukebox run              # start the Jukebox core -- creates $JUKEBOX_HOM
                                  # jukebox.yaml and logger.yaml from the packaged templates on
                                  # first run if missing (here: shared/settings/, via .env).
 uv run jukebox home             # show JUKEBOX_HOME and the config file in use
+uv run jukebox plugin list      # installed plugins, enabled or not; also enable/disable <name>
+                                 # [--with-extras], install <spec> [--enable]
 bam lint                        # ruff check (cached)
 bam format                      # ruff format (auto-fix)
 bam format-check                # ruff format --check (informational only for now, see roadmap)

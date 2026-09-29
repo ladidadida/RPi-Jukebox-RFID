@@ -121,6 +121,8 @@ class Plugin(Module):
     """Separately installed, opt-in module. Declares which framework contract it targets."""
 
     contract: ClassVar[str] = f">={Version(CONTRACT_VERSION).major}.0,<{Version(CONTRACT_VERSION).major + 1}"
+    #: Extras of the plugin's own package it needs (installed by `jukebox plugin enable --with-extras`)
+    extras: ClassVar[Tuple[str, ...]] = ()
 
     @classmethod
     def validate_declaration(cls) -> None:

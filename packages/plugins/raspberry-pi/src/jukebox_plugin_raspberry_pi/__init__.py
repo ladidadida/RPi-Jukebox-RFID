@@ -46,6 +46,7 @@ class RaspberryPi(Plugin):
 
     name = 'raspberry_pi'
     interface_version = '1.0'
+    extras = ('gpio',)
 
     battery = event('battery', BatteryState)
 

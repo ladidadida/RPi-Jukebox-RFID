@@ -269,6 +269,9 @@ plugins:
 - Bundled plugins live under `packages/plugins/<name>/` as uv workspace members. Their
   dependencies move out of the core `pyproject.toml` extras into each plugin package. The installer
   installs the bundled plugins and pre-fills `plugins:` for the ones the user selected.
+- `jukebox plugin list|enable|disable|install` manages this from the command line. A plugin whose
+  dependencies are optional extras of its package names them in `extras` (e.g.
+  `extras = ('gpio',)`); `jukebox plugin enable <name> --with-extras` installs them.
 
 ## Versioning and compatibility
 
